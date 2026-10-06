@@ -58,6 +58,10 @@ Robot Arm
 
  XTDrone Manual
 
+### Ubuntu 22.04 / ROS 2 Humble
+
+The ROS 2 Humble migration for Ubuntu 22.04 is in progress. The ROS 2 formation demo is currently packaged; the PX4/Gazebo simulator and remaining ROS 1 packages are not yet ported. See the [Ubuntu 22.04 guide](./UBUNTU_22_04.md) for installation and build instructions.
+
 ### Developing Team
 
 - Founders: Kun Xiao, Shaochang Tan

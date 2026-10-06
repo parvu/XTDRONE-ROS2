@@ -1,6 +1,5 @@
 import rclpy
-import time
-import sys
+import argparse
 import numpy
 from rclpy.node import Node
 from std_msgs.msg import String,Float32MultiArray
@@ -67,12 +66,20 @@ class Follower(Node):
 
 
 def main():
-    rclpy.init()
-    node=Follower(sys.argv[1],int(sys.argv[2]),int(sys.argv[3]))
+    parser = argparse.ArgumentParser()
+    parser.add_argument("uav_type")
+    parser.add_argument("uav_id", type=int)
+    parser.add_argument("uav_count", type=int, choices=(6, 9, 18))
+    args, ros_args = parser.parse_known_args()
+    if not 1 <= args.uav_id < args.uav_count:
+        parser.error("uav_id must identify a follower between 1 and uav_count - 1")
+
+    rclpy.init(args=ros_args)
+    node=Follower(args.uav_type,args.uav_id,args.uav_count)
     rclpy.spin(node)
+    node.destroy_node()
     rclpy.shutdown()
 
 if __name__=='__main__':
     main()
-
 

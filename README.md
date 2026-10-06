@@ -106,6 +106,10 @@ K. Xiao, L. Ma, S. Tan, Y. Cong , X. Wang, "Implementation of UAV Coordination B
 
 见[XTDrone使用文档](https://www.yuque.com/xtdrone/manual_cn)
 
+### Ubuntu 22.04 / ROS 2 Humble
+
+Ubuntu 22.04 上的 ROS 2 Humble 迁移正在逐步进行。当前已提供 ROS 2 编队演示包；PX4/Gazebo 主仿真及其余 ROS 1 包尚未完成迁移。安装与构建说明见[Ubuntu 22.04 指南](./UBUNTU_22_04.md)。
+
 ### 项目团队
 
 - 创立者：肖昆，谭劭昌

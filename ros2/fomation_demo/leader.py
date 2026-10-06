@@ -1,29 +1,32 @@
 import rclpy
-import time
-import sys
+import argparse
 import numpy
 from rclpy.node import Node
 from std_msgs.msg import String,Float32MultiArray,Int32MultiArray
 from geometry_msgs.msg import PoseStamped, Pose, Twist,Vector3
 
-if sys.argv[2] == '6':
-    from formation_dict import formation_dict_6 as formation_dict
-elif sys.argv[2] == '9':
-    from formation_dict import formation_dict_9 as formation_dict
-elif sys.argv[2] == '18':
-    from formation_dict import formation_dict_18 as formation_dict
-else:
-    print("Only 6, 9 and 18 UAVs are supported.")
+from .formation_dict import (
+    formation_dict_6,
+    formation_dict_9,
+    formation_dict_18,
+)
+
+FORMATION_CONFIGS = {
+    6: formation_dict_6,
+    9: formation_dict_9,
+    18: formation_dict_18,
+}
 
 class Leader(Node):
-    def __init__(self,uav_type,leader_id,uav_num):
+    def __init__(self,uav_type,leader_id,uav_num,formations):
         self.id=leader_id
         self.pose=PoseStamped()
         self.cmd_vel_enu=Twist()
         self.uav_num=uav_num
+        self.formations=formations
         self.avoid_vel=Vector3()
         self.formation_config='waiting'
-        self.origin_formation=formation_dict["origin"]
+        self.origin_formation=self.formations["origin"]
         self.new_formation =self.origin_formation
         self.adj_matrix=None
         self.communication_topology=None
@@ -54,11 +57,11 @@ class Leader(Node):
         self.cmd_vel_enu = msg
 
     def cmd_callback(self, msg):
-        if msg.data in formation_dict.keys():
+        if msg.data in self.formations.keys():
             self.formation_config = msg.data
             print("Formation pattern: ", self.formation_config)
             # These variables are determined for KM algorithm
-            self.adj_matrix = self.build_graph(self.origin_formation, formation_dict[self.formation_config])
+            self.adj_matrix = self.build_graph(self.origin_formation, self.formations[self.formation_config])
             self.label_left = numpy.max(self.adj_matrix, axis=1)  # init label for the left set
             self.label_right = numpy.array([0] * (self.uav_num - 1))  # init label for the right set
             self.match_right = numpy.array([-1] * (self.uav_num - 1))
@@ -67,7 +70,7 @@ class Leader(Node):
             self.slack_right = numpy.array([100] * (self.uav_num - 1))
             self.changed_id = self.KM()
             # Get a new formation pattern of UAVs based on KM.
-            self.new_formation = self.get_new_formation(self.changed_id, formation_dict[self.formation_config])
+            self.new_formation = self.get_new_formation(self.changed_id, self.formations[self.formation_config])
             self.communication_topology = self.get_communication_topology(self.new_formation)
             self.orig_formation = self.new_formation
         else:
@@ -276,11 +279,16 @@ class Leader(Node):
 
 
 def main():
-    rclpy.init()
-    leader=Leader(sys.argv[1],0,int(sys.argv[2]))
+    parser = argparse.ArgumentParser()
+    parser.add_argument("uav_type")
+    parser.add_argument("uav_count", type=int, choices=FORMATION_CONFIGS)
+    args, ros_args = parser.parse_known_args()
+
+    rclpy.init(args=ros_args)
+    leader=Leader(args.uav_type,0,args.uav_count,FORMATION_CONFIGS[args.uav_count])
     rclpy.spin(leader)
+    leader.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':
     main()  
-
