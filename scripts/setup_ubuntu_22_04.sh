@@ -69,6 +69,8 @@ rosdep update
 
 printf '\nSetup complete. Open a new terminal and run:\n'
 printf '  source /opt/ros/%s/setup.bash\n' "${ROS_DISTRO}"
+printf '  git submodule update --init --recursive PX4-Autopilot\n'
 printf '  mkdir -p ~/xtdrone_ros2_ws/src\n'
 printf '  ln -s "%s/ros2/fomation_demo" ~/xtdrone_ros2_ws/src/xtdrone_formation_demo\n' "${ROOT_DIR}"
-printf '  cd ~/xtdrone_ros2_ws && colcon build --symlink-install\n'
+printf '  ln -s "%s/ros2/px4_gz_simulation" ~/xtdrone_ros2_ws/src/xtdrone_px4_gz\n' "${ROOT_DIR}"
+printf '  cd ~/xtdrone_ros2_ws && colcon build\n'
