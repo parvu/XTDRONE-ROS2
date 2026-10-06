@@ -1,135 +1,134 @@
 <img src="./images/logo.jpg" width="256"  />
 
-<div id="sidebar"><a href="./README.en.md" target="_blank"><font color=#0000FF size=5px >[ENGLISH]<font></center><a></div>
+### Description
 
-### 介绍
-XTDrone是基于PX4、ROS与Gazebo的无人机通用仿真平台。支持多旋翼飞行器（包含四轴和六轴）、固定翼飞行器、复合翼飞行器（包含quadplane，tailsitter和tiltrotor）与其他无人系统（如无人车、无人船与机械臂）。在XTDrone上验证过的算法，可以方便地部署到真实无人机上。
+XTDrone is a general-purpose UAV simulation platform based on PX4, ROS, and Gazebo. It supports multirotor aircraft (including quadrotors and hexarotors), fixed-wing aircraft, VTOL aircraft (including quadplanes, tailsitters, and tiltrotors), and other unmanned systems such as ground vehicles, surface vessels, and robotic arms. Algorithms validated in XTDrone can be conveniently deployed on real UAVs.
 
-目前适用于ROS2的XTDrone2已经推出：
-- Github: https://github.com/andy-zhuo-02/XTDrone2
+XTDrone2, a ROS 2-compatible version, is now available:
+
+- GitHub: https://github.com/andy-zhuo-02/XTDrone2
 - Gitee: https://gitee.com/andy_zhuo/XTDrone2
 
 <img src="./images/vehicles.png" width="640"  />
 
-单机仿真架构如下图所示，详见论文
+The single-vehicle simulation architecture is shown below. For more details, see the paper:
 
-K. Xiao, S. Tan, G. Wang, X. An, X. Wang and X. Wang, "XTDrone: A Customizable Multi-rotor UAVs Simulation Platform," 2020 4th International Conference on Robotics and Automation Sciences (ICRAS), 2020, pp. 55-61, doi: 10.1109/ICRAS49812.2020.9134922. 
+K. Xiao, S. Tan, G. Wang, X. An, X. Wang and X. Wang, "XTDrone: A Customizable Multi-rotor UAVs Simulation Platform," 2020 4th International Conference on Robotics and Automation Sciences (ICRAS), 2020, pp. 55-61, doi: 10.1109/ICRAS49812.2020.9134922.
 
-预印版 **[ arXiv:2003.09700](https://arxiv.org/abs/2003.09700)** 
+Preprint: **[arXiv:2003.09700](https://arxiv.org/abs/2003.09700)**
 
-<img src="./images/architecture_1_cn.png" width="640" height="480" /> 
+<img src="./images/architecture_1_cn.png" width="640" height="480" />
 
-多机仿真架构如下图所示，详见论文 
+The multi-vehicle simulation architecture is shown below. For more details, see the paper:
 
-K. Xiao, L. Ma, S. Tan, Y. Cong , X. Wang, "Implementation of UAV Coordination Based on a Hierarchical Multi-UAV Simulation Platform," Advances in Guidance, Navigation and Control. Lecture Notes in Electrical Engineering, 2022, vol 644. Springer, Singapore. doi: 10.1007/978-981-15-8155-7_423
+K. Xiao, L. Ma, S. Tan, Y. Cong, X. Wang, "Implementation of UAV Coordination Based on a Hierarchical Multi-UAV Simulation Platform," Advances in Guidance, Navigation and Control. Lecture Notes in Electrical Engineering, 2022, vol. 644. Springer, Singapore. doi: 10.1007/978-981-15-8155-7_423
 
-预印版 **[ arXiv:2005.01125](https://arxiv.org/abs/2005.01125)** (2020)
+Preprint: **[arXiv:2005.01125](https://arxiv.org/abs/2005.01125)** (2020)
 
 <img src="./images/architecture_2_cn.png" width="640" />
 
-如果使用XTDrone用于学术论文的仿真验证，请引用上述的其中一篇论文。
+If you use XTDrone to validate your research, please cite one of the papers above.
 
-在这个平台上，开发者可以快速验证算法。如：
+XTDrone helps developers quickly validate algorithms and applications, including:
 
-双目SLAM
+**Stereo SLAM**
 
-<img src="./images/vslam.gif" width="640" height="360" /> 
+<img src="./images/vslam.gif" width="640" height="360" />
 
-视觉惯性导航
+**Visual-inertial navigation**
 
-<img src="./images/vio.gif" width="640" height="360" />  
+<img src="./images/vio.gif" width="640" height="360" />
 
-视觉稠密重建
+**Dense visual reconstruction**
 
-<img src="./images/dense_reconstruction.gif" width="640" height="360" /> 
+<img src="./images/dense_reconstruction.gif" width="640" height="360" />
 
-2D激光SLAM
+**2D laser SLAM**
 
-<img src="./images/laser_slam_2d.gif" width="640" height="360" /> 
+<img src="./images/laser_slam_2d.gif" width="640" height="360" />
 
-3D激光SLAM
+**3D laser SLAM**
 
-<img src="./images/laser_slam_3d.gif" width="640" height="360"/>  
+<img src="./images/laser_slam_3d.gif" width="640" height="360" />
 
-2D运动规划
+**2D motion planning**
 
-<img src="./images/2d_motion_planning.gif" width="640" height="360" />  
+<img src="./images/2d_motion_planning.gif" width="640" height="360" />
 
-<img src="./images/2d_motion_planning_new.gif" width="640" height="360" />  
+<img src="./images/2d_motion_planning_new.gif" width="640" height="360" />
 
-3D运动规划
+**3D motion planning**
 
-<img src="./images/3d_motion_planning.gif" width="640" height="360" />  
+<img src="./images/3d_motion_planning.gif" width="640" height="360" />
 
-集群运动规划
+**Swarm motion planning**
 
-<img src="./images/swarm_motion_planning.gif" width="640" height="306" />  
+<img src="./images/swarm_motion_planning.gif" width="640" height="306" />
 
-目标检测与追踪
+**Object detection and tracking**
 
-<img src="./images/human_tracking.gif" width="640" height="360" /> 
+<img src="./images/human_tracking.gif" width="640" height="360" />
 
-多机编队
+**Multi-UAV formation**
 
-<img src="./images/formation_1.gif" width="640" height="360" />  
+<img src="./images/formation_1.gif" width="640" height="360" />
 
-<img src="./images/formation_2.gif" width="640" height="360" />  
+<img src="./images/formation_2.gif" width="640" height="360" />
 
-多机精准降落
+**Multi-UAV precision landing**
 
-<img src="./images/multi_precision_landing.gif" width="640" height="360" />  
+<img src="./images/multi_precision_landing.gif" width="640" height="360" />
 
-固定翼
+**Fixed-wing aircraft**
 
-<img src="./images/planes.gif" width="640" height="360" />  
+<img src="./images/planes.gif" width="640" height="360" />
 
-复合翼
+**VTOL aircraft**
 
-<img src="./images/vtols.gif" width="640" height="360" />  
+<img src="./images/vtols.gif" width="640" height="360" />
 
+**Ground vehicles**
 
-无人车
+<img src="./images/ugv.gif" width="640" height="360" />
 
-<img src="./images/ugv.gif" width="640" height="360" />  
+<img src="./images/ugv_planning.gif" width="640" height="398" />
 
-<img src="./images/ugv_planning.gif" width="640" height="398" /> 
+**Surface vessels**
 
-无人船
+<img src="./images/usv.gif" width="640" height="360" />
 
-<img src="./images/usv.gif" width="640" height="360" />  
+**Aerial manipulators**
 
-空中机械臂
+<img src="./images/robotic_arm.gif" width="640" height="360" />
 
-<img src="./images/robotic_arm.gif" width="640" height="360" />  
+### User manual
 
-### 教程
-
-见[XTDrone使用文档](https://www.yuque.com/xtdrone/manual_cn)
+See the [XTDrone user manual (Chinese)](https://www.yuque.com/xtdrone/manual_cn).
 
 ### Ubuntu 22.04 / ROS 2 Humble
 
-Ubuntu 22.04 上的 ROS 2 Humble 迁移正在逐步进行。当前已提供 ROS 2 编队演示包；PX4/Gazebo 主仿真及其余 ROS 1 包尚未完成迁移。安装与构建说明见[Ubuntu 22.04 指南](./UBUNTU_22_04.md)。
+The ROS 2 Humble migration for Ubuntu 22.04 is in progress. A ROS 2 formation demo and a single-vehicle PX4 v1.15.4 SITL launch entrypoint for Gazebo Garden are available. The legacy Gazebo Classic models, ROS 1 plugins, multi-vehicle scenarios, and remaining ROS 1 packages are not yet ported. See the [Ubuntu 22.04 guide](./UBUNTU_22_04.md) for prerequisites and build instructions.
 
-### 项目团队
+### Project team
 
-- 创立者：肖昆，谭劭昌
-- 指导老师：王祥科
-- 开发团队：肖昆，谭劭昌，卓安，王冠政，马澜，李玙珂，王齐鹏，胡新雨，吴欣宁，郑家驿，彭羽凡，郑子君，颜佳润，易丰，管若乔，胡文信，鲍毅，刘旭东，闵洁，刘传胪，阮慈棫，孔德浩
+- Founders: Kun Xiao and Shaochang Tan
+- Adviser: Xiangke Wang
+- Developers: Kun Xiao, Shaochang Tan, An Zhuo, Guanzheng Wang, Lan Ma, Yuke Li, Qipeng Wang, Xinyu Hu, Xinning Wu, Jiayi Zheng, Yufan Peng, Zijun Zheng, Jiarun Yan, Feng Yi, Ruoqiao Guan, Wenxin Hu, Yi Bao, Xudong Liu, Jie Min, Chuanlu Liu, Ciyu Ruan, and Dehao Kong
 
-### 加入我们
+### Join us
 
-欢迎广大无人机开发者们加入我们的团队，共同学习进步。如有意向，请把简历（包含对PX4 ROS与Gazebo的掌握情况）发到<zhuoan@stu.pku.edu.cn>，让我们一起完善XTDrone仿真平台。
+UAV developers are welcome to join our team, learn, and contribute. If you are interested, please email your résumé, including your experience with PX4, ROS, and Gazebo, to <zhuoan@stu.pku.edu.cn>. We look forward to working together to improve XTDrone.
 
-### 贡献者
+### Contributors
 
-非常感谢你们为XTDrone的贡献
+We sincerely thank all XTDrone contributors:
 
-陈科研，许江伟，卢永光，陈皋，孙长浩，聂莹，孔凡杰，李超然，李旭东，张华卿，林梓涵，何瑶 
+Keyan Chen, Jiangwei Xu, Yongguang Lu, Gao Chen, Changhao Sun, Ying Nie, Fanjie Kong, Chaoran Li, Xudong Li, Huaqing Zhang, Zihan Lin, and Yao He.
 
-### 中国机器人大赛无人机挑战赛仿真组
+### China Robotics Competition UAV Challenge Simulation Group
 
-2024 中国机器人大赛已完成比赛，比赛详情见[官网](http://crc.drct-caa.org.cn/index.php)，其中无人机挑战赛仿真组的平台使用XTDrone。2025无人机仿真组将继续由XTDrone团队筹备，届时欢迎大家积极报名，展示自己的风采。
+The 2024 China Robotics Competition has concluded. See the [official website](http://crc.drct-caa.org.cn/index.php) for details. XTDrone was used by the UAV Challenge Simulation Group. The XTDrone team is preparing the 2025 UAV Simulation Group; we welcome participants to register and showcase their work.
 
-### 合作
+### Collaboration
 
-如果想与XTDrone团队建立合作，请联系卓安<zhuoan@stu.pku.edu.cn>。
+For collaboration inquiries, please contact An Zhuo at <zhuoan@stu.pku.edu.cn>.

@@ -6,3 +6,6 @@
 	path = sensing/object_detection_and_tracking/darknet_ros
 	url = https://gitee.com/robin_shaun/darknet_ros_yolov4
 	branch = master
+[submodule "px4-autopilot"]
+	path = PX4-Autopilot
+	url = https://github.com/PX4/PX4-Autopilot.git
