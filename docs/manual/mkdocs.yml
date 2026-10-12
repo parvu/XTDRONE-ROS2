@@ -1,0 +1,104 @@
+site_name: XTDrone Manual — ROS 2 Jazzy / Gazebo Harmonic
+site_description: XTDrone UAV simulation platform on ROS 2 Jazzy, Gazebo Harmonic and PX4 v1.16.2
+repo_url: https://github.com/robin-shaun/XTDrone
+docs_dir: docs
+site_dir: site
+# Plain .html links so the built site works when opened from disk (file://).
+use_directory_urls: false
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - content.code.copy
+    - search.highlight
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle: {icon: material/weather-night, name: Dark mode}
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle: {icon: material/weather-sunny, name: Light mode}
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - tables
+  - toc: {permalink: true}
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed: {alternate_style: true}
+  - pymdownx.arithmatex: {generic: true}
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js
+
+nav:
+  - Home: index.md
+  - Chapter status: reference/status.md
+  - Getting started:
+      - 1. Video introduction: getting-started/01-introduction.md
+      - 2. Basic configuration: getting-started/02-basic-configuration.md
+      - 3. Basic configuration (PX4 1.13 notes): getting-started/03-px4-versions.md
+      - 4. Docker: getting-started/04-docker.md
+      - 5. Single-direction position hold: getting-started/05-position-hold.md
+      - 6. PX4 EKF configuration: getting-started/06-ekf.md
+      - 7. Multirotor attitude control: getting-started/07-attitude-control.md
+      - 8. Different UAV types: getting-started/08-vehicle-types.md
+  - Multi-vehicle and ground vehicles:
+      - 9. Multi-vehicle simulation: multi-vehicle/09-multi-vehicle.md
+      - 10. Add a vehicle at runtime: multi-vehicle/10-add-vehicle.md
+      - 11. UGV configuration: multi-vehicle/11-ugv.md
+  - Sensing:
+      - 12. Sensor configuration: sensing/12-sensors.md
+      - 13. Visual SLAM: sensing/13-vslam.md
+      - 14. Visual-inertial odometry: sensing/14-vio.md
+      - 15. Ground-truth pose: sensing/15-ground-truth.md
+      - 16. Dense reconstruction: sensing/16-dense-reconstruction.md
+      - 17. 2D laser SLAM (Hector → slam_toolbox): sensing/17-2d-laser-slam.md
+      - 18. 2D laser SLAM (Cartographer): sensing/18-cartographer.md
+      - 19. 3D laser SLAM: sensing/19-3d-laser-slam.md
+  - Planning and perception:
+      - 20. 2D motion planning: planning/20-2d-planning.md
+      - 21. 3D motion planning: planning/21-3d-planning.md
+      - 22. Swarm motion planning: planning/22-swarm-planning.md
+      - 23. Target detection and tracking: planning/23-detection-tracking.md
+  - Coordination:
+      - 24. Multi-UAV formation: coordination/24-formation.md
+      - 25. Multi-UAV formation (ROS 2): coordination/25-formation-ros2.md
+      - 26. Formation hardware-in-the-loop: coordination/26-formation-hil.md
+      - 27. Formation with a communication model: coordination/27-formation-communication.md
+      - 28. Multi-UAV precision landing: coordination/28-precision-landing.md
+      - 29. Multi-UAV waypoints with QGC: coordination/29-qgc-waypoints.md
+  - Applications:
+      - 30. Self-driving car: applications/30-self-driving.md
+      - 31. UGV motion planning: applications/31-ugv-planning.md
+      - 32. UAV and USV cooperation: applications/32-usv.md
+      - 33. Aerial robotic arm: applications/33-robotic-arm.md
+      - 34. Fixed-wing affine formation: applications/34-fixed-wing-affine.md
+      - 35. Fixed-wing formation tracking a UGV: applications/35-fixed-wing-ugv.md
+  - Environment:
+      - 36. Flat (image) models: environment/36-flat-model.md
+      - 37. Moving environment models: environment/37-control-models.md
+      - 38. Actors: environment/38-actors.md
+      - 39. Building scenes: environment/39-building-scenes.md
+      - 40. Large scenes: environment/40-large-scenes.md
+      - 41. Wind: environment/41-wind.md
+      - 42. XTDGroundControl: environment/42-xtdgroundcontrol.md
+  - Advanced:
+      - 43. Accelerated simulation and large swarms: advanced/43-acceleration-large-swarm.md
+      - 44. Contact detection: advanced/44-contact-detection.md
+  - Theory:
+      - 45. Control command to actuator mapping: theory/45-control-mapping.md
+      - 46. Dynamics model: theory/46-dynamics.md
+      - 47. Sensor models: theory/47-sensor-models.md
+      - 48. UDP port matching: theory/48-udp-ports.md
+  - Reference:
+      - Porting notes (ROS 1 / Classic → ROS 2 / Harmonic): reference/porting-notes.md
+      - Packages, launch arguments and topics: reference/packages.md
+      - Testing: reference/testing.md
+      - Troubleshooting: reference/troubleshooting.md
