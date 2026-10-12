@@ -9,7 +9,6 @@
 | `ros2/xtdrone_bringup/` | `xtdrone.launch.py`, `spawn_vehicle.launch.py`, scenarios (`config/scenarios/*.yaml`), fleet logic |
 | `ros2/xtdrone_py/` | rclpy nodes: communication, keyboard, ground truth, demos, Gazebo helpers |
 | `ros2/fomation_demo/` | package `xtdrone_formation_demo` (chapter 25) |
-| `ros2/px4_gz_simulation/` | package `xtdrone_px4_gz`: stock `make px4_sitl gz_x500` + Micro XRCE-DDS agent |
 | `sitl_config/`, `communication/`, `control/`, … | the original ROS 1 / Classic XTDrone sources (input of the converters, reference) |
 | `scripts/` | setup, build, environment, verification, tests, manual build |
 | `docs/manual/` | this manual (MkDocs) |

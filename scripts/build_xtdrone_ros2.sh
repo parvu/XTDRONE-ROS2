@@ -81,7 +81,6 @@ for pkg in xtdrone_gz xtdrone_bringup xtdrone_py; do
   ln -sfn "${ROOT_DIR}/ros2/${pkg}" "${WORKSPACE}/src/${pkg}"
 done
 ln -sfn "${ROOT_DIR}/ros2/fomation_demo" "${WORKSPACE}/src/xtdrone_formation_demo"
-ln -sfn "${ROOT_DIR}/ros2/px4_gz_simulation" "${WORKSPACE}/src/xtdrone_px4_gz"
 
 set +u
 # shellcheck disable=SC1090

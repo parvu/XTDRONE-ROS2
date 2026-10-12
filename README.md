@@ -105,9 +105,9 @@ XTDrone helps developers quickly validate algorithms and applications, including
 
 See the [XTDrone user manual (Chinese)](https://www.yuque.com/xtdrone/manual_cn).
 
-### Ubuntu 22.04 / ROS 2 Humble
+### ROS 2 Jazzy / Gazebo Harmonic (Ubuntu 24.04)
 
-The ROS 2 Humble migration for Ubuntu 22.04 is in progress. A ROS 2 formation demo and a single-vehicle PX4 v1.15.4 SITL launch entrypoint for Gazebo Garden are available. The legacy Gazebo Classic models, ROS 1 plugins, multi-vehicle scenarios, and remaining ROS 1 packages are not yet ported. See the [Ubuntu 22.04 guide](./UBUNTU_22_04.md) for prerequisites and build instructions.
+XTDrone runs on Ubuntu 24.04 with ROS 2 Jazzy, Gazebo Harmonic and PX4 v1.16.2. See the [ROS 2 manual](./docs/manual/docs/index.md) for setup, build and chapter instructions (`./scripts/build_manual.sh` builds it locally).
 
 ### Project team
 

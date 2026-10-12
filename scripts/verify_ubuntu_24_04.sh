@@ -22,7 +22,7 @@ check "PX4 v1.16.2 submodule" bash -c "[[ \$(git -C '${ROOT_DIR}/PX4-Autopilot' 
 check "PX4 SITL binary" test -x "${ROOT_DIR}/PX4-Autopilot/build/px4_sitl_default/bin/px4"
 check "PX4 gz_bridge built" test -d "${ROOT_DIR}/PX4-Autopilot/build/px4_sitl_default/src/modules/simulation/gz_bridge"
 check "XTDrone typhoon airframe in PX4 build" bash -c "ls '${ROOT_DIR}'/PX4-Autopilot/build/px4_sitl_default/etc/init.d-posix/airframes/4901_gz_typhoon_h480"
-for pkg in xtdrone_gz xtdrone_bringup xtdrone_py xtdrone_formation_demo xtdrone_px4_gz; do
+for pkg in xtdrone_gz xtdrone_bringup xtdrone_py xtdrone_formation_demo; do
   check "package ${pkg}" ros2 pkg prefix "${pkg}"
 done
 check "converted worlds installed" bash -c "ls \$(ros2 pkg prefix xtdrone_gz)/share/xtdrone_gz/worlds/indoor1.sdf"
