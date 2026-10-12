@@ -82,3 +82,24 @@ Use full topic names (`/iris_0/mavros/...`). Relative names resolve against the 
 - **Orphaned processes.** If a launch is killed with SIGKILL, its children keep running: PX4's `rcS` shell, static
   TF publishers, SLAM nodes. They then disturb later runs (stale poses, CPU load). The test runner's cleanup kills
   them by executable path.
+
+## Findings from phase 5
+
+- **Wall clock in ROS 2 ports.** Code that reads `rclcpp::Clock()` (or an unattached `RCL_ROS_TIME` clock) runs on
+  the wall clock even with `use_sim_time`. With Gazebo slower than real time this breaks anything that times
+  trajectories: the EGO-Planner port did (chapter 21), and `xtdrone_planning/scripts/patch_ego_planner.py` moves
+  it to the node clock. Messages paired by time stamp (a depth image and a camera pose) must use the same clock.
+- **Heightmaps.** gz-sim draws a heightmap at its `<pos>` only (link and visual poses are ignored) and scales the
+  image to its brightest pixel, where Classic added the link pose and scaled pixel / 255. The converter rewrites
+  `<pos>` and `<size>` so the terrain has the Classic heights; before that `city_terrain` covered the roads of
+  `outdoor1`.
+- **Actors with `walk.dae`.** A bare skin name was found by Classic in its media; the mesh origin is at the hips, so
+  gz-sim needs the waypoints 1 m higher. Classic-saved worlds also carry the skin as `<link>` visuals, which the
+  converter drops. A converted world can load without errors and still show no actor: check it in a camera image.
+- **Spawn points inside models.** The origin of `outdoor1` is inside a parked utility vehicle: a multirotor
+  spawned there cannot climb past 0.4 m. Its scenarios start the vehicles beside it.
+- **Visual odometry needs texture.** After the conversion the walls of `indoor1` are plain, and ORB-SLAM3 and
+  VINS lose their features there; chapters 13 and 14 use the city of `outdoor1`. Plain, close surfaces in front of
+  the camera (the large red arrow of `outdoor1`) also break ORB-SLAM3 tracking.
+- **Stereo pairs.** Under load Gazebo drops left and right camera frames independently; pair them by exact time
+  stamp, not approximately.

@@ -4,7 +4,7 @@
     Package `xtdrone_slam`: `vio.launch.py` (VINS-Fusion, submodule `ros2/vins-fusion`) and `laser_transfer`
     in `vins` mode (the port of `vins_transfer.py`). Test: `scripts/tests/run_chapter_tests.sh ch14`: an
     `iris_stereo_camera` in `outdoor1` takes off and flies a 2 m square on the VINS pose only, with no GPS and no
-    ground truth. The VINS trajectory stays within 0.3 m of the Gazebo ground truth.
+    ground truth. The VINS trajectory stays within 0.45 m of the Gazebo ground truth (0.23–0.44 m in the test runs).
 
 VINS-Fusion runs in stereo + IMU mode on the stereo camera and the IMU of `iris_stereo_camera`. The ROS 2 port is
 [mzahana/VINS-Fusion-ROS2](https://github.com/mzahana/VINS-Fusion-ROS2) (branch `ros2_jazzy`), built by

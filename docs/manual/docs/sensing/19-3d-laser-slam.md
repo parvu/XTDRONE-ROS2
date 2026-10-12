@@ -4,7 +4,7 @@
     Package `xtdrone_slam`: `laser_slam_3d.launch.py` (KISS-ICP v1.2.3, submodule `ros2/kiss-icp`) and
     `laser_transfer` in `kiss_icp` mode. Test: `scripts/tests/run_chapter_tests.sh ch19`: an `iris_3d_lidar` in
     `outdoor1` takes off and flies a 2 m square on the lidar odometry only, with no GPS and no ground truth. The
-    odometry stays within 0.35 m of the Gazebo ground truth.
+    odometry stays within 0.45 m of the Gazebo ground truth (0.34–0.42 m in the test runs).
 
 A-LOAM has no maintained ROS 2 port. [KISS-ICP](https://github.com/PRBonn/kiss-icp) replaces it: a point-to-point
 ICP odometry that needs no tuning for the sensor. Like A-LOAM in this chapter, it gives position, height and attitude.

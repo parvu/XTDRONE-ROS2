@@ -295,6 +295,37 @@ class Converter:
             return Path(model_dir) / uri
         return None
 
+    def convert_heightmaps(self, root, model_dir):
+        """Give heightmap visuals the heights Classic drew.
+
+        Measured with a depth camera on city_terrain (outdoor1, robocup): gz-sim draws a heightmap at its
+        <pos> only (the link and visual poses are ignored) and scales the image so that its brightest pixel
+        is <size> z high, where Classic added the link pose and scaled pixel / 255. The flat city area
+        (pixel 17 of 170) was drawn at z +2.5 instead of -5, over the roads and the pedestrian of outdoor1.
+        """
+        for link in root.iter("link"):
+            lz = float((link.findtext("pose") or "0 0 0").split()[2])
+            for visual in link.findall("visual"):
+                hm = visual.find("geometry/heightmap")
+                if hm is None:
+                    continue
+                vz = float((visual.findtext("pose") or "0 0 0").split()[2])
+                pos = hm.find("pos")
+                if pos is None:
+                    pos = ET.SubElement(hm, "pos")
+                    pos.text = "0 0 0"
+                p = [float(x) for x in pos.text.split()]
+                p[2] += lz + vz
+                pos.text = " ".join(f"{v:g}" for v in p)
+                size, image = hm.find("size"), self.resolve_local(hm.findtext("uri") or "", model_dir)
+                if size is not None and image is not None and image.exists():
+                    from PIL import Image
+                    peak = max(Image.open(image).convert("L").getdata())
+                    if 0 < peak < 255:
+                        s = [float(x) for x in size.text.split()]
+                        s[2] *= peak / 255.0
+                        size.text = " ".join(f"{v:g}" for v in s)
+
     # -- generic element pass ------------------------------------------------
     def convert_tree(self, root, model_dir=None):
         # Actors positioned by XTDrone's ROS actor plugin (init_pose) get that pose directly.
@@ -319,6 +350,26 @@ class Converter:
                     parent.remove(child)
                 elif child.tag in ("audio_source", "audio_sink"):
                     parent.remove(child)
+        self.convert_heightmaps(root, model_dir)
+        # A bare actor skin/animation file name (outdoor1: walk.dae) was found by Classic in its media/models.
+        # Classic also saved the skin again as <link> visuals of the actor; the skin alone draws the actor.
+        # walk.dae has its origin at the hips: gz-sim draws it with the feet 1 m below the waypoints
+        # (its own actor example walks at z = 1), so the z = 0 waypoints of these worlds go up by 1 m.
+        for actor in root.iter("actor"):
+            for link in actor.findall("link"):
+                actor.remove(link)
+            bare_walk = False
+            for el in actor.iter("filename"):
+                name = (el.text or "").strip()
+                if name and "://" not in name and "/" not in name:
+                    el.text = "file://media/models/" + name
+                    bare_walk |= name == "walk.dae"
+            if bare_walk:
+                for pose in actor.iter("pose"):
+                    v = (pose.text or "").split()
+                    if len(v) == 6 and pose is not actor.find("pose") and float(v[2]) < 0.5:
+                        v[2] = f"{float(v[2]) + 1.0:g}"
+                        pose.text = " ".join(v)
         for mat in root.iter("material"):
             self.convert_material(mat, model_dir)
         for tag in ("uri", "filename", "diffuse", "normal", "albedo_map"):

@@ -185,6 +185,10 @@ for c in "${CASES[@]}"; do
       run_script ch21_ego_planner "scenario:=indoor1_ego ekf:=vision communication:=basic" \
         "${ROOT_DIR}/scripts/tests/ego_planner_test.py --detour 0.45" \
         "sleep 15; ros2 run xtdrone_py get_local_pose iris 1" ;;
+    ch23)  # YOLO (OpenCV DNN, YOLOv4-tiny) finds the walking pedestrian of outdoor1 in the typhoon's gimbal camera
+      run_script ch23_yolo_tracking "scenario:=outdoor1 communication:=basic" \
+        "${ROOT_DIR}/scripts/tests/yolo_tracking_test.py" \
+        "sleep 20; ros2 run xtdrone_py gimbal_control typhoon_h480 0 & ros2 run xtdrone_py yolo_detection typhoon_h480 0" ;;
     ch24)  # consensus formation with collision avoidance, 9 iris
       run_script ch24_consensus_formation "world:=empty vehicles:=iris*9 ekf:=vision communication:=basic" \
         "${ROOT_DIR}/scripts/tests/formation_test.py --count 9 --controller consensus --avoid" \

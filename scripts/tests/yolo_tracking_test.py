@@ -6,7 +6,8 @@ Requires: xtdrone.launch.py scenario:=outdoor1 communication:=basic, and
 `ros2 run xtdrone_py gimbal_control typhoon_h480 0` + `ros2 run xtdrone_py yolo_detection typhoon_h480 0`.
 
 1. take off to ~8 m and hover; the camera looks 60 deg down;
-2. wait until "person" is detected (the actor walks along y = 3 near the start);
+2. wait until "person" is detected. The actor walks along y = 3 from x = 0 to 41 at sim time 0-40 s and again
+   from 240 s (its loop is 240 s; in between it is far away), so the test waits up to sim time 330 s;
 3. start yolo_human_tracking and check that the typhoon moves (follows) while detections continue.
 """
 import math
@@ -20,6 +21,7 @@ import rclpy
 from geometry_msgs.msg import Twist, Vector3
 from mavros_msgs.msg import HomePosition, State
 from nav_msgs.msg import Odometry
+from rosgraph_msgs.msg import Clock
 from rclpy.qos import qos_profile_sensor_data
 from std_msgs.msg import String
 from vision_msgs.msg import Detection2DArray
@@ -46,6 +48,7 @@ def main():
                           qos_profile_sensor_data)
     n.create_subscription(Odometry, f"/{V}/ground_truth/odom", lambda m: d.__setitem__("gt", m.pose.pose.position), 1)
     n.create_subscription(Detection2DArray, f"/{V}/detections", det, 10)
+    n.create_subscription(Clock, "/clock", lambda m: d.__setitem__("sim", m.clock.sec + m.clock.nanosec * 1e-9), 10)
     cmd = n.create_publisher(String, f"/xtdrone/{V}/cmd", 3)
     vel = n.create_publisher(Twist, f"/xtdrone/{V}/cmd_vel_flu", 1)
 
@@ -77,7 +80,9 @@ def main():
             return 1
         cmd.publish(String(data="HOVER"))
         wait(2, every=lambda: vel.publish(Twist()))
-        seen = wait(240, lambda: d["persons"] >= 3)
+        # until the actor's second pass along y = 3 (sim time 240-280 s) is over; a wall-time cap for slow runs
+        seen = wait(1200, lambda: d["persons"] >= 3 or d.get("sim", 0) > 330)
+        seen = d["persons"] >= 3
         log(f"{'ok  ' if seen else 'FAIL'} YOLO: person in {d['persons']} of {d['frames']} processed frames")
         ok &= seen
         if seen:

@@ -63,10 +63,13 @@ def pitch_of(q):
 class Yolo:
     """YOLOv4-tiny on a BGR image: list of (class_name, score, x_min, y_min, x_max, y_max)."""
 
-    def __init__(self, cfg, weights, names, conf=0.4, nms=0.4):
+    def __init__(self, cfg, weights, names, conf=0.4, nms=0.4, size=(960, 544)):
         self.net = cv2.dnn.readNetFromDarknet(cfg, weights)
         self.model = cv2.dnn_DetectionModel(self.net)
-        self.model.setInputParams(size=(416, 416), scale=1 / 255.0, swapRB=True)
+        # Network input. The typhoon's gimbal camera is 640 x 360 with a 115 deg field of view: a pedestrian
+        # 10 m away is about 45 px tall, too small for YOLOv4-tiny at the usual 416 x 416 (no detection);
+        # 960 x 544 (16:9, multiples of 32) finds it with score 0.95 in about 70 ms on the CPU.
+        self.model.setInputParams(size=tuple(size), scale=1 / 255.0, swapRB=True)
         self.names = [n.strip() for n in open(names) if n.strip()]
         self.conf, self.nms = conf, nms
 
@@ -80,12 +83,12 @@ class Yolo:
 
 class YoloDetection(Node):
 
-    def __init__(self, vtype, vid, cfg=None, weights=None, names=None, rate=5.0):
+    def __init__(self, vtype, vid, cfg=None, weights=None, names=None, rate=5.0, size=(960, 544)):
         n = f"{vtype}_{vid}"
         super().__init__(f"yolo_detection_{n}")
         if cfg is None:
             cfg, weights, names = yolo_files()
-        self.yolo = Yolo(cfg, weights, names)
+        self.yolo = Yolo(cfg, weights, names, size=size)
         self.image = None
         self.create_subscription(Image, f"/{n}/{CAMERA.get(vtype, 'camera/image_raw')}",
                                  lambda m: setattr(self, "image", m), qos_profile_sensor_data)
@@ -125,8 +128,10 @@ class GimbalControl(Node):
     def __init__(self, vtype, vid, pitch_deg=-60.0):
         n = f"{vtype}_{vid}"
         super().__init__(f"gimbal_control_{n}")
-        # the cgo3 camera joint turns about -y: positive angles look down; XTDrone's pitch -60 = 60 deg down
-        self.pitch = math.radians(-pitch_deg)
+        # XTDrone's pitch -60 = 60 deg down. The cgo3 camera joint turns about -y, so a positive angle
+        # tilts the camera up and the joint takes minus the downward angle (limits -1.05 .. 2.09 rad)
+        self.down = math.radians(-pitch_deg)
+        self.joint = max(-1.05, min(2.09, -self.down))
         self.pitch_pub = self.create_publisher(Float64, f"/{n}/gimbal/pitch_cmd", 1)
         self.roll_pub = self.create_publisher(Float64, f"/{n}/gimbal/roll_cmd", 1)
         self.yaw_pub = self.create_publisher(Float64, f"/{n}/gimbal/yaw_cmd", 1)
@@ -138,13 +143,13 @@ class GimbalControl(Node):
         print(f"{n}: Gimbal control", flush=True)
 
     def loop(self):
-        self.pitch_pub.publish(Float64(data=self.pitch))
+        self.pitch_pub.publish(Float64(data=self.joint))
         self.roll_pub.publish(Float64(data=0.0))
         self.yaw_pub.publish(Float64(data=0.0))
         if self.pose is None:
             return
         o = self.pose.pose.orientation
-        g = (0.0, math.sin(self.pitch / 2), 0.0, math.cos(self.pitch / 2))  # pitch down about +y (FLU)
+        g = (0.0, math.sin(self.down / 2), 0.0, math.cos(self.down / 2))  # pitch down about +y (FLU)
         q = quat_mul((o.x, o.y, o.z, o.w), g)
         cam = PoseStamped()
         cam.header.stamp = self.get_clock().now().to_msg()
@@ -226,8 +231,11 @@ def detection_main():
     def make(argv):
         a = _args(argv, "yolo_detection", lambda ap: (ap.add_argument("--cfg"), ap.add_argument("--weights"),
                                                      ap.add_argument("--names"), ap.add_argument("--rate", type=float,
-                                                                                                 default=5.0)))
-        return YoloDetection(a.vehicle_type, a.vehicle_id, a.cfg, a.weights, a.names, a.rate)
+                                                                                                 default=5.0),
+                                                     ap.add_argument("--size", default="960x544",
+                                                                     help="network input WxH, multiples of 32")))
+        w, h = (int(v) for v in a.size.lower().split("x"))
+        return YoloDetection(a.vehicle_type, a.vehicle_id, a.cfg, a.weights, a.names, a.rate, (w, h))
     run(make)
 
 

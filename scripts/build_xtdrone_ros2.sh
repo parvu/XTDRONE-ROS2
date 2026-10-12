@@ -114,7 +114,7 @@ for pkg in planner/plan_env planner/path_searching planner/bspline_opt planner/t
   ln -sfn "${ROOT_DIR}/ros2/ego-planner-swarm/src/${pkg}" "${WORKSPACE}/src/ego_planner/$(basename "${pkg}")"
 done
 # plan_manage (package ego_planner) is copied and patched to follow simulation time (see the patch script)
-rm -f "${WORKSPACE}/src/ego_planner/plan_manage"
+[[ -L "${WORKSPACE}/src/ego_planner/plan_manage" ]] && rm -f "${WORKSPACE}/src/ego_planner/plan_manage"  # an older build linked it
 rsync -a --delete "${ROOT_DIR}/ros2/ego-planner-swarm/src/planner/plan_manage/" "${WORKSPACE}/src/ego_planner/plan_manage/"
 python3 "${ROOT_DIR}/ros2/xtdrone_planning/scripts/patch_ego_planner.py" "${WORKSPACE}/src/ego_planner/plan_manage"
 # Jazzy has only cv_bridge/cv_bridge.hpp: give the EGO packages a cv_bridge.h that includes it
