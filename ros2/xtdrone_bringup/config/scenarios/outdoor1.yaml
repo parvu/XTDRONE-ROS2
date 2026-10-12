@@ -1,0 +1,4 @@
+# Converted from sitl_config/launch/outdoor1.launch
+world: outdoor1
+vehicles:
+  - {model: typhoon_h480, type: typhoon_h480, id: 0, pose: [0, 0, 0, 0, 0, 0]}

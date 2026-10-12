@@ -1,0 +1,12 @@
+#!/bin/sh
+# shellcheck disable=SC2154
+# XTDrone overlay of PX4's px4-rc.simulator (found first on PATH, see xtdrone_bringup).
+# rcS sources it after the airframe defaults and before the estimator starts, so
+# parameters given in XTDRONE_PX4_PARAMS ("NAME=value NAME=value ...") are set here,
+# e.g. the GPS / vision EKF2 presets. Then PX4's own script runs unchanged.
+
+for xtd_kv in ${XTDRONE_PX4_PARAMS}; do
+	param set "${xtd_kv%%=*}" "${xtd_kv#*=}"
+done
+
+. "${R}etc/init.d-posix/px4-rc.simulator"

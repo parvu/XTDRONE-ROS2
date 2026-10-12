@@ -1,0 +1,5 @@
+PX4-Autopilot/build
+ros2/xtdrone_gz/generated
+ros2/xtdrone_gz/models/typhoon_h480/meshes
+docs/manual/site
+**/__pycache__

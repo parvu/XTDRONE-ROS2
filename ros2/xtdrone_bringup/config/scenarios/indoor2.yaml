@@ -1,0 +1,4 @@
+# Converted from sitl_config/launch/indoor2.launch
+world: indoor2
+vehicles:
+  - {model: iris_stereo_camera, type: iris, id: 0, pose: [0, 0, 0, 0, 0, 0]}

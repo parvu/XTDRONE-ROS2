@@ -1,0 +1,9 @@
+# Converted from sitl_config/launch/robocup.launch
+world: robocup
+vehicles:
+  - {model: typhoon_h480, type: typhoon_h480, id: 0, pose: [0, -3, 0, 0, 0, 0]}
+  - {model: typhoon_h480, type: typhoon_h480, id: 1, pose: [3, -3, 0, 0, 0, 0]}
+  - {model: typhoon_h480, type: typhoon_h480, id: 2, pose: [0, 0, 0, 0, 0, 0]}
+  - {model: typhoon_h480, type: typhoon_h480, id: 3, pose: [3, 0, 0, 0, 0, 0]}
+  - {model: typhoon_h480, type: typhoon_h480, id: 4, pose: [0, 3, 0, 0, 0, 0]}
+  - {model: typhoon_h480, type: typhoon_h480, id: 5, pose: [3, 3, 0, 0, 0, 0]}

@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+# Build XTDrone for ROS 2 Jazzy + Gazebo Harmonic:
+#   1. PX4 v1.16.2 SITL (gz_bridge against Gazebo Harmonic)
+#   2. XTDrone PX4 airframes into the PX4 build
+#   3. Gazebo Classic worlds/models -> Harmonic (ros2/xtdrone_gz/generated)
+#   4. colcon workspace with the XTDrone ROS 2 packages
+# Re-running is safe. Set XTDRONE_WS to change the workspace (default ~/xtdrone_ros2_ws).
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROS_DISTRO_REQUIRED=jazzy
+WORKSPACE="${XTDRONE_WS:-${HOME}/xtdrone_ros2_ws}"
+CACHE_DIR="${XTDRONE_CACHE:-${HOME}/.cache/xtdrone}"
+PX4_DIR="${ROOT_DIR}/PX4-Autopilot"
+GZ_PKG="${ROOT_DIR}/ros2/xtdrone_gz"
+JOBS="${JOBS:-$(nproc)}"
+
+# Leave a Python venv and a ROS 1 environment, if the login shell set them up.
+if [[ -n "${VIRTUAL_ENV:-}" ]]; then
+  PATH="$(printf '%s' "${PATH}" | tr ':' '\n' | grep -vxF "${VIRTUAL_ENV}/bin" | paste -sd: -)"
+  unset VIRTUAL_ENV
+fi
+if [[ -n "${ROS_DISTRO:-}" && "${ROS_DISTRO}" != "${ROS_DISTRO_REQUIRED:-jazzy}" ]]; then
+  PATH="$(printf '%s' "${PATH}" | tr ':' '\n' | grep -v "^/opt/ros/${ROS_DISTRO}" | paste -sd: -)"
+  unset PYTHONPATH CMAKE_PREFIX_PATH ROS_PACKAGE_PATH ROS_DISTRO ROS_VERSION LD_LIBRARY_PATH PKG_CONFIG_PATH
+fi
+export PATH
+
+ROS_DISTRO=${ROS_DISTRO_REQUIRED}
+if [[ ! -f /opt/ros/${ROS_DISTRO}/setup.bash ]]; then
+  echo "ROS 2 ${ROS_DISTRO} is not installed. Run scripts/setup_ubuntu_24_04.sh first." >&2
+  exit 1
+fi
+command -v gz >/dev/null || { echo "Gazebo (gz) is missing. Run scripts/setup_ubuntu_24_04.sh first." >&2; exit 1; }
+
+if [[ ! -f "${PX4_DIR}/Makefile" ]]; then
+  git -C "${ROOT_DIR}" submodule update --init --recursive PX4-Autopilot
+fi
+
+echo "== Building PX4 SITL (px4_sitl_default)"
+# PX4 must not see the ROS environment while configuring (it would pick up ROS' Python).
+env -u PYTHONPATH -u AMENT_PREFIX_PATH -u CMAKE_PREFIX_PATH \
+  make -C "${PX4_DIR}" px4_sitl_default -j"${JOBS}"
+if [[ ! -d "${PX4_DIR}/build/px4_sitl_default/src/modules/simulation/gz_bridge" ]]; then
+  echo "error: PX4 was built without gz_bridge; is gz-harmonic (gz-transport13) installed?" >&2
+  exit 1
+fi
+
+echo "== Installing XTDrone airframes into the PX4 build"
+cp "${GZ_PKG}"/px4/init.d-posix/airframes/* "${PX4_DIR}/build/px4_sitl_default/etc/init.d-posix/airframes/" 2>/dev/null || true
+
+echo "== Fetching Gazebo Classic model sources"
+mkdir -p "${CACHE_DIR}"
+if [[ ! -d "${CACHE_DIR}/gazebo_models/.git" ]]; then
+  git clone --depth 1 https://github.com/osrf/gazebo_models.git "${CACHE_DIR}/gazebo_models"
+fi
+if [[ ! -d "${CACHE_DIR}/gazebo-classic/.git" ]]; then
+  git clone --depth 1 --filter=blob:none --sparse -b gazebo11 \
+    https://github.com/gazebosim/gazebo-classic.git "${CACHE_DIR}/gazebo-classic"
+  git -C "${CACHE_DIR}/gazebo-classic" sparse-checkout set media/materials media/models
+fi
+
+# Some XTDrone worlds use models from PX4's Gazebo Classic models (big_box*, europallet, rover).
+git -C "${PX4_DIR}" submodule update --init Tools/simulation/gazebo-classic/sitl_gazebo-classic
+
+echo "== Converting XTDrone worlds and models to Gazebo Harmonic"
+python3 "${GZ_PKG}/scripts/generate_vehicle_models.py" "${GZ_PKG}/models" >/dev/null
+rm -rf "${GZ_PKG}/generated"
+# shellcheck disable=SC2046
+python3 "${GZ_PKG}/scripts/classic_to_gz.py" \
+  --worlds "${ROOT_DIR}"/sitl_config/worlds/*.world \
+  --model-path "${ROOT_DIR}/sitl_config/models" "${CACHE_DIR}/gazebo_models" \
+               "${PX4_DIR}/Tools/simulation/gazebo-classic/sitl_gazebo-classic/models" \
+  --classic-media "${CACHE_DIR}/gazebo-classic/media" \
+  --skip-models $(ls "${GZ_PKG}/models") \
+  --out "${GZ_PKG}/generated"
+
+echo "== Building the colcon workspace ${WORKSPACE}"
+mkdir -p "${WORKSPACE}/src"
+for pkg in xtdrone_gz xtdrone_bringup xtdrone_py; do
+  ln -sfn "${ROOT_DIR}/ros2/${pkg}" "${WORKSPACE}/src/${pkg}"
+done
+ln -sfn "${ROOT_DIR}/ros2/fomation_demo" "${WORKSPACE}/src/xtdrone_formation_demo"
+ln -sfn "${ROOT_DIR}/ros2/px4_gz_simulation" "${WORKSPACE}/src/xtdrone_px4_gz"
+
+set +u
+# shellcheck disable=SC1090
+source "/opt/ros/${ROS_DISTRO}/setup.bash"
+set -u
+cd "${WORKSPACE}"
+colcon build --symlink-install
+
+printf '\nBuild complete. In every new terminal run:\n'
+printf '  source %s/install/setup.bash\n' "${WORKSPACE}"
+printf 'Then for example:\n'
+printf '  ros2 launch xtdrone_bringup xtdrone.launch.py scenario:=indoor1\n'

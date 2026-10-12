@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>xtdrone_py</name>
+  <version>0.2.0</version>
+  <description>XTDrone communication, keyboard control and utility nodes for ROS 2 (rclpy ports).</description>
+  <maintainer email="zhuoan@stu.pku.edu.cn">XTDrone contributors</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>mavros_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>ros_gz_interfaces</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

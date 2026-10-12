@@ -1,0 +1,181 @@
+"""Launch building blocks shared by xtdrone.launch.py and spawn_vehicle.launch.py."""
+import os
+import tempfile
+import xml.etree.ElementTree as ET
+from dataclasses import dataclass
+from pathlib import Path
+
+import yaml
+from ament_index_python.packages import get_package_share_directory
+from launch.actions import ExecuteProcess
+from launch_ros.actions import Node
+
+from xtdrone_bringup import fleet, px4
+
+
+@dataclass
+class SimPaths:
+    px4_dir: Path
+    build_dir: Path
+    gz_share: Path
+
+    @classmethod
+    def find(cls, px4_dir_arg):
+        px4_dir = px4.find_px4_dir(px4_dir_arg)
+        px4.check_px4(px4_dir)
+        build_dir = px4_dir / "build" / "px4_sitl_default"
+        if not (build_dir / "bin" / "px4").is_file():
+            raise RuntimeError(f"PX4 SITL is not built in {build_dir}. Run scripts/build_xtdrone_ros2.sh.")
+        return cls(px4_dir, build_dir, Path(get_package_share_directory("xtdrone_gz")))
+
+    @property
+    def model_dirs(self):
+        return [self.gz_share / "models", self.gz_share / "classic_models",
+                self.px4_dir / "Tools/simulation/gz/models"]
+
+    @property
+    def world_dirs(self):
+        return [self.gz_share / "worlds", self.px4_dir / "Tools/simulation/gz/worlds"]
+
+    def resource_path(self):
+        dirs = [str(d) for d in self.model_dirs + self.world_dirs if d.is_dir()]
+        extra = [p for p in os.environ.get("GZ_SIM_RESOURCE_PATH", "").split(os.pathsep) if p]
+        return os.pathsep.join(dirs + [p for p in extra if p not in dirs])
+
+    def resolve_world(self, world):
+        p = Path(world).expanduser()
+        if p.suffix == ".sdf" and p.is_file():
+            return p
+        for d in self.world_dirs:
+            candidate = d / f"{world}.sdf"
+            if candidate.is_file():
+                return candidate
+        raise RuntimeError(f"world '{world}' not found in {', '.join(map(str, self.world_dirs))}. "
+                           "Run scripts/build_xtdrone_ros2.sh to convert the XTDrone worlds.")
+
+    def model_sdf(self, model):
+        for d in self.model_dirs:
+            if (d / model / "model.sdf").is_file():
+                return d / model / "model.sdf"
+        raise RuntimeError(f"model '{model}' not found in {', '.join(map(str, self.model_dirs))}")
+
+
+# EKF2 sensor fusion presets (PX4 v1.16 parameter names), see the EKF chapter.
+EKF_PRESETS = {
+    "gps": "EKF2_GPS_CTRL=7 EKF2_EV_CTRL=0 EKF2_HGT_REF=1 EKF2_BARO_CTRL=1 EKF2_MAG_TYPE=0",
+    "vision": "EKF2_GPS_CTRL=0 EKF2_EV_CTRL=15 EKF2_HGT_REF=3 EKF2_BARO_CTRL=0 EKF2_MAG_TYPE=5",
+}
+
+
+# Applied to every vehicle before the EKF preset and px4_params (which can override them).
+# XTDrone vehicles are flown by companion programs through MAVROS, usually without a
+# ground station or RC: PX4 v1.16 airframes set NAV_DLL_ACT=2, which makes a GCS link an
+# arming requirement, and COM_RCL_EXCEPT bit 2 keeps Offboard running without RC.
+XTDRONE_DEFAULT_PARAMS = "NAV_DLL_ACT=0 COM_RCL_EXCEPT=4"
+
+
+def px4_params(ekf, extra=""):
+    if ekf not in EKF_PRESETS:
+        raise RuntimeError(f"ekf must be one of {', '.join(EKF_PRESETS)}")
+    return " ".join(p for p in (XTDRONE_DEFAULT_PARAMS, EKF_PRESETS[ekf], extra.strip()) if p)
+
+
+def set_real_time_factor(world, factor):
+    """Target real-time factor of a running world. PX4 v1.16 does this itself only when it
+    spawns the model; XTDrone spawns the models, so the launch does it."""
+    return ExecuteProcess(
+        cmd=["gz", "service", "-s", f"/world/{world}/set_physics", "--reqtype", "gz.msgs.Physics",
+             "--reptype", "gz.msgs.Boolean", "--timeout", "10000", "--req", f"real_time_factor: {factor:g}"],
+        output="log", name="set_real_time_factor")
+
+
+def world_name(world_file):
+    return ET.parse(world_file).getroot().find("world").get("name")
+
+
+# MAVROS plugins the XTDrone nodes use. Each MAVROS instance otherwise loads ~60 plugins
+# that stream and parse data nobody reads, which matters with many vehicles.
+XTDRONE_MAVROS_PLUGINS = [
+    "sys_status", "sys_time", "command", "param", "local_position", "global_position", "imu",
+    "altitude", "home_position", "setpoint_raw", "setpoint_position", "setpoint_velocity",
+    "setpoint_accel", "setpoint_attitude", "vision_pose", "vision_speed", "odometry",
+]
+
+
+SPAWN_CLEARANCE = 0.3  # m, spawn height for vehicles requested at z <= 0
+
+
+def mavros_params(vehicle, plugins="xtdrone"):
+    """MAVROS PX4 plugin list and config (their keys are /** wildcards) plus the FCU link.
+    plugins: 'xtdrone' (XTDRONE_MAVROS_PLUGINS only) or 'all' (MAVROS' PX4 default set)."""
+    share = Path(get_package_share_directory("mavros")) / "launch"
+    params = [str(share / f) for f in ("px4_pluginlists.yaml", "px4_config.yaml") if (share / f).is_file()]
+    params.append({"fcu_url": vehicle.fcu_url, "gcs_url": "", "tgt_system": vehicle.mav_sys_id,
+                   "tgt_component": 1, "fcu_protocol": "v2.0"})
+    if plugins == "xtdrone":
+        # allowlist entries override the denylist in MAVROS
+        params.append({"plugin_denylist": ["*"], "plugin_allowlist": XTDRONE_MAVROS_PLUGINS})
+    elif plugins != "all":
+        raise RuntimeError("mavros_plugins must be 'xtdrone' or 'all'")
+    return params
+
+
+def communication_node(vehicle, enhanced):
+    """XTDrone communication node (xtdrone_py) matching the vehicle family."""
+    if vehicle.family == "multirotor":
+        exe = "multirotor_communication_enhanced" if enhanced else "multirotor_communication"
+        args = [vehicle.vtype, str(vehicle.id_in_type)]
+    elif vehicle.family == "vtol":
+        exe, args = "vtol_communication", [vehicle.vtype, str(vehicle.id_in_type)]
+    else:
+        exe, args = f"{vehicle.family}_communication", [str(vehicle.id_in_type)]
+    return Node(package="xtdrone_py", executable=exe, arguments=args, output="screen")
+
+
+def vehicle_actions(v, world, paths, rootfs, mavros=True, bridge=True, communication="none", tmp=None,
+                    params=None, speed_factor=1.0, px4=True, mavros_plugins="xtdrone"):
+    """Spawn + PX4 + MAVROS + bridge (+ communication) for one vehicle."""
+    tmp = tmp or tempfile.mkdtemp(prefix="xtdrone_launch_")
+    params = px4_params("gps") if params is None else params
+    x, y, z, roll, pitch, yaw = v.pose
+    if z <= 0.0:
+        # Like PX4's own gz spawn: start slightly above the ground and let the vehicle drop,
+        # so wheels and legs do not start inside terrain meshes (e.g. the outdoor3 raceway).
+        z = SPAWN_CLEARANCE
+    actions = [Node(
+        package="ros_gz_sim", executable="create", output="log", name=f"spawn_{v.name}",
+        arguments=["-world", world, "-file", str(paths.model_sdf(v.model)), "-name", v.name,
+                   "-x", str(x), "-y", str(y), "-z", str(z), "-R", str(roll), "-P", str(pitch), "-Y", str(yaw)])]
+    if px4:
+        workdir = Path(rootfs).expanduser() / str(v.instance)
+        workdir.mkdir(parents=True, exist_ok=True)
+        overlay = paths.gz_share / "px4" / "init.d-posix"
+        actions.append(ExecuteProcess(
+            cmd=[str(paths.build_dir / "bin" / "px4"), "-i", str(v.instance), "-d", str(paths.build_dir / "etc")],
+            cwd=str(workdir), output="screen", name=f"px4_{v.name}", emulate_tty=True,
+            additional_env={
+                "PX4_SYS_AUTOSTART": str(v.airframe),
+                "PX4_SIMULATOR": "gz",
+                "PX4_GZ_STANDALONE": "1",
+                "PX4_GZ_WORLD": world,
+                "PX4_GZ_MODEL_NAME": v.name,
+                "XTDRONE_PX4_PARAMS": params,
+                # rcS scales the failsafe timeouts with it (chapter 43)
+                **({"PX4_SIM_SPEED_FACTOR": f"{speed_factor:g}"} if speed_factor != 1.0 else {}),
+                # px4-rc.mavlink / px4-rc.simulator overlays (XTDrone ports, parameters) are found first on PATH
+                "PATH": f"{overlay}{os.pathsep}{os.environ.get('PATH', '')}",
+            }))
+    if mavros and px4:
+        # Like mavros' node.launch: namespace only. mavros_node runs several nodes in one
+        # process (router, UAS, plugins); a node name override would rename them all.
+        # Topics end up in /<name>/mavros/... .
+        actions.append(Node(package="mavros", executable="mavros_node", namespace=v.name,
+                            output="log", parameters=mavros_params(v, mavros_plugins)))
+    if bridge:
+        cfg = Path(tmp) / f"{v.name}_bridge.yaml"
+        cfg.write_text(yaml.safe_dump(fleet.bridge_config(paths.gz_share / "models", world, v)))
+        actions.append(Node(package="ros_gz_bridge", executable="parameter_bridge", name=f"{v.name}_gz_bridge",
+                            output="log", parameters=[{"config_file": str(cfg)}]))
+    if communication != "none" and px4:
+        actions.append(communication_node(v, communication == "enhanced"))
+    return actions

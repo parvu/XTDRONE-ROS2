@@ -1,0 +1,11 @@
+# Converted from sitl_config/launch/ego_swarm_8.launch
+world: ego_swarm_8
+vehicles:
+  - {model: iris_realsense_camera, type: iris, id: 0, pose: [-7, 7, 1, 0, 0, 0]}
+  - {model: iris_realsense_camera, type: iris, id: 1, pose: [-7, 5, 1, 0, 0, 0]}
+  - {model: iris_realsense_camera, type: iris, id: 2, pose: [-7, 3, 1, 0, 0, 0]}
+  - {model: iris_realsense_camera, type: iris, id: 3, pose: [-7, 1, 1, 0, 0, 0]}
+  - {model: iris_realsense_camera, type: iris, id: 4, pose: [-7, -1, 1, 0, 0, 0]}
+  - {model: iris_realsense_camera, type: iris, id: 5, pose: [-7, -3, 1, 0, 0, 0]}
+  - {model: iris_realsense_camera, type: iris, id: 6, pose: [-7, -5, 1, 0, 0, 0]}
+  - {model: iris_realsense_camera, type: iris, id: 7, pose: [-7, -7, 1, 0, 0, 0]}

@@ -1,0 +1,11 @@
+# Six iris on the "waiting" (origin) grid of the 6-UAV formation demo (chapters 24, 25):
+# leader iris_0 at (0, 0), followers at the origin offsets of formation_dict_6.
+# For 9 and 18 UAVs, vehicles:="iris*9" / "iris*18" already produce the matching grid.
+world: empty
+vehicles:
+  - {model: iris, type: iris, id: 0, pose: [0, 0, 0, 0, 0, 0]}
+  - {model: iris, type: iris, id: 1, pose: [3, 0, 0, 0, 0, 0]}
+  - {model: iris, type: iris, id: 2, pose: [0, 3, 0, 0, 0, 0]}
+  - {model: iris, type: iris, id: 3, pose: [3, 3, 0, 0, 0, 0]}
+  - {model: iris, type: iris, id: 4, pose: [0, 6, 0, 0, 0, 0]}
+  - {model: iris, type: iris, id: 5, pose: [3, 6, 0, 0, 0, 0]}
