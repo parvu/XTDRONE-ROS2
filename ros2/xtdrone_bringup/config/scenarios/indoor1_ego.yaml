@@ -1,0 +1,13 @@
+# Chapter 21 (EGO-Planner): iris_realsense_camera in indoor1 (the ROS 1 world of this chapter), facing -y
+# down the cafe, through four staggered columns (obstacle_column, 0.5 m x 0.5 m x 3 m). Two of them stand on
+# the straight line from the start to the far end, so the planner has to weave around them. Narrow
+# obstacles suit EGO-Planner: in front of a wide flat wall its depth camera sees no way around, and
+# the gradient-based optimisation can stall against it.
+world: indoor1
+vehicles:
+  - {model: iris_realsense_camera, type: iris, id: 0, pose: [0, 7.5, 0.3, 0, 0, -1.5708]}
+objects:
+  - {model: obstacle_column, name: column_1, pose: [0.1, 4.0, 0.19, 0, 0, 0]}
+  - {model: obstacle_column, name: column_2, pose: [-1.0, 2.0, 0.19, 0, 0, 0]}
+  - {model: obstacle_column, name: column_3, pose: [1.0, 1.0, 0.19, 0, 0, 0]}
+  - {model: obstacle_column, name: column_4, pose: [-0.1, -1.0, 0.19, 0, 0, 0]}

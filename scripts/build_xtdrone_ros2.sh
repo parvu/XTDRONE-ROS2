@@ -109,10 +109,14 @@ ln -sfn "${ROOT_DIR}/ros2/vins-fusion" "${WORKSPACE}/src/vins-fusion"
 # quadrotor_msgs, not its own simulator (XTDrone flies the PX4 vehicles in Gazebo instead)
 git -C "${ROOT_DIR}" submodule update --init ros2/ego-planner-swarm
 mkdir -p "${WORKSPACE}/src/ego_planner"
-for pkg in planner/plan_env planner/path_searching planner/bspline_opt planner/traj_utils planner/plan_manage \
+for pkg in planner/plan_env planner/path_searching planner/bspline_opt planner/traj_utils \
            uav_simulator/Utils/quadrotor_msgs; do
   ln -sfn "${ROOT_DIR}/ros2/ego-planner-swarm/src/${pkg}" "${WORKSPACE}/src/ego_planner/$(basename "${pkg}")"
 done
+# plan_manage (package ego_planner) is copied and patched to follow simulation time (see the patch script)
+rm -f "${WORKSPACE}/src/ego_planner/plan_manage"
+rsync -a --delete "${ROOT_DIR}/ros2/ego-planner-swarm/src/planner/plan_manage/" "${WORKSPACE}/src/ego_planner/plan_manage/"
+python3 "${ROOT_DIR}/ros2/xtdrone_planning/scripts/patch_ego_planner.py" "${WORKSPACE}/src/ego_planner/plan_manage"
 # Jazzy has only cv_bridge/cv_bridge.hpp: give the EGO packages a cv_bridge.h that includes it
 EGO_META="${WORKSPACE}/xtdrone_ego.meta"
 python3 - "${EGO_META}" "${ROOT_DIR}/ros2/xtdrone_planning/compat" <<'PY'

@@ -79,6 +79,7 @@ sudo apt-get install -y --no-install-recommends \
   git \
   gnupg \
   lsb-release \
+  rsync \
   python3-argcomplete \
   python3-cerberus \
   python3-coverage \

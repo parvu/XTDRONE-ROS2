@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<sdf version="1.9">
+  <!-- Static floor-to-ceiling column (0.5 m x 0.5 m, 3 m high), placed by scenarios as an obstacle
+       for the 3D planning tests (chapter 21). The model origin is at the bottom of the column. -->
+  <model name="obstacle_column">
+    <static>true</static>
+    <link name="link">
+      <pose>0 0 1.5 0 0 0</pose>
+      <collision name="collision">
+        <geometry><box><size>0.5 0.5 3.0</size></box></geometry>
+      </collision>
+      <visual name="visual">
+        <geometry><box><size>0.5 0.5 3.0</size></box></geometry>
+        <material>
+          <ambient>0.6 0.3 0.1 1</ambient>
+          <diffuse>0.6 0.3 0.1 1</diffuse>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>

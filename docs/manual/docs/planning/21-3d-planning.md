@@ -1,18 +1,58 @@
-# 21. 3D motion planning
+# 21. 3D motion planning (EGO-Planner)
 
-!!! warning "Planned: phase 5"
-    This chapter depends on components that are not converted yet.
-    **ROS 2 / Gazebo Harmonic approach:** A ROS 2 port of EGO-Planner fed by the RealSense depth image and a camera pose (VIO or ground truth), and an rclpy `ego_transfer.py`.
+!!! success "Ported and tested"
+    Package `xtdrone_planning`: `ego_planner.launch.py` with the EGO-Planner ROS 2 port (submodule
+    `ros2/ego-planner-swarm`, branch `ros2_version`), `ego_transfer` and `ego_pos_cmd` (the ports of
+    `ego_transfer.py` and XTDrone's modified trajectory server). Test: `scripts/tests/run_chapter_tests.sh ch21`: an
+    `iris_realsense_camera` in `indoor1` flies 11.5 m down the cafe through four staggered columns, two of them
+    on the straight line, planning on its depth camera with the ground truth as pose. It reaches the goal in
+    about 65 s, up to about 1 m beside the straight line.
 
-## What the original chapter does
+## Run
 
-EGO-Planner takes the depth map of `iris_realsense_camera` and the camera pose from VINS-Fusion, plans 3D trajectories in `indoor1`, and `ego_transfer.py` sends them to the XTDrone communication node.
+```bash
+# 1. indoor1 with an iris_realsense_camera and four obstacle columns; PX4 takes its pose from vision
+ros2 launch xtdrone_bringup xtdrone.launch.py scenario:=indoor1_ego ekf:=vision communication:=basic
+# 2. pose source: the ground truth (or VIO, chapter 14)
+ros2 run xtdrone_py get_local_pose iris 1
+# 3. take off to about 1.2 m with the keyboard (offboard, arm, climb), then hover and close it
+ros2 run xtdrone_py multirotor_keyboard_control iris 1 vel
+# 4. EGO-Planner to a goal in the local frame (here the world frame: the pose is the ground truth)
+ros2 launch xtdrone_planning ego_planner.launch.py target_x:=0 target_y:=-4 target_z:=1.2
+```
 
-See the [original chapter](https://www.yuque.com/xtdrone/manual_en) for the ROS 1 instructions.
+`goal:=rviz` instead plans to each 2D goal set in RViz (`/goal_pose`). `max_vel`, `max_acc`, `ceiling` (the
+planner's virtual ceiling, 2.9 m below the 3.1 m ceiling of `indoor1`) and `map_size_x|y|z` are launch arguments.
 
-## What already works on ROS 2 and Gazebo Harmonic
+`ego_planner.launch.py` starts these:
+- **`ego_planner_node`** with the parameters of the port's `advanced_param.launch.py` and of XTDrone's
+  `run_in_xtdrone.launch`. The grid map projects the depth image of the RealSense camera
+  (`/iris_0/realsense/depth_camera/depth/image_raw`, 640 × 480, 32-bit float metres, fx = fy = 554.25) with the
+  camera pose.
+- **`traj_server`**: it samples EGO's B-spline into `quadrotor_msgs/PositionCommand` on
+  `/xtdrone/iris_0/planning/pos_cmd`.
+- **`ego_transfer`**: it publishes the camera pose (`/iris_0/camera_pose`, optical frame, stamped with
+  simulation time) and EGO's odometry (`/iris_0/ego/odom`: MAVROS odometry with the velocity in the world frame
+  and reliable QoS).
+- **`ego_pos_cmd`**: it turns each position command into `/xtdrone/iris_0/cmd_pose_enu` (position and yaw), as
+  XTDrone's modified ROS 1 trajectory server did.
 
-- Depth images: `/iris_0/realsense/depth_camera/depth/image_raw`; camera pose: `/iris_0/ground_truth/odom` as a stand-in for VIO.
-- Position setpoints go through `/xtdrone/iris_0/cmd_pose_enu`.
+!!! note "Changes from the ROS 1 version"
+    - **Simulation time.** The port timed its trajectories with the wall clock. With Gazebo slower than real
+      time (about 0.45× here with two rendered cameras), the trajectory server ran ahead of the vehicle, and the
+      planner replanned from where the trajectory said the vehicle was, past the obstacles. `build_xtdrone_ros2.sh`
+      copies the port's `plan_manage` package into the workspace and patches it
+      (`xtdrone_planning/scripts/patch_ego_planner.py`) to use the node clock, which follows `/clock` with
+      `use_sim_time`, as ROS 1 did. The submodule itself is not modified.
+    - The camera pose is stamped with simulation time like the depth image: the grid map pairs them by time
+      stamp, and with mismatched clocks it never integrated a depth image.
+    - Jazzy has only `cv_bridge/cv_bridge.hpp`; the build gives the EGO packages a `cv_bridge.h` that includes it.
+    - The vehicle starts at (0, 7.5) facing −y, down the cafe. The scenario `indoor1_ego` adds four columns
+      (`obstacle_column`, 0.5 m × 0.5 m × 3 m), two of them on the straight line, so the test shows that the
+      planner goes around obstacles. The depth camera also sees the visual-only counter and furniture of the
+      cafe, which the planner avoids as well.
 
-The [migration plan](../reference/status.md) lists the phases.
+!!! tip "Narrow obstacles"
+    EGO-Planner is made for cluttered spaces such as forests. In front of a wide flat wall the depth camera sees
+    no way around it, unknown space counts as free, and the gradient-based optimisation can stall against the
+    wall. A 2 m panel across the path stopped the vehicle in about half of the runs; the columns did not.

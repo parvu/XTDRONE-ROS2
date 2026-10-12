@@ -54,7 +54,12 @@ class EgoTransfer(Node):
                                  qos_profile_sensor_data)
 
     def odom_callback(self, msg):
-        msg.header.frame_id = "world"
+        # MAVROS gives the velocity in the body frame; EGO takes it as the world-frame start velocity
+        o = msg.pose.pose.orientation
+        lin, ang = msg.twist.twist.linear, msg.twist.twist.angular
+        lin.x, lin.y, lin.z = rotate((o.x, o.y, o.z, o.w), (lin.x, lin.y, lin.z))
+        ang.x, ang.y, ang.z = rotate((o.x, o.y, o.z, o.w), (ang.x, ang.y, ang.z))
+        msg.header.frame_id = msg.child_frame_id = "world"
         self.odom_pub.publish(msg)
 
     def callback(self, msg):

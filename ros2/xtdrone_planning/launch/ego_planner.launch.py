@@ -1,14 +1,16 @@
 """EGO-Planner for one XTDrone multirotor with a depth camera (chapter 21).
 
-  ros2 launch xtdrone_bringup xtdrone.launch.py world:=outdoor1 vehicles:=iris_realsense_camera ekf:=vision communication:=basic
+  ros2 launch xtdrone_bringup xtdrone.launch.py scenario:=indoor1_ego ekf:=vision communication:=basic
   ros2 run xtdrone_py get_local_pose iris 1        # ground truth as the pose source (or VIO, chapter 14)
-  ros2 launch xtdrone_planning ego_planner.launch.py target_x:=20 target_y:=0 target_z:=1.5
+  ros2 launch xtdrone_planning ego_planner.launch.py target_x:=0 target_y:=-4 target_z:=1.2
 
 The EGO-Planner ROS 2 port (submodule ros2/ego-planner-swarm, branch ros2_version) with the
 parameters of its advanced_param.launch.py and of XTDrone's run_in_xtdrone.launch, wired to the
 XTDrone topics: odometry from MAVROS (ego_transfer, reliable QoS), depth from the RealSense camera of
 iris_realsense_camera, camera pose from ego_transfer, and the trajectory server's position command
 to /xtdrone/<v>/cmd_pose_enu (ego_pos_cmd). Take off first (keyboard, about 1.5 m, then close it).
+The planner and trajectory server run on simulation time; scripts/build_xtdrone_ros2.sh patches the port
+for it (xtdrone_planning/scripts/patch_ego_planner.py), as ROS 1 used ros::Time with use_sim_time.
 """
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
@@ -58,7 +60,7 @@ def nodes(context, *args, **kwargs):
     bspline = f"/xtdrone/{v}/planning/bspline"
     return [
         Node(package="ego_planner", executable="ego_planner_node", name=f"{v}_ego_planner_node", output="screen",
-             parameters=[params], remappings=[
+             parameters=[params, {"use_sim_time": True}], remappings=[
                  ("odom_world", f"/{v}/ego/odom"), ("planning/bspline", bspline),
                  ("planning/data_display", f"/xtdrone/{v}/planning/data_display"),
                  ("planning/broadcast_bspline_from_planner", "/broadcast_bspline"),
@@ -70,11 +72,13 @@ def nodes(context, *args, **kwargs):
                  ("grid_map/pose", f"/{v}/camera_pose"),
                  ("grid_map/depth", f"/{v}/realsense/depth_camera/depth/image_raw"),
                  ("grid_map/occupancy_inflate", f"/{v}/ego/occupancy_inflate"),
-                 ("move_base_simple/goal", "/goal_pose")]),
+                 ("/move_base_simple/goal", "/goal_pose")]),
         Node(package="ego_planner", executable="traj_server", name=f"{v}_traj_server", output="screen",
-             parameters=[{"traj_server/time_forward": 1.0}],
+             parameters=[{"traj_server/time_forward": 1.0, "use_sim_time": True}],
              remappings=[("position_cmd", f"/xtdrone/{v}/planning/pos_cmd"), ("planning/bspline", bspline)]),
-        Node(package="xtdrone_planning", executable="ego_transfer", arguments=[vtype, vid], output="log"),
+        # sim time: the grid map pairs each depth image (stamped with simulation time) with the camera pose
+        Node(package="xtdrone_planning", executable="ego_transfer", arguments=[vtype, vid], output="log",
+             parameters=[{"use_sim_time": True}]),
         Node(package="xtdrone_planning", executable="ego_pos_cmd", arguments=[vtype, vid], output="log"),
     ]
 
@@ -84,8 +88,8 @@ def generate_launch_description():
         DeclareLaunchArgument("vehicle_type", default_value="iris"),
         DeclareLaunchArgument("id", default_value="0"),
         DeclareLaunchArgument("goal", default_value="waypoint", description="waypoint (target_*) or rviz (2D Goal)"),
-        DeclareLaunchArgument("target_x", default_value="0"), DeclareLaunchArgument("target_y", default_value="-20"),
-        DeclareLaunchArgument("target_z", default_value="1.0"),
+        DeclareLaunchArgument("target_x", default_value="0"), DeclareLaunchArgument("target_y", default_value="-4"),
+        DeclareLaunchArgument("target_z", default_value="1.2"),
         DeclareLaunchArgument("map_size_x", default_value="100"), DeclareLaunchArgument("map_size_y", default_value="100"),
         DeclareLaunchArgument("map_size_z", default_value="5"),
         DeclareLaunchArgument("ceiling", default_value="2.9", description="virtual ceiling of the planner (m)"),

@@ -181,6 +181,10 @@ for c in "${CASES[@]}"; do
     ch32)  # UAVs + VRX WAM-V in sandisland
       run_script ch32_usv "scenario:=sandisland communication:=basic" "${ROOT_DIR}/scripts/tests/usv_test.py" \
         "sleep 40; ros2 launch xtdrone_bringup usv.launch.py" ;;
+    ch21)  # EGO-Planner on the RealSense depth image, ground truth as pose: around two panels in indoor1
+      run_script ch21_ego_planner "scenario:=indoor1_ego ekf:=vision communication:=basic" \
+        "${ROOT_DIR}/scripts/tests/ego_planner_test.py --detour 0.45" \
+        "sleep 15; ros2 run xtdrone_py get_local_pose iris 1" ;;
     ch24)  # consensus formation with collision avoidance, 9 iris
       run_script ch24_consensus_formation "world:=empty vehicles:=iris*9 ekf:=vision communication:=basic" \
         "${ROOT_DIR}/scripts/tests/formation_test.py --count 9 --controller consensus --avoid" \

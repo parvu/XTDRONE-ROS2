@@ -25,7 +25,7 @@ ROS 2 Jazzy / Gazebo Harmonic 8.15 / PX4 v1.16.2 / MAVROS 2.16 (6-core CPU, no G
 | 18 | 2D laser SLAM (Cartographer) | **Tested** (2 m square on the SLAM pose only, ≤ 0.1 m) | `ch18` | 4 |
 | 19 | 3D laser SLAM | **Tested** (KISS-ICP in `outdoor1`: 2 m square on the lidar odometry, ≤ 0.35 m from ground truth) | `ch19` | 5 |
 | 20 | 2D motion planning (move_base → Nav2) | **Tested** (3 goals while mapping, ≤ 0.4 m) | `ch20` | 4 |
-| 21 | 3D motion planning | Planned | — | 5 |
+| 21 | 3D motion planning | **Tested** (EGO-Planner on the RealSense depth image: through four columns in `indoor1`, 11.5 m to within 1 m of the goal) | `ch21` | 5 |
 | 22 | Swarm motion planning | Planned | — | 5 |
 | 23 | Detection and tracking | Planned (gimbal camera available) | — | 5 |
 | 24 | Formation | **Tested** (9 iris, consensus + avoidance: waiting, cube, pyramid, moving leader) | `ch24` | 3 |

@@ -1,4 +1,7 @@
 # Converted from sitl_config/launch/outdoor1.launch
+# The ROS 1 typhoon started at the origin, which is inside a parked Polaris (rover_static_clone_clone_1_clone
+# at x -0.69) in the converted world; a multirotor cannot take off from there. It starts at (2, 2), beside the
+# path of the walking pedestrian (y = 3) and clear of the red arrow at (4, -1).
 world: outdoor1
 vehicles:
-  - {model: typhoon_h480, type: typhoon_h480, id: 0, pose: [0, 0, 0, 0, 0, 0]}
+  - {model: typhoon_h480, type: typhoon_h480, id: 0, pose: [2, 2, 0, 0, 0, 0]}

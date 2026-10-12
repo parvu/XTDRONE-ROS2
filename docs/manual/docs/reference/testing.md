@@ -37,6 +37,7 @@ non-zero if a case failed.
 | `ch13` / `ch14` | `iris_stereo_camera` in `outdoor1` (scenario `outdoor1_stereo`) flies a 2 m square on the ORB-SLAM3 / VINS-Fusion pose only (no GPS, `ekf:=vision`); SLAM vs ground truth ≤ 0.5 m, compared in the SLAM frame (it starts along the vehicle's heading). ch13 needs `scripts/build_orbslam3.sh` |
 | `ch17` / `ch18` | `iris_2d_lidar` in `indoor3` flies a 2 m square on the slam_toolbox / Cartographer pose only (no GPS, `ekf:=laser2d`); SLAM vs ground truth ≤ 0.5 m |
 | `ch19` | `iris_3d_lidar` in `outdoor1` (scenario `outdoor1_3d_lidar`) flies a 2 m square on the KISS-ICP odometry only (no GPS, `ekf:=vision`); odometry vs ground truth ≤ 0.5 m |
+| `ch21` | `iris_realsense_camera` in `indoor1` (scenario `indoor1_ego`, four columns) flies 11.5 m with EGO-Planner on the depth image and the ground truth as pose; goal within 1 m, never down to the floor, at least 0.45 m beside the straight line (it went around the columns) |
 | `ch20` | Nav2 flies to three goals while slam_toolbox maps `indoor3` (≤ 0.5 m each) |
 | `ch30` | the UGV keeps its lane on `outdoor3` for 30 m (`lane_detection` + `self_driving`) |
 | `ch32` | `sandisland` + VRX WAM-V: the boat floats and drives 5 m on its thrusters; an iris takes off from the island |
