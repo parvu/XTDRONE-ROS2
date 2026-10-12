@@ -46,3 +46,28 @@ ros2 run xtdrone_py control_gazebo_vehicles iris 10 10
 
 Spawning hundreds of models takes a while, because the launch staggers them by 0.5 s each. Rendering many
 camera sensors is expensive, so use `vehicles:="iris*N"` (no cameras).
+
+## Many PX4 vehicles on one machine
+
+Every PX4 vehicle runs PX4, MAVROS and its Gazebo physics. What a machine manages depends mostly on the number of
+cores. On the 6-core test machine without a GPU, 9 iris run at about 0.6–0.75 of real time and 20 iris at about
+0.3. The launch keeps the per-vehicle cost low:
+
+- **`mavlink_profile:=swarm`** (automatic above 6 vehicles): PX4 sends only what the XTDrone nodes use at full rate.
+  For example, ATTITUDE (100 Hz) is off, IMU drops to 10 Hz and global position to 5 Hz; local position stays at
+  30 Hz. MAVROS CPU use for 9 vehicles fell from 168 % to 88 %.
+- **`mavros_plugins:=swarm`** (with the swarm profile): only the MAVROS plugins the XTDrone nodes need, so fewer DDS
+  endpoints have to be discovered.
+- **No MAVROS `param` plugin** (unless `mavros_plugins:=all`): it downloads all ~900 PX4 parameters per vehicle at
+  connection. With 9 vehicles at once, that kept MAVROS above 400 % CPU.
+- **One lazy bridge** for the whole fleet instead of one process per vehicle, converting only subscribed topics.
+- **PX4's uXRCE-DDS client is off** (`uxrce_dds:=false`); XTDrone talks to PX4 through MAVROS.
+
+Run `scripts/tune_network_for_swarms.sh` once (sudo). It reserves PX4's MAVLink ports 34580–34779, which lie inside
+the kernel's ephemeral port range, so that no random socket takes one first. It also enlarges the socket buffers;
+with the 208 KB default, DDS discovery packets get dropped when 10 or more vehicles start, and some topics then
+never connect. `scripts/verify_ubuntu_24_04.sh` reports whether it is set.
+
+When the machine cannot keep real time, the nodes that run on wall-clock time see the simulation slowed down.
+Examples are MAVROS heartbeats, the 30 Hz XTDrone controllers and the vision pose of `get_local_pose`. To keep a
+margin, run below real time on purpose, for example `speed_factor:=0.5` for 20 vehicles.

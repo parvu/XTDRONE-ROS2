@@ -17,7 +17,10 @@ PX4 v1.16 starts several MAVLink instances (`px4-rc.mavlink`) per SITL instance:
 PX4's stock script uses 14580+N / 14540+N for the offboard link, and gives every instance N > 9 the same remote
 port 14549. MAVROS instances cannot share a port, so stock PX4 limits MAVROS to 10 vehicles. XTDrone's generator
 already used 34580+N / 24540+N. The overlay `ros2/xtdrone_gz/px4/init.d-posix/px4-rc.mavlink` (PX4's v1.16.2 file
-with only these two lines changed) restores that scheme for any number of vehicles. The launch file puts its
+with only these two lines changed, plus the optional `swarm` stream rates of chapter 43) restores that scheme for
+any number of vehicles. The ports 34580+N lie inside Linux's ephemeral port range (32768–60999); with many
+processes, a random outgoing socket can take one before PX4 binds it ("bind failed: Address already in use").
+`scripts/tune_network_for_swarms.sh` reserves 34580–34779 (200 vehicles). The launch file puts its
 directory first on PX4's `PATH`, and `rcS` sources `px4-rc.mavlink` by name.
 
 There is no TCP port to the simulator any more (Classic `4560+N`): `gz_bridge` talks to Gazebo over gz-transport.

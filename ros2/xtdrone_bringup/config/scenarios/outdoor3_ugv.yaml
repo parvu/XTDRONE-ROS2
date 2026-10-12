@@ -1,0 +1,6 @@
+# Converted from sitl_config/launch/outdoor3_ugv.launch (chapter 11): two CAT Vehicle UGVs,
+# ugv_0 with AprilTags 0-2 and ugv_1 with AprilTags 3-5 on the roof.
+world: outdoor3
+vehicles:
+  - {model: ugv, type: ugv, id: 0, pose: [0, 0, 0, 0, 0, -0.6]}
+  - {model: ugv_tags3_5, type: ugv, id: 1, pose: [-5, 0, 0, 0, 0, -0.6]}

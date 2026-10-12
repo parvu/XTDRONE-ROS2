@@ -22,11 +22,12 @@ VEHICLE_TYPES = {
     "rover": {"airframe": 4009, "family": "rover"},
     "tailsitter": {"airframe": 4018, "family": "vtol"},   # PX4 quad tailsitter
     "tiltrotor": {"airframe": 4020, "family": "vtol"},
+    # CAT Vehicle UGV (chapter 11): no PX4 / MAVROS, gz AckermannSteering
+    "ugv": {"airframe": None, "family": "ugv"},
 }
 
 # Gazebo Classic XTDrone model names that map to a different Harmonic model.
 MODEL_ALIASES = {
-    "rover_with_lidar_stereo": "rover",
     "plane_gimbal": "plane",
     # XTDrone wrappers of PX4 models with the same name
     "standard_vtol": "standard_vtol_xtd",
@@ -34,9 +35,7 @@ MODEL_ALIASES = {
 }
 
 # Classic XTDrone models without a Gazebo Harmonic equivalent yet.
-UNSUPPORTED = {
-    "ugv": "the XTDrone UGV is not converted yet (manual chapter 11)",
-}
+UNSUPPORTED = {}
 
 # MAVLink offboard ports, XTDrone scheme (see px4/init.d-posix/px4-rc.mavlink).
 OFFBOARD_REMOTE_BASE = 24540
@@ -63,6 +62,10 @@ class Vehicle:
     @property
     def family(self):
         return VEHICLE_TYPES[self.vtype]["family"]
+
+    @property
+    def has_px4(self):
+        return VEHICLE_TYPES[self.vtype]["airframe"] is not None
 
     @property
     def fcu_url(self):
@@ -121,10 +124,26 @@ def load_scenario(path):
     return data.get("world", "default"), _number(vehicles)
 
 
+def load_scenario_objects(path):
+    """Static models of a scenario: objects: [{model: apriltag0-2, name: tags, pose: [x, y, z, R, P, Y]}]."""
+    data = yaml.safe_load(Path(path).read_text()) or {}
+    objects = []
+    for i, o in enumerate(data.get("objects", [])):
+        pose = [float(x) for x in o.get("pose", [0, 0, 0, 0, 0, 0])]
+        pose += [0.0] * (6 - len(pose))
+        objects.append({"model": o["model"], "name": o.get("name", f"{o['model']}_{i}"), "pose": pose})
+    return objects
+
+
 def _number(vehicles):
+    """PX4 instances 0, 1, ... for the vehicles with PX4 (UGVs have none and get -1)."""
     names = set()
-    for i, v in enumerate(vehicles):
-        v.instance = i
+    i = 0
+    for v in vehicles:
+        if v.has_px4:
+            v.instance, i = i, i + 1
+        else:
+            v.instance = -1
         if v.name in names:
             raise ValueError(f"duplicate vehicle name {v.name}")
         names.add(v.name)
@@ -156,5 +175,6 @@ def bridge_config(model_dir, world, vehicle):
         "ros_type_name": "nav_msgs/msg/Odometry",
         "gz_type_name": "gz.msgs.Odometry",
         "direction": "GZ_TO_ROS",
+        "lazy": True,
     })
     return entries

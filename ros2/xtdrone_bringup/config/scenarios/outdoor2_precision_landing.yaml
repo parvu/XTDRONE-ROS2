@@ -4,3 +4,7 @@ vehicles:
   - {model: iris_downward_camera, type: iris, id: 0, pose: [-3, 0, 0, 0, 0, 0]}
   - {model: iris_downward_camera, type: iris, id: 1, pose: [-4.5, 0, 0, 0, 0, 0]}
   - {model: iris_downward_camera, type: iris, id: 2, pose: [-6, 0, 0, 0, 0, 0]}
+# The ROS 1 launch put the tags on a catvehicle UGV at the origin (UGV port: chapter 11).
+# Here the tag plate (IDs 0, 1, 2 at x = -0.75, 0, 0.75) lies on the runway at the origin.
+objects:
+  - {model: apriltag0-2, name: apriltag0_2, pose: [0, 0, 0.06, 0, 0, 0]}  # above the runway visual (z 0.05)

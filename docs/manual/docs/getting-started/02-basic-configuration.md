@@ -53,7 +53,17 @@ The script asks for your sudo password and:
 - installs `ros-jazzy-desktop`, `ros-jazzy-ros-gz`, `ros-jazzy-mavros`, `ros-jazzy-mavros-extras`
   and `ros-dev-tools`;
 - downloads the GeographicLib datasets MAVROS needs;
+- runs `scripts/tune_network_for_swarms.sh`, which reserves the PX4 MAVLink ports and enlarges the socket buffers
+  for DDS (`/etc/sysctl.d/60-xtdrone.conf`; matters for 10+ vehicles, chapter 43);
 - initialises rosdep.
+
+The chapters on SLAM, navigation, precision landing with `apriltag_ros`, UGVs and the heavier ports need more
+ROS 2 packages. Install them when you get there:
+
+```bash
+./scripts/setup_ubuntu_24_04_extras.sh          # slam_toolbox, Cartographer, Nav2, RTAB-Map, apriltag_ros, ros2_controllers, ...
+./scripts/setup_ubuntu_24_04_extras.sh --all    # plus MoveIt 2 and the build dependencies of ORB-SLAM3, VINS-Fusion, ...
+```
 
 !!! warning "Python virtual environments and ROS 1"
     PX4 and colcon must use the system Python (`/usr/bin/python3`). If your login shell activates a virtualenv

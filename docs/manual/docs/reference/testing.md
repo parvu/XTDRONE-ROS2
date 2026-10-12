@@ -28,6 +28,17 @@ non-zero if a case failed.
 | `ch09` | six iris take off, hover and land together |
 | `ch10` | a second iris is added with `spawn_vehicle.launch.py` and flies with the first |
 | `ch12` | all sensor topics of the iris sensor models publish |
+| `ch24` | 9 iris at 8 m with `controller:=consensus avoid:=true`: waiting grid, `cube`, `pyramid` (≤ 0.8 m per follower), pyramid kept while the leader moves |
+| `ch27` | 20 iris (`speed_factor:=0.5`): channel model up, AUTO.TAKEOFF, FORM_1 moves the leader; UAVs 1-12 follow it, UAV 13 (no lower-id neighbour on the channel) holds |
+| `ch28` | three `iris_downward_camera` 0.5 m off their tags at 4-6 m land on tags 0-2 (≤ 0.3 m; 0.02 m reached) |
+| `ch42` | XTDGroundControl, offscreen: two iris climb above 2 m from the GUI, the state panel shows them, they land |
+| `ch11` | two CAT Vehicle UGVs on `outdoor3` drive straight and steer left; their lidar and camera topics publish |
+| `ch16` | `iris_realsense_camera` turns and flies in `indoor1`; RTAB-Map's cloud map has > 10 000 points |
+| `ch17` / `ch18` | `iris_2d_lidar` in `indoor3` flies a 2 m square on the slam_toolbox / Cartographer pose only (no GPS, `ekf:=laser2d`); SLAM vs ground truth ≤ 0.5 m |
+| `ch20` | Nav2 flies to three goals while slam_toolbox maps `indoor3` (≤ 0.5 m each) |
+| `ch30` | the UGV keeps its lane on `outdoor3` for 30 m (`lane_detection` + `self_driving`) |
+| `ch32` | `sandisland` + VRX WAM-V: the boat floats and drives 5 m on its thrusters; an iris takes off from the island |
+| `ch38` | two `robocup` actors walk to commanded points (`/actor_i/cmd_motion`, `xtdrone::ActorMotion`) |
 | `ch25` | 6 iris at 8 m: the formation demo forms the waiting grid, `T` and `triangle` (≤ 0.8 m per follower) and keeps the triangle while the leader moves |
 | `ch15` | `vision_pose` / `vision_speed` publish |
 | `ch44` | the bumper reports the ground contact |

@@ -9,19 +9,29 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck disable=SC1091
 source "${ROOT_DIR}/scripts/xtdrone_env.sh"
 LOG_DIR="${XTDRONE_TEST_LOGS:-${HOME}/.ros/xtdrone_tests}"
+export PYTHONUNBUFFERED=1  # launch output reaches the logs even when a case is killed
 mkdir -p "${LOG_DIR}"
 FLIGHT="/usr/bin/python3 ${ROOT_DIR}/scripts/tests/xtdrone_flight_test.py"
 GUI="${XTDRONE_TEST_GUI:-false}"
 
 cleanup_sim() {
-  pkill -INT -f "ros2 launch xtdrone_bringup" 2>/dev/null
+  pkill -INT -f "ros2 launch xtdrone_" 2>/dev/null
   sleep 3
-  pkill -KILL -f "ros2 launch xtdrone_bringup" 2>/dev/null
+  pkill -KILL -f "ros2 launch xtdrone_" 2>/dev/null
   pkill -KILL -x px4 2>/dev/null
+  # PX4's startup script runs in its own shell; if px4 dies while rcS still waits for Gazebo, the
+  # orphaned rcS would later send its commands to the next px4 with the same instance number.
+  pkill -KILL -f "etc/init.d-posix/rc[S]" 2>/dev/null
   pkill -KILL -f "gz sim" 2>/dev/null
   pkill -KILL -f "mavros_node" 2>/dev/null
   pkill -KILL -f "parameter_bridge" 2>/dev/null
   pkill -KILL -f "xtdrone_py/lib/xtdrone_py" 2>/dev/null
+  # match executable paths only: names like slam_toolbox also appear in test and shell arguments
+  pkill -KILL -f "^[^ ]*/lib/(vrx_ros|vrx_gz)/" 2>/dev/null
+  # children of launches started by test cases (orphaned if their launch was killed)
+  pkill -KILL -f "^[^ ]*/lib/(tf2_ros|robot_state_publisher|ros_gz_sim)/" 2>/dev/null
+  pkill -KILL -f "^[^ ]*/lib/(xtdrone_slam|xtdrone_formation_demo|slam_toolbox|cartographer_ros|rtabmap_[a-z]+|nav2_[a-z_]+|dwb_[a-z_]+)/" 2>/dev/null
+  pkill -KILL -f "^/usr/bin/python3 [^ ]*/lib/(xtdrone_slam|xtdrone_formation_demo)/" 2>/dev/null
   sleep 1
 }
 
@@ -32,7 +42,9 @@ run_case() {
   echo "=== ${name}: ros2 launch xtdrone_bringup xtdrone.launch.py ${launch_args}"
   cleanup_sim
   # shellcheck disable=SC2086
-  ros2 launch xtdrone_bringup xtdrone.launch.py gui:="${GUI}" ${launch_args} >"${log}" 2>&1 &
+  : >"${log}"
+  # append: the extra command and the test write to the same file
+  ros2 launch xtdrone_bringup xtdrone.launch.py gui:="${GUI}" ${launch_args} >>"${log}" 2>&1 &
   local extra_pid=""
   if [[ -n "${extra}" ]]; then
     sleep 5
@@ -53,8 +65,10 @@ run_case() {
 run_script() {
   local name="$1" launch_args="$2" script="$3" extra="${4:-}"
   local saved="${FLIGHT}"
+  local args=""
+  [[ "${script}" == *" "* ]] && args="${script#* }"
   FLIGHT="/usr/bin/python3 ${script%% *}"
-  run_case "${name}" "${launch_args}" "${script#* }" "${extra}"
+  run_case "${name}" "${launch_args}" "${args}" "${extra}"
   FLIGHT="${saved}"
 }
 
@@ -98,7 +112,7 @@ export -f gz_x
 
 RESULTS=()
 CASES=("$@")
-[[ ${#CASES[@]} -eq 0 ]] && CASES=(worlds ch03 ch05 ch06 ch07 ch25 ch36 ch37 ch41 ch43 ch08plane ch08vtol ch08rover ch09 ch10 ch12 ch15 ch44)
+[[ ${#CASES[@]} -eq 0 ]] && CASES=(worlds ch03 ch05 ch06 ch07 ch24 ch25 ch27 ch28 ch36 ch42 ch37 ch38 ch41 ch43 ch08plane ch08vtol ch08rover ch09 ch11 ch16 ch17 ch18 ch20 ch30 ch32 ch10 ch12 ch15 ch44)
 trap cleanup_sim EXIT
 
 for c in "${CASES[@]}"; do
@@ -120,9 +134,46 @@ for c in "${CASES[@]}"; do
         "--topics /iris_0/mavros/local_position/odom /iris_0/mavros/local_position/velocity_body" ;
       run_script ch07_angular_speed "scenario:=indoor1" "${ROOT_DIR}/scripts/tests/attitude_demo_test.py --mode angular_speed" ;
       run_script ch07_angle "world:=empty vehicles:=iris" "${ROOT_DIR}/scripts/tests/attitude_demo_test.py --mode angle" ;;
+    ch11)  # CAT Vehicle UGVs: Ackermann driving, sensors
+      run_script ch11_ugv "scenario:=outdoor3_ugv" "${ROOT_DIR}/scripts/tests/ugv_test.py" ;;
+    ch16)  # RTAB-Map dense reconstruction (RGB-D odometry) from the realsense camera
+      run_script ch16_rtabmap "world:=indoor1 vehicles:=iris_realsense_camera communication:=basic" \
+        "${ROOT_DIR}/scripts/tests/rtabmap_test.py" "sleep 25; ros2 launch xtdrone_slam rtabmap_rgbd.launch.py" ;;
+    ch17)  # 2D laser SLAM with slam_toolbox (HectorSLAM in ROS 1): fly on the SLAM pose only
+      run_script ch17_slam_toolbox "scenario:=indoor3 ekf:=laser2d communication:=basic px4_params:=MPC_XY_VEL_MAX=1,MPC_ACC_HOR=1" \
+        "${ROOT_DIR}/scripts/tests/laser_slam_test.py --slam slam_toolbox" \
+        "sleep 20; ros2 launch xtdrone_slam laser_slam_2d.launch.py slam:=slam_toolbox" ;;
+    ch18)  # 2D laser SLAM with Cartographer
+      run_script ch18_cartographer "scenario:=indoor3 ekf:=laser2d communication:=basic px4_params:=MPC_XY_VEL_MAX=1,MPC_ACC_HOR=1" \
+        "${ROOT_DIR}/scripts/tests/laser_slam_test.py --slam cartographer" \
+        "sleep 20; ros2 launch xtdrone_slam laser_slam_2d.launch.py slam:=cartographer" ;;
+    ch20)  # Nav2 2D planning on slam_toolbox
+      run_script ch20_nav2 "scenario:=indoor3 ekf:=laser2d communication:=enhanced px4_params:=MPC_XY_VEL_MAX=1,MPC_ACC_HOR=1" \
+        "${ROOT_DIR}/scripts/tests/nav2_test.py" \
+        "sleep 20; ros2 launch xtdrone_slam laser_slam_2d.launch.py slam:=slam_toolbox & sleep 15; ros2 launch xtdrone_planning nav2_2d.launch.py" ;;
+    ch30)  # lane keeping of the CAT Vehicle on the outdoor3 track
+      run_script ch30_self_driving "scenario:=outdoor3_ugv" "${ROOT_DIR}/scripts/tests/self_driving_test.py" \
+        "sleep 25; ros2 run xtdrone_py lane_detection ugv 0 & ros2 run xtdrone_py self_driving ugv 0 --speed 3" ;;
+    ch32)  # UAVs + VRX WAM-V in sandisland
+      run_script ch32_usv "scenario:=sandisland communication:=basic" "${ROOT_DIR}/scripts/tests/usv_test.py" \
+        "sleep 40; ros2 launch xtdrone_bringup usv.launch.py" ;;
+    ch24)  # consensus formation with collision avoidance, 9 iris
+      run_script ch24_consensus_formation "world:=empty vehicles:=iris*9 ekf:=vision communication:=basic" \
+        "${ROOT_DIR}/scripts/tests/formation_test.py --count 9 --controller consensus --avoid" \
+        "ros2 run xtdrone_py get_local_pose iris 9" ;;
     ch25)  # ROS 2 leader/follower formation, 6 iris
       run_script ch25_formation "scenario:=formation_6 ekf:=vision communication:=basic" \
         "${ROOT_DIR}/scripts/tests/formation_test.py" "ros2 run xtdrone_py get_local_pose iris 6" ;;
+    ch27)  # formation with the SINR communication model, 20 iris (one process per UAV controller)
+      # 20 PX4 + MAVROS on a 6-core machine: half real time leaves headroom for the wall-clock nodes
+      run_script ch27_formation_comm "scenario:=formation_comm_20 speed_factor:=0.5" \
+        "${ROOT_DIR}/scripts/tests/formation_comm_test.py" ;;
+    ch28)  # precision landing on AprilTags 0-2 with the OpenCV detector
+      run_script ch28_precision_landing "scenario:=outdoor2_precision_landing communication:=basic" \
+        "${ROOT_DIR}/scripts/tests/precision_landing_test.py" ;;
+    ch42)  # XTDGroundControl (offscreen Qt) flies two iris
+      run_script ch42_groundcontrol "world:=empty vehicles:=iris*2 communication:=basic" \
+        "${ROOT_DIR}/scripts/tests/groundcontrol_test.py" ;;
     ch08plane)
       run_case ch08_plane "world:=outdoor2 vehicles:=plane communication:=basic" "--vehicles plane_0 --mode plane" ;;
     ch08vtol)
@@ -158,6 +209,8 @@ for c in "${CASES[@]}"; do
         timeout 10 ros2 run xtdrone_py control_gazebo_models >/dev/null 2>&1
         x=\$(gz_x rover_static); echo rover_static x=\$x
         awk -v x=\$x 'BEGIN{exit !(x > 70.5)}' && echo PASS || echo FAIL" ;;
+    ch38)  # ROS-controlled actors (xtdrone_gz_plugins ActorMotion) in robocup
+      run_script ch38_actors "world:=robocup vehicles:=iris px4:=false" "${ROOT_DIR}/scripts/tests/actor_test.py" ;;
     ch41)  # wind from ROS 2 acts on a hovering iris
       run_script ch41_wind "world:=empty vehicles:=iris communication:=basic" \
         "${ROOT_DIR}/scripts/tests/wind_test.py --wind 5" "sleep 10; ros2 run xtdrone_py wind_control" ;;

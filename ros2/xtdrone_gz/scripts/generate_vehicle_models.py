@@ -78,6 +78,25 @@ def kit_stereo_camera():
     return sdf, bridges
 
 
+def kit_front_stereo():
+    """Front stereo camera of rover_with_lidar_stereo (Classic: front_cam, tilted 0.4 rad down on the
+    Polaris). PX4's r1_rover is much smaller, so it sits on the front of the chassis."""
+    link = "front_cam"
+    sensors = camera_sensor("left", "0 0.06 0 0 0 0", 752, 480, 1.5708, 30, "stereo_camera_frame")
+    sensors += camera_sensor("right", "0 -0.06 0 0 0 0", 752, 480, 1.5708, 30, "stereo_camera_frame")
+    sdf = sensor_link(link, "0.25 0 0.3 0 0.3 0", sensors)
+    bridges = image_bridge(link, "left", "front_cam/left") + image_bridge(link, "right", "front_cam/right")
+    return sdf, bridges
+
+
+def kit_rover_3d_lidar():
+    link = "laser_3d"
+    sensors = lidar_sensor("lidar_3d", "laser_3d", 15, 512, -3.1415927, 3.1415927, 32, -0.2617994, 0.2617994, 0.3, 30)
+    sdf = sensor_link(link, "0 0 0.4 0 0 0", sensors)
+    scope = SCOPE.format(world="{world}", name="{name}", link=link, sensor="lidar_3d")
+    return sdf, [(scope + "/scan/points", "velodyne_points", "sensor_msgs/msg/PointCloud2", "gz.msgs.PointCloudPacked")]
+
+
 def kit_realsense_camera():
     link = "realsense_link"
     sensors = f"""
@@ -133,7 +152,17 @@ def kit_2d_lidar():
     sensors = lidar_sensor("laser", "laser_2d", 40, 512, -3.14, 3.14, 1, 0, 0, 0.1, 20)
     sdf = sensor_link(link, "0 0 0.1 0 0 0", sensors)
     scope = SCOPE.format(world="{world}", name="{name}", link=link, sensor="laser")
-    return sdf, [(scope + "/scan", "scan", "sensor_msgs/msg/LaserScan", "gz.msgs.LaserScan")]
+    # Downward 1D range finder (laser_rangefinder in the Classic model, ROS topic "distance"):
+    # the height source of the laser SLAM chapters (laser_transfer).
+    # Pitched 1.5 rad (86 deg), not 90 deg: a gpu_lidar looking straight down is a degenerate render
+    # camera (view direction parallel to its up vector) and measures wrong ranges; cos(4 deg) = 0.9975.
+    sdf += sensor_link("laser_1d", "0 0 -0.08 0 1.5 0",
+                       # gpu_lidar renders through a camera: a near-zero field of view (Classic: one ray,
+                       # +-0.001 rad) gives garbage, so a narrow fan of 5 rays (+-0.01 rad) is used
+                       lidar_sensor("laser_1d", "laser_1d", 50, 5, -0.01, 0.01, 1, 0, 0, 0.1, 20))
+    scope_1d = SCOPE.format(world="{world}", name="{name}", link="laser_1d", sensor="laser_1d")
+    return sdf, [(scope + "/scan", "scan", "sensor_msgs/msg/LaserScan", "gz.msgs.LaserScan"),
+                 (scope_1d + "/scan", "distance", "sensor_msgs/msg/LaserScan", "gz.msgs.LaserScan")]
 
 
 def kit_3d_lidar():
@@ -184,6 +213,8 @@ KITS = {
     "realsense_camera": kit_realsense_camera,
     "downward_camera": kit_downward_camera,
     "2d_lidar": kit_2d_lidar,
+    "front_stereo": kit_front_stereo,
+    "rover_3d_lidar": kit_rover_3d_lidar,
     "3d_lidar": kit_3d_lidar,
     "imu_gazebo": kit_imu_gazebo,
     "bumper": kit_bumper,
@@ -207,6 +238,7 @@ VEHICLES = {
     # Wrappers must not share the name of the PX4 model they include (model:// would resolve to itself).
     "standard_vtol_xtd": ("standard_vtol", []),
     "rover": ("r1_rover", []),
+    "rover_with_lidar_stereo": ("r1_rover", ["front_stereo", "rover_3d_lidar"]),
     # PX4 v1.16 Gazebo VTOLs (PX4's quad tailsitter differs from XTDrone's Classic duo tailsitter).
     "tailsitter": ("quadtailsitter", []),
     "tiltrotor_xtd": ("tiltrotor", []),
@@ -216,6 +248,9 @@ ODOMETRY = """
     <plugin filename="gz-sim-odometry-publisher-system" name="gz::sim::systems::OdometryPublisher">
       <dimensions>3</dimensions>
       <odom_publish_frequency>50</odom_publish_frequency>
+      <!-- PX4's gz_bridge reads /model/<name>/odometry_with_covariance (the default topic) as external
+           vision. This is ground truth for ROS only (/<name>/ground_truth/odom): keep it away from PX4. -->
+      <odom_covariance_topic>/xtdrone/ground_truth_with_covariance_unused</odom_covariance_topic>
     </plugin>"""
 
 

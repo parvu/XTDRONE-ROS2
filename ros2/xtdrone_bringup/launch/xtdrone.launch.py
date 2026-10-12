@@ -23,7 +23,7 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 from xtdrone_bringup import fleet, px4
-from xtdrone_bringup.sim import (EKF_PRESETS, SimPaths, px4_params, set_real_time_factor, vehicle_actions,
+from xtdrone_bringup.sim import (EKF_PRESETS, SimPaths, actor_bridges, fleet_bridge, mavlink_profile, px4_params, set_real_time_factor, vehicle_actions,
                                  world_name)
 
 
@@ -46,9 +46,11 @@ def launch_setup(context):
         if not sc_path.is_file():
             sc_path = Path(get_package_share_directory("xtdrone_bringup")) / "config/scenarios" / f"{scenario}.yaml"
         world, vehicles = fleet.load_scenario(sc_path)
+        objects = fleet.load_scenario_objects(sc_path)
     else:
         world = _arg(context, "world")
         vehicles = fleet.parse_spec(_arg(context, "vehicles"))
+        objects = []
     world_file = paths.resolve_world(world)
     world = world_name(world_file)
     communication = _arg(context, "communication")
@@ -74,13 +76,28 @@ def launch_setup(context):
         gui_delay = 2.0 + 0.5 * len(vehicles) + 4.0
         actions.append(TimerAction(period=gui_delay, actions=[
             ExecuteProcess(cmd=["gz", "sim", "-g", "-v", verbose], output="log", name="gz_gui")]))
-    for v in vehicles:
+    for o in objects:
+        x, y, z, roll, pitch, yaw = o["pose"]
+        actions.append(TimerAction(period=2.0, actions=[Node(
+            package="ros_gz_sim", executable="create", output="log", name=f"spawn_{o['name']}".replace("-", "_"),
+            arguments=["-world", world, "-file", str(paths.model_sdf(o["model"])), "-name", o["name"],
+                       "-x", str(x), "-y", str(y), "-z", str(z), "-R", str(roll), "-P", str(pitch),
+                       "-Y", str(yaw)])]))
+    actors = actor_bridges(world_file)
+    if _bool(context, "bridge") and (vehicles or actors):
+        actions.append(fleet_bridge(vehicles, world, paths, extra=actors))
+    profile = mavlink_profile(_arg(context, "mavlink_profile"), len(vehicles))
+    plugins = _arg(context, "mavros_plugins")
+    if plugins == "auto":
+        plugins = "swarm" if profile == "swarm" else "xtdrone"
+    for k, v in enumerate(vehicles):
         # Stagger vehicles a little so gz is up and spawns do not pile up.
-        actions.append(TimerAction(period=2.0 + 0.5 * v.instance, actions=vehicle_actions(
+        actions.append(TimerAction(period=2.0 + 0.5 * k, actions=vehicle_actions(
             v, world, paths, _arg(context, "rootfs"), mavros=_bool(context, "mavros"),
-            bridge=_bool(context, "bridge"), communication=communication,
+            bridge=False, communication=communication,
             params=px4_params(_arg(context, "ekf"), _arg(context, "px4_params")), speed_factor=speed_factor,
-            px4=_bool(context, "px4"), mavros_plugins=_arg(context, "mavros_plugins"))))
+            px4=_bool(context, "px4"), mavros_plugins=plugins, mavlink_profile=profile,
+            uxrce_dds=_bool(context, "uxrce_dds"))))
     return actions
 
 
@@ -98,8 +115,16 @@ def generate_launch_description():
         DeclareLaunchArgument("bridge", default_value="true", description="Bridge sensors and ground truth."),
         DeclareLaunchArgument("communication", default_value="none",
                               description="Also start XTDrone communication nodes: none, basic or enhanced."),
-        DeclareLaunchArgument("mavros_plugins", default_value="xtdrone",
-                              description="MAVROS plugins: 'xtdrone' (those XTDrone uses) or 'all'."),
+        DeclareLaunchArgument("uxrce_dds", default_value="false",
+                              description="Start PX4's uXRCE-DDS client (for px4_msgs / ROS 2 offboard "
+                                          "code next to MAVROS; needs MicroXRCEAgent udp4 -p 8888)."),
+        DeclareLaunchArgument("mavlink_profile", default_value="auto",
+                              description="PX4 MAVLink stream rates: full, swarm (lower rates for many "
+                                          "vehicles) or auto (swarm above 6 vehicles)."),
+        DeclareLaunchArgument("mavros_plugins", default_value="auto",
+                              description="MAVROS plugins: 'xtdrone' (those XTDrone uses), 'swarm' (the minimum "
+                                          "for the XTDrone nodes), 'all', or 'auto' (swarm with the swarm "
+                                          "MAVLink profile, else xtdrone)."),
         DeclareLaunchArgument("px4", default_value="true",
                               description="Start PX4 (and MAVROS) per vehicle; false spawns models only (chapter 43)."),
         DeclareLaunchArgument("speed_factor", default_value="1.0",

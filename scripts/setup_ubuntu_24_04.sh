@@ -141,6 +141,9 @@ sudo apt-get install -y --no-install-recommends \
 # MAVROS needs the GeographicLib geoid/magnetic datasets.
 sudo "/opt/ros/${ROS_DISTRO}/lib/mavros/install_geographiclib_datasets.sh"
 
+# Network settings for large fleets (reserved PX4 MAVLink ports, DDS socket buffers).
+"${ROOT_DIR}/scripts/tune_network_for_swarms.sh"
+
 if [[ ! -f /etc/ros/rosdep/sources.list.d/20-default.list ]]; then
   sudo rosdep init
 fi

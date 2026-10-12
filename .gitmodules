@@ -9,3 +9,17 @@
 [submodule "px4-autopilot"]
 	path = PX4-Autopilot
 	url = https://github.com/PX4/PX4-Autopilot.git
+[submodule "ros2/vrx"]
+	path = ros2/vrx
+	url = https://github.com/osrf/vrx.git
+[submodule "ros2/kiss-icp"]
+	path = ros2/kiss-icp
+	url = https://github.com/PRBonn/kiss-icp.git
+[submodule "ros2/vins-fusion"]
+	path = ros2/vins-fusion
+	url = https://github.com/mzahana/VINS-Fusion-ROS2-jazzy.git
+	branch = ros2_jazzy
+[submodule "ros2/ego-planner-swarm"]
+	path = ros2/ego-planner-swarm
+	url = https://github.com/ZJU-FAST-Lab/ego-planner-swarm.git
+	branch = ros2_version

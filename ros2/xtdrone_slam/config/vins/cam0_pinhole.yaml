@@ -1,0 +1,17 @@
+%YAML:1.0
+---
+# gz camera of iris_stereo_camera: 752 x 480, horizontal FOV 90 deg (fx = 376 / tan 45 deg), no distortion
+model_type: PINHOLE
+camera_name: camera
+image_width: 752
+image_height: 480
+distortion_parameters:
+   k1: 0.0
+   k2: 0.0
+   p1: 0.0
+   p2: 0.0
+projection_parameters:
+   fx: 376.0
+   fy: 376.0
+   cx: 376.0
+   cy: 240.0

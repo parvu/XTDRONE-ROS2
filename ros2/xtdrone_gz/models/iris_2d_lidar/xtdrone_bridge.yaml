@@ -5,6 +5,10 @@ bridges:
   ros_topic: scan
   ros_type: sensor_msgs/msg/LaserScan
   gz_type: gz.msgs.LaserScan
+- gz_topic: /world/{world}/model/{name}/link/laser_1d/sensor/laser_1d/scan
+  ros_topic: distance
+  ros_type: sensor_msgs/msg/LaserScan
+  gz_type: gz.msgs.LaserScan
 - gz_topic: /world/{world}/model/{name}/link/base_link/sensor/imu_sensor/imu
   ros_topic: imu_gazebo
   ros_type: sensor_msgs/msg/Imu

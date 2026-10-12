@@ -1,0 +1,25 @@
+# Chapter 27: 20 iris at uav_bias of sim_addleader_1.py (= formation table UAV_pos1). The ROS 1
+# iris20_exam1.launch put UAVs 13-19 at y = -9 / 9, which did not match their bias; here they agree.
+# ros2 launch xtdrone_bringup xtdrone.launch.py scenario:=formation_comm_20
+world: empty
+vehicles:
+  - {model: iris, type: iris, id: 0, pose: [0, 0, 0, 0, 0, 0]}
+  - {model: iris, type: iris, id: 1, pose: [1.2, -1.2, 0, 0, 0, 0]}
+  - {model: iris, type: iris, id: 2, pose: [-1.2, -1.2, 0, 0, 0, 0]}
+  - {model: iris, type: iris, id: 3, pose: [1.2, 1.2, 0, 0, 0, 0]}
+  - {model: iris, type: iris, id: 4, pose: [-1.2, 1.2, 0, 0, 0, 0]}
+  - {model: iris, type: iris, id: 5, pose: [2.4, -2.4, 0, 0, 0, 0]}
+  - {model: iris, type: iris, id: 6, pose: [0, -2.4, 0, 0, 0, 0]}
+  - {model: iris, type: iris, id: 7, pose: [-2.4, -2.4, 0, 0, 0, 0]}
+  - {model: iris, type: iris, id: 8, pose: [2.4, 0, 0, 0, 0, 0]}
+  - {model: iris, type: iris, id: 9, pose: [-2.4, 0, 0, 0, 0, 0]}
+  - {model: iris, type: iris, id: 10, pose: [2.4, 2.4, 0, 0, 0, 0]}
+  - {model: iris, type: iris, id: 11, pose: [0, 2.4, 0, 0, 0, 0]}
+  - {model: iris, type: iris, id: 12, pose: [-2.4, 2.4, 0, 0, 0, 0]}
+  - {model: iris, type: iris, id: 13, pose: [-7, -7, 0, 0, 0, 0]}
+  - {model: iris, type: iris, id: 14, pose: [-6, -7, 0, 0, 0, 0]}
+  - {model: iris, type: iris, id: 15, pose: [-5, -7, 0, 0, 0, 0]}
+  - {model: iris, type: iris, id: 16, pose: [-4, -7, 0, 0, 0, 0]}
+  - {model: iris, type: iris, id: 17, pose: [3, 6, 0, 0, 0, 0]}
+  - {model: iris, type: iris, id: 18, pose: [4, 6, 0, 0, 0, 0]}
+  - {model: iris, type: iris, id: 19, pose: [5, 6, 0, 0, 0, 0]}

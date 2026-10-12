@@ -7,6 +7,9 @@
   and later `Ready for takeoff!`.
 - Check the ports (chapter 48): `ss -ulpn | grep 2454`. Another program, or a leftover PX4 from an earlier run, may hold
   them: `pkill -x px4`.
+- With many vehicles (about 20 on 6 cores), one MAVROS node can stall at startup: PX4 reports `Ready for takeoff!`
+  and MAVROS logs `link[1000] detected remote address`, but after one `VER: broadcast request timeout` it logs nothing
+  more and never connects. This was seen once in the 20-vehicle test (ch27); the re-run passed. Restart the launch.
 
 ## `gz_bridge failed to start and attach to existing model`
 
@@ -60,7 +63,7 @@ The terminal runs inside a snap (e.g. the VS Code snap) and passes the snap's li
 ## Leftover processes
 
 ```bash
-pkill -f "gz sim"; pkill -x px4; pkill -f mavros_node; pkill -f parameter_bridge
+pkill -f "gz sim"; pkill -x px4; pkill -f 'etc/init.d-posix/rc[S]'; pkill -f mavros_node; pkill -f parameter_bridge
 ```
 
 ## `ros2` fails after `source /opt/ros/noetic/setup.bash`
@@ -72,3 +75,18 @@ which removes a ROS 1 environment and a Python venv.
 
 The build must use the system Python. `scripts/build_xtdrone_ros2.sh` leaves an active virtualenv automatically.
 If you build PX4 by hand, run `deactivate` first.
+
+## PX4: "gz_bridge Task already running … failed to attach to existing model"
+
+A PX4 from an earlier launch was killed while its startup script (`rcS`) was still waiting for Gazebo. The orphaned
+shell keeps running and later sends its commands to the new PX4 with the same instance number. Kill it before
+starting again:
+
+```bash
+pkill -f 'etc/init.d-posix/rc[S]'
+```
+
+## Large fleets: single vehicles never connect, "bind failed: Address already in use", "HEARTBEAT timed out"
+
+Run `scripts/tune_network_for_swarms.sh` once (reserved PX4 MAVLink ports, larger socket buffers for DDS
+discovery). See chapter 43 for what else keeps 10+ vehicles running on one machine.

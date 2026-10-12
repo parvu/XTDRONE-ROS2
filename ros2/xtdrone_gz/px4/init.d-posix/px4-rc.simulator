@@ -10,3 +10,12 @@ for xtd_kv in ${XTDRONE_PX4_PARAMS}; do
 done
 
 . "${R}etc/init.d-posix/px4-rc.simulator"
+
+# XTDrone talks to PX4 through MAVROS: rcS starts PX4's uXRCE-DDS client later on, which is
+# skipped here unless XTDRONE_UXRCE_DDS=1 (xtdrone.launch.py uxrce_dds:=true, for px4_msgs
+# users). That saves a busy client and an ephemeral UDP socket per vehicle. (The alias works
+# because rcS is one shell; px4 puts its own bin directory first on PATH, so a PATH overlay
+# of px4-uxrce_dds_client would not.)
+if [ "${XTDRONE_UXRCE_DDS:-0}" != "1" ]; then
+	alias uxrce_dds_client=':'
+fi

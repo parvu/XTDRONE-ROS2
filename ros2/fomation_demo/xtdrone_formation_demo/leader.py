@@ -34,7 +34,8 @@ class Leader(Node):
         self.changed_id=numpy.arange(0,self.uav_num - 1)
         self.target_height_recorded=False
         self.cmd=String()
-        self.timer_period=1/200
+        # ROS 1: 200 Hz. 30 Hz matches the followers and keeps rclpy load low with 9-18 UAVs.
+        self.timer_period=1/30
         self.Kz=0.5
 
         super().__init__('leader')
@@ -76,7 +77,7 @@ class Leader(Node):
             # Get a new formation pattern of UAVs based on KM.
             self.new_formation = self.get_new_formation(self.changed_id, self.formations[self.formation_config])
             self.communication_topology = self.get_communication_topology(self.new_formation)
-            self.orig_formation = self.new_formation
+            self.origin_formation = self.new_formation
         else:
             self.cmd = msg
 

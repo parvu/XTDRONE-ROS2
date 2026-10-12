@@ -27,6 +27,28 @@ mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u $udp_gcs_port_local
 # API/Offboard link
 mavlink start -x -u $udp_offboard_port_local -r 4000000 -f -m onboard -o $udp_offboard_port_remote
 
+# XTDRONE_MAVLINK_PROFILE=swarm (xtdrone.launch.py mavlink_profile:=swarm, the default for
+# more than 6 vehicles): lower the rates of streams that XTDrone nodes do not need at full rate,
+# so that MAVROS and PX4 keep up with many vehicles on one machine.
+if [ "$XTDRONE_MAVLINK_PROFILE" = "swarm" ]; then
+	for s in ATTITUDE ODOMETRY ESC_INFO ESC_STATUS NAV_CONTROLLER_OUTPUT RC_CHANNELS SERVO_OUTPUT_RAW_0 \
+		WIND_COV DEBUG DEBUG_FLOAT_ARRAY DEBUG_VECT NAMED_VALUE_FLOAT OPTICAL_FLOW_RAD; do
+		mavlink stream -u $udp_offboard_port_local -s $s -r 0
+	done
+	mavlink stream -u $udp_offboard_port_local -s HIGHRES_IMU -r 10
+	mavlink stream -u $udp_offboard_port_local -s ATTITUDE_QUATERNION -r 20
+	mavlink stream -u $udp_offboard_port_local -s GLOBAL_POSITION_INT -r 5
+	mavlink stream -u $udp_offboard_port_local -s ALTITUDE -r 2
+	mavlink stream -u $udp_offboard_port_local -s VFR_HUD -r 2
+	mavlink stream -u $udp_offboard_port_local -s ATTITUDE_TARGET -r 2
+	mavlink stream -u $udp_offboard_port_local -s POSITION_TARGET_LOCAL_NED -r 2
+	mavlink stream -u $udp_offboard_port_local -s POSITION_TARGET_GLOBAL_INT -r 2
+	for s in POSITION_TARGET_LOCAL_NED LOCAL_POSITION_NED GLOBAL_POSITION_INT ATTITUDE ATTITUDE_QUATERNION \
+		ATTITUDE_TARGET SERVO_OUTPUT_RAW_0 RC_CHANNELS; do
+		mavlink stream -u $udp_gcs_port_local -s $s -r 5
+	done
+fi
+
 # Onboard link to camera
 mavlink start -x -u $udp_onboard_payload_port_local -r 4000 -f -m onboard -o $udp_onboard_payload_port_remote
 

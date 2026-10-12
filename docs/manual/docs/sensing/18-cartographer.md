@@ -1,18 +1,32 @@
 # 18. 2D laser SLAM (Cartographer)
 
-!!! warning "Planned: phase 4"
-    This chapter depends on components that are not converted yet.
-    **ROS 2 / Gazebo Harmonic approach:** `ros-jazzy-cartographer-ros` (binary) with an `xtdrone_2d.lua` configuration and an rclpy `laser_transfer.py`.
+!!! success "Ported and tested"
+    `ros2 launch xtdrone_slam laser_slam_2d.launch.py slam:=cartographer` (`config/cartographer_2d.lua`, port of
+    `sensing/slam/laser_slam/cartographer`). Test: `scripts/tests/run_chapter_tests.sh ch18`: the same 2 m square as
+    chapter 17, flown on the Cartographer pose only. The trajectory stays within 0.1 m of the ground truth.
 
-## What the original chapter does
+## Run
 
-Same as chapter 17, with Cartographer instead of HectorSLAM.
+```bash
+ros2 launch xtdrone_bringup xtdrone.launch.py scenario:=indoor3 ekf:=laser2d communication:=basic
+ros2 launch xtdrone_slam laser_slam_2d.launch.py slam:=cartographer rviz:=true
+ros2 run xtdrone_py multirotor_keyboard_control iris 1 vel
+ros2 run nav2_map_server map_saver_cli -f ~/indoor3          # map from cartographer_occupancy_grid_node
+```
 
-See the [original chapter](https://www.yuque.com/xtdrone/manual_en) for the ROS 1 instructions.
+Cartographer gets the scans of `/<vehicle>/scan` and the Gazebo IMU `/<vehicle>/imu_gazebo` (ROS 1: the MAVROS IMU).
+It publishes `map → base_link` and `/tracked_pose`, and `laser_transfer` forwards `/tracked_pose` to PX4 as in
+chapter 17.
 
-## What already works on ROS 2 and Gazebo Harmonic
+## Configuration (`cartographer_2d.lua`)
 
-- `/iris_0/scan` and `/iris_0/imu_gazebo` are available. Cartographer can use both.
-- The `indoor3` world is converted.
+| Setting | Value | Why |
+|---|---|---|
+| `use_imu_data` | true | the 2D default, as in ROS 1 |
+| `provide_odom_frame` | false | one transform `map → base_link` |
+| `publish_tracked_pose` | true | `laser_transfer` forwards this topic, not a TF lookup |
+| `num_accumulated_range_data` | 1 (ROS 1: 10) | a multirotor tilts while accelerating; accumulating scans smeared the motion and Cartographer lost track during braking |
+| `min_z`, `max_z` | ±0.5 m | after gravity alignment only points near the scan plane are used; floor hits of a tilted scan are dropped |
+| `use_online_correlative_scan_matching` | true | robust initial guess without odometry |
 
-The [migration plan](../reference/status.md) lists the phases.
+With these settings Cartographer follows the vehicle within a few centimetres, also through 2 m position steps.

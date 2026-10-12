@@ -86,7 +86,17 @@ g   : control the leader / all vehicles
 CTRL-C to quit
 """
 
-FORMATIONS = {18: ["waiting", "cuboid", "sphere", "diamond"],
+UGV_HELP = """
+w/x : increase/decrease forward velocity
+a/d : increase/decrease steering angle
+s   : stop (and remove the mask of keyboard control)
+0~9 : extendable mission (masks the keyboard control)
+g   : control the leader / all vehicles
+CTRL-C to quit
+"""
+
+FORMATIONS = {20: ["waiting", "FORM_1", "FORM_2", "FORM_3"],  # chapter 27 communication demo
+              18: ["waiting", "cuboid", "sphere", "diamond"],
               9: ["waiting", "cube", "pyramid", "triangle"],
               6: ["waiting", "T", "diamond", "triangle"],
               1: ["stop controlling"]}
@@ -384,6 +394,60 @@ def rover_main():
             if key in ("w", "x", "a", "d", "s"):
                 print(f"currently:\t forward vel {forward:.2f}\t steering {angle:.2f}")
             forward, angle = clamp(forward, max_lin), clamp(angle, max_angle)
+            twist = Twist()
+            twist.linear.x, twist.angular.z = forward, angle
+            msg = String(data=cmd)
+            if ctrl_leader:
+                leader_twist.publish(twist)
+                leader_cmd.publish(msg)
+            else:
+                for i in range(num):
+                    if not cmd_vel_mask:
+                        twist_pubs[i].publish(twist)
+                    cmd_pubs[i].publish(msg)
+    node.destroy_node()
+    rclpy.try_shutdown()
+
+
+def ugv_main():
+    """control/keyboard/ugv_keyboard_control.py: /ugv_<i>/cmd_vel (linear.x speed, angular.z steering angle)."""
+    argv = rclpy.utilities.remove_ros_args(sys.argv)[1:]
+    if len(argv) < 1:
+        _usage("ugv_keyboard_control <num>")
+    num = int(argv[0])
+    lin_step, ang_step, max_lin, max_angle = 0.1, 0.03, 20.0, 1.0
+    rclpy.init()
+    node = rclpy.create_node("ugv_keyboard_control")
+    twist_pubs = [node.create_publisher(Twist, f"/ugv_{i}/cmd_vel", 1) for i in range(num)]
+    cmd_pubs = [node.create_publisher(String, f"/ugv_{i}/cmd", 1) for i in range(num)]
+    leader_twist = node.create_publisher(Twist, "/ugv/leader/cmd_vel", 1)
+    leader_cmd = node.create_publisher(String, "/ugv/leader_cmd", 3)
+    forward = angle = 0.0
+    ctrl_leader, cmd_vel_mask = False, False
+    banner(f"ugv x{num}", UGV_HELP, ctrl_leader)
+    with Terminal() as term:
+        while rclpy.ok():
+            key = term.key()
+            cmd = ""
+            if key in ("w", "x"):
+                forward += lin_step if key == "w" else -lin_step
+            elif key in ("a", "d"):
+                angle += ang_step if key == "a" else -ang_step
+            elif key == "g":
+                ctrl_leader = not ctrl_leader
+                banner(f"ugv x{num}", UGV_HELP, ctrl_leader)
+            elif key == "s":
+                cmd_vel_mask = False
+                forward = angle = 0.0
+            elif key.isdigit():
+                cmd = "mission" + key
+                print(cmd)
+                cmd_vel_mask = True
+            elif key == "\x03":
+                break
+            forward, angle = clamp(forward, max_lin), clamp(angle, max_angle)
+            if key in ("w", "x", "a", "d", "s"):
+                print(f"currently:\t forward vel {forward:.2f}\t steering angle {angle:.2f}")
             twist = Twist()
             twist.linear.x, twist.angular.z = forward, angle
             msg = String(data=cmd)

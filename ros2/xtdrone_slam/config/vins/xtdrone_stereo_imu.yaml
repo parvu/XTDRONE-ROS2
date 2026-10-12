@@ -1,0 +1,51 @@
+%YAML:1.0
+# VINS-Fusion for iris_stereo_camera (chapter 14), from sensing/slam/vio/VINS-Fusion/config/xtdrone_sitl/
+# px4_sitl_stereo_imu_config.yaml with the extrinsics of the Gazebo Harmonic model: IMU = base_link
+# (FLU), stereo_camera_link at (0.12, 0, 0.03), left / right camera at y = +0.06 / -0.06.
+imu: 1
+num_of_cam: 2
+imu_topic: "/iris_0/imu_gazebo"
+image0_topic: "/iris_0/stereo_camera/left/image_raw"
+image1_topic: "/iris_0/stereo_camera/right/image_raw"
+output_path: "/tmp/xtdrone_vins_output"
+cam0_calib: "cam0_pinhole.yaml"
+cam1_calib: "cam1_pinhole.yaml"
+image_width: 752
+image_height: 480
+estimate_extrinsic: 0
+body_T_cam0: !!opencv-matrix
+   rows: 4
+   cols: 4
+   dt: d
+   data:  [0, 0, 1, 0.12,
+           -1, 0, 0, 0.06,
+           0, -1, 0, 0.03,
+           0, 0, 0, 1.]
+body_T_cam1: !!opencv-matrix
+   rows: 4
+   cols: 4
+   dt: d
+   data:  [0, 0, 1, 0.12,
+           -1, 0, 0, -0.06,
+           0, -1, 0, 0.03,
+           0, 0, 0, 1.]
+multiple_thread: 1
+max_cnt: 150
+min_dist: 30
+freq: 10
+F_threshold: 1.0
+show_track: 1
+flow_back: 1
+max_solver_time: 0.04
+max_num_iterations: 8
+keyframe_parallax: 10.0
+acc_n: 0.1
+gyr_n: 0.01
+acc_w: 0.001
+gyr_w: 0.0001
+g_norm: 9.81
+estimate_td: 0
+td: 0.0
+load_previous_pose_graph: 0
+pose_graph_save_path: "/tmp/xtdrone_vins_output/pose_graph/"
+save_image: 0

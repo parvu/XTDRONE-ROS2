@@ -64,6 +64,9 @@ class SimPaths:
 EKF_PRESETS = {
     "gps": "EKF2_GPS_CTRL=7 EKF2_EV_CTRL=0 EKF2_HGT_REF=1 EKF2_BARO_CTRL=1 EKF2_MAG_TYPE=0",
     "vision": "EKF2_GPS_CTRL=0 EKF2_EV_CTRL=15 EKF2_HGT_REF=3 EKF2_BARO_CTRL=0 EKF2_MAG_TYPE=5",
+    # 2D laser SLAM (chapters 17, 18, 20): position and yaw from the SLAM pose, whose height is the
+    # downward range finder (laser_transfer, as in ROS 1); the barometer is fused as well
+    "laser2d": "EKF2_GPS_CTRL=0 EKF2_EV_CTRL=11 EKF2_HGT_REF=3 EKF2_BARO_CTRL=1 EKF2_MAG_TYPE=5",
 }
 
 
@@ -77,7 +80,8 @@ XTDRONE_DEFAULT_PARAMS = "NAV_DLL_ACT=0 COM_RCL_EXCEPT=4"
 def px4_params(ekf, extra=""):
     if ekf not in EKF_PRESETS:
         raise RuntimeError(f"ekf must be one of {', '.join(EKF_PRESETS)}")
-    return " ".join(p for p in (XTDRONE_DEFAULT_PARAMS, EKF_PRESETS[ekf], extra.strip()) if p)
+    extra = extra.replace(",", " ").strip()  # "A=1 B=2" or "A=1,B=2"
+    return " ".join(p for p in (XTDRONE_DEFAULT_PARAMS, EKF_PRESETS[ekf], extra) if p)
 
 
 def set_real_time_factor(world, factor):
@@ -95,11 +99,32 @@ def world_name(world_file):
 
 # MAVROS plugins the XTDrone nodes use. Each MAVROS instance otherwise loads ~60 plugins
 # that stream and parse data nobody reads, which matters with many vehicles.
+# No "param": XTDrone sets PX4 parameters at startup (XTDRONE_PX4_PARAMS), and the plugin's full
+# parameter download (~900 values per vehicle) saturates MAVROS when many vehicles connect at once.
 XTDRONE_MAVROS_PLUGINS = [
-    "sys_status", "sys_time", "command", "param", "local_position", "global_position", "imu",
+    "sys_status", "sys_time", "command", "local_position", "global_position", "imu",
     "altitude", "home_position", "setpoint_raw", "setpoint_position", "setpoint_velocity",
     "setpoint_accel", "setpoint_attitude", "vision_pose", "vision_speed", "odometry",
 ]
+# mavros_plugins:=swarm (the default for mavlink_profile swarm): only what the XTDrone nodes use
+# (state/set_mode, arming, local position, home, setpoint_raw, vision). Fewer plugins = fewer DDS
+# endpoints, which matters when 10-20 MAVROS processes discover each other on one machine.
+XTDRONE_SWARM_MAVROS_PLUGINS = [
+    "sys_status", "sys_time", "command", "local_position", "home_position", "setpoint_raw",
+    "vision_pose", "vision_speed",
+]
+
+
+SWARM_THRESHOLD = 6  # mavlink_profile:=auto picks "swarm" above this many vehicles
+
+
+def mavlink_profile(profile, vehicle_count):
+    """full | swarm | auto -> full or swarm (px4-rc.mavlink stream rates)."""
+    if profile not in ("full", "swarm", "auto"):
+        raise RuntimeError("mavlink_profile must be full, swarm or auto")
+    if profile == "auto":
+        return "swarm" if vehicle_count > SWARM_THRESHOLD else "full"
+    return profile
 
 
 SPAWN_CLEARANCE = 0.3  # m, spawn height for vehicles requested at z <= 0
@@ -107,16 +132,18 @@ SPAWN_CLEARANCE = 0.3  # m, spawn height for vehicles requested at z <= 0
 
 def mavros_params(vehicle, plugins="xtdrone"):
     """MAVROS PX4 plugin list and config (their keys are /** wildcards) plus the FCU link.
-    plugins: 'xtdrone' (XTDRONE_MAVROS_PLUGINS only) or 'all' (MAVROS' PX4 default set)."""
+    plugins: 'xtdrone' (XTDRONE_MAVROS_PLUGINS), 'swarm' (XTDRONE_SWARM_MAVROS_PLUGINS) or 'all'
+    (MAVROS' PX4 default set)."""
     share = Path(get_package_share_directory("mavros")) / "launch"
     params = [str(share / f) for f in ("px4_pluginlists.yaml", "px4_config.yaml") if (share / f).is_file()]
     params.append({"fcu_url": vehicle.fcu_url, "gcs_url": "", "tgt_system": vehicle.mav_sys_id,
                    "tgt_component": 1, "fcu_protocol": "v2.0"})
-    if plugins == "xtdrone":
+    if plugins in ("xtdrone", "swarm"):
         # allowlist entries override the denylist in MAVROS
-        params.append({"plugin_denylist": ["*"], "plugin_allowlist": XTDRONE_MAVROS_PLUGINS})
+        allow = XTDRONE_MAVROS_PLUGINS if plugins == "xtdrone" else XTDRONE_SWARM_MAVROS_PLUGINS
+        params.append({"plugin_denylist": ["*"], "plugin_allowlist": allow})
     elif plugins != "all":
-        raise RuntimeError("mavros_plugins must be 'xtdrone' or 'all'")
+        raise RuntimeError("mavros_plugins must be 'xtdrone', 'swarm' or 'all'")
     return params
 
 
@@ -132,9 +159,44 @@ def communication_node(vehicle, enhanced):
     return Node(package="xtdrone_py", executable=exe, arguments=args, output="screen")
 
 
+def actor_bridges(world_file):
+    """ROS -> gz bridges for the actors of a world that carry the XTDrone ActorMotion system
+    (/<actor>/cmd_motion, geometry_msgs/Vector3: x, y, speed; chapter 38)."""
+    entries = []
+    try:
+        root = ET.parse(world_file).getroot()
+    except (ET.ParseError, OSError):
+        return entries
+    for actor in root.iter("actor"):
+        if any(pl.get("filename") == "xtdrone_actor_motion" for pl in actor.findall("plugin")):
+            topic = f"/{actor.get('name')}/cmd_motion"
+            entries.append({"ros_topic_name": topic, "gz_topic_name": topic,
+                            "ros_type_name": "geometry_msgs/msg/Vector3", "gz_type_name": "gz.msgs.Vector3d",
+                            "direction": "ROS_TO_GZ"})
+            pose = f"/{actor.get('name')}/pose"
+            entries.append({"ros_topic_name": pose, "gz_topic_name": pose, "ros_type_name": "geometry_msgs/msg/Pose",
+                            "gz_type_name": "gz.msgs.Pose", "direction": "GZ_TO_ROS", "lazy": True})
+    return entries
+
+
+def fleet_bridge(vehicles, world, paths, tmp=None, name="xtdrone_gz_bridge", extra=()):
+    """One ros_gz_bridge process for the sensors and ground truth of all given vehicles (lazy:
+    a topic is converted only while somebody subscribes). One process instead of one per
+    vehicle keeps large fleets cheap."""
+    tmp = tmp or tempfile.mkdtemp(prefix="xtdrone_launch_")
+    entries = [e for v in vehicles for e in fleet.bridge_config(paths.gz_share / "models", world, v)] + list(extra)
+    cfg = Path(tmp) / f"{name}.yaml"
+    cfg.write_text(yaml.safe_dump(entries))
+    return Node(package="ros_gz_bridge", executable="parameter_bridge", name=name,
+                output="log", parameters=[{"config_file": str(cfg)}])
+
+
 def vehicle_actions(v, world, paths, rootfs, mavros=True, bridge=True, communication="none", tmp=None,
-                    params=None, speed_factor=1.0, px4=True, mavros_plugins="xtdrone"):
-    """Spawn + PX4 + MAVROS + bridge (+ communication) for one vehicle."""
+                    params=None, speed_factor=1.0, px4=True, mavros_plugins="xtdrone", mavlink_profile="full",
+                    uxrce_dds=False):
+    """Spawn + PX4 + MAVROS + bridge (+ communication) for one vehicle (a UGV: spawn, bridge and
+    its ugv_communication node)."""
+    px4 = px4 and v.has_px4
     tmp = tmp or tempfile.mkdtemp(prefix="xtdrone_launch_")
     params = px4_params("gps") if params is None else params
     x, y, z, roll, pitch, yaw = v.pose
@@ -160,6 +222,9 @@ def vehicle_actions(v, world, paths, rootfs, mavros=True, bridge=True, communica
                 "PX4_GZ_WORLD": world,
                 "PX4_GZ_MODEL_NAME": v.name,
                 "XTDRONE_PX4_PARAMS": params,
+                "XTDRONE_MAVLINK_PROFILE": mavlink_profile,
+                # px4-rc.simulator overlay: PX4's uXRCE-DDS client only on request
+                "XTDRONE_UXRCE_DDS": "1" if uxrce_dds else "0",
                 # rcS scales the failsafe timeouts with it (chapter 43)
                 **({"PX4_SIM_SPEED_FACTOR": f"{speed_factor:g}"} if speed_factor != 1.0 else {}),
                 # px4-rc.mavlink / px4-rc.simulator overlays (XTDrone ports, parameters) are found first on PATH
@@ -172,10 +237,12 @@ def vehicle_actions(v, world, paths, rootfs, mavros=True, bridge=True, communica
         actions.append(Node(package="mavros", executable="mavros_node", namespace=v.name,
                             output="log", parameters=mavros_params(v, mavros_plugins)))
     if bridge:
-        cfg = Path(tmp) / f"{v.name}_bridge.yaml"
-        cfg.write_text(yaml.safe_dump(fleet.bridge_config(paths.gz_share / "models", world, v)))
-        actions.append(Node(package="ros_gz_bridge", executable="parameter_bridge", name=f"{v.name}_gz_bridge",
-                            output="log", parameters=[{"config_file": str(cfg)}]))
+        actions.append(fleet_bridge([v], world, paths, tmp, name=f"{v.name}_gz_bridge"))
     if communication != "none" and px4:
         actions.append(communication_node(v, communication == "enhanced"))
+    if v.family == "ugv":
+        # XTDrone UGV command (speed, steering angle) -> AckermannSteering (speed, yaw rate);
+        # replaces the catvehicle cmd_vel controller, so it always runs
+        actions.append(Node(package="xtdrone_py", executable="ugv_communication", arguments=[str(v.id_in_type)],
+                            output="screen"))
     return actions

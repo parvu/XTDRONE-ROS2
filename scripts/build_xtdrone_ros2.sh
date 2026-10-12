@@ -4,7 +4,8 @@
 #   2. XTDrone PX4 airframes into the PX4 build
 #   3. Gazebo Classic worlds/models -> Harmonic (ros2/xtdrone_gz/generated)
 #   4. colcon workspace with the XTDrone ROS 2 packages
-# Re-running is safe. Set XTDRONE_WS to change the workspace (default ~/xtdrone_ros2_ws).
+# Re-running is safe. Set XTDRONE_WS to change the workspace (default ~/xtdrone_ros2_ws),
+# XTDRONE_NO_VRX=1 to leave out VRX (chapter 32, the longest part of the build).
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -65,6 +66,12 @@ git -C "${PX4_DIR}" submodule update --init Tools/simulation/gazebo-classic/sitl
 
 echo "== Converting XTDrone worlds and models to Gazebo Harmonic"
 python3 "${GZ_PKG}/scripts/generate_vehicle_models.py" "${GZ_PKG}/models" >/dev/null
+# CAT Vehicle UGVs from the original xacro (needs xacro and gz sdf, chapter 11)
+set +u
+# shellcheck disable=SC1090
+source "/opt/ros/${ROS_DISTRO}/setup.bash"
+set -u
+python3 "${GZ_PKG}/scripts/generate_ugv_models.py" "${GZ_PKG}/models" >/dev/null
 rm -rf "${GZ_PKG}/generated"
 # shellcheck disable=SC2046
 python3 "${GZ_PKG}/scripts/classic_to_gz.py" \
@@ -75,19 +82,42 @@ python3 "${GZ_PKG}/scripts/classic_to_gz.py" \
   --skip-models $(ls "${GZ_PKG}/models") \
   --out "${GZ_PKG}/generated"
 
+if [[ "${XTDRONE_NO_VRX:-0}" != "1" ]]; then
+  git -C "${ROOT_DIR}" submodule update --init ros2/vrx
+  python3 "${GZ_PKG}/scripts/make_sandisland.py" "${ROOT_DIR}/ros2/vrx/vrx_gz/worlds/sydney_regatta.sdf" \
+    "${GZ_PKG}/generated/worlds" >/dev/null
+  # WAM-V with thrusters only (VRX turns all sensors on; cameras and lidar rendered on a CPU cost ~90 %
+  # of the real time factor). usv.launch.py passes it to VRX's spawn launch as urdf:=.
+  mkdir -p "${GZ_PKG}/generated/usv"
+  sed 's|<xacro:if value="$(arg vrx_sensors_enabled)">|<xacro:if value="false"> <!-- XTDrone: no VRX sensors -->|' \
+    "${ROOT_DIR}/ros2/vrx/vrx_urdf/wamv_gazebo/urdf/wamv_gazebo.urdf.xacro" > "${GZ_PKG}/generated/usv/xtdrone_wamv.urdf.xacro"
+fi
+
 echo "== Building the colcon workspace ${WORKSPACE}"
 mkdir -p "${WORKSPACE}/src"
-for pkg in xtdrone_gz xtdrone_bringup xtdrone_py; do
+for pkg in xtdrone_msgs xtdrone_gz xtdrone_bringup xtdrone_py xtdrone_groundcontrol xtdrone_slam xtdrone_planning xtdrone_gz_plugins xtdrone_orbslam3; do
   ln -sfn "${ROOT_DIR}/ros2/${pkg}" "${WORKSPACE}/src/${pkg}"
 done
 ln -sfn "${ROOT_DIR}/ros2/fomation_demo" "${WORKSPACE}/src/xtdrone_formation_demo"
+# KISS-ICP v1.2.3 (3D lidar odometry, chapter 19); its CMake fetches Sophus and tsl-robin-map.
+git -C "${ROOT_DIR}" submodule update --init ros2/kiss-icp
+ln -sfn "${ROOT_DIR}/ros2/kiss-icp/ros" "${WORKSPACE}/src/kiss_icp"
+# VINS-Fusion, ROS 2 Jazzy fork (stereo VIO, chapter 14; packages vins, camera_models, loop_fusion, global_fusion)
+git -C "${ROOT_DIR}" submodule update --init ros2/vins-fusion
+ln -sfn "${ROOT_DIR}/ros2/vins-fusion" "${WORKSPACE}/src/vins-fusion"
+# VRX v3.1.2 (Gazebo Harmonic ocean, WAM-V USV) for the UAV + USV chapter (32). XTDRONE_NO_VRX=1 skips it.
+if [[ "${XTDRONE_NO_VRX:-0}" != "1" ]]; then
+  ln -sfn "${ROOT_DIR}/ros2/vrx" "${WORKSPACE}/src/vrx"
+else
+  rm -f "${WORKSPACE}/src/vrx"
+fi
 
 set +u
 # shellcheck disable=SC1090
 source "/opt/ros/${ROS_DISTRO}/setup.bash"
 set -u
 cd "${WORKSPACE}"
-colcon build --symlink-install
+colcon build --symlink-install --parallel-workers "${JOBS}"
 
 printf '\nBuild complete. In every new terminal run:\n'
 printf '  source %s/install/setup.bash\n' "${WORKSPACE}"

@@ -307,6 +307,9 @@ class Converter:
                 if init:
                     v = [float(x) for x in init.split()] + [0.0] * 6
                     ET.SubElement(actor, "pose").text = f"{v[0]:g} {v[1]:g} 1 0 0 {v[5]:g}"
+                    # the ROS actor plugin becomes the xtdrone_gz_plugins ActorMotion system
+                    # (/<actor>/cmd_motion, chapter 38)
+                    ET.SubElement(actor, "plugin", filename="xtdrone_actor_motion", name="xtdrone::ActorMotion")
                     break
         # Classic plugins are not loadable in gz-sim.
         for parent in list(root.iter()):
@@ -409,6 +412,47 @@ class Converter:
             world.append(model)
 
     # -- worlds ----------------------------------------------------------------
+    @staticmethod
+    def convert_ceilings(world):
+        """XTDrone's invisible ceilings are dynamic 300 m x 300 m boxes released at z = 5 m: in Classic
+        (ODE) they drop onto the room walls and rest there. In gz-sim (DART) a huge box lying on dozens of
+        walls costs so much that indoor3 runs at 5 % of real time. Make them static at the height where
+        they would come to rest: on the highest box collision below them."""
+        def pose_of(el):
+            v = [float(x) for x in (el.findtext("pose") or "0 0 0 0 0 0").split()]
+            return v + [0.0] * (6 - len(v))
+
+        tops = []
+        ceilings = [m for m in world.findall("model") if "ceiling" in m.get("name", "").lower()
+                    and (m.findtext("static") or "0").strip() not in ("1", "true")]
+        for m in world.findall("model"):
+            if m in ceilings:
+                continue
+            mz = pose_of(m)[2]
+            for link in m.findall("link"):
+                lz = pose_of(link)[2]
+                for col in link.findall("collision"):
+                    size = col.findtext("geometry/box/size")
+                    if size:
+                        tops.append(mz + lz + pose_of(col)[2] + float(size.split()[2]) / 2)
+        for c in ceilings:
+            size = c.findtext("link/collision/geometry/box/size")
+            if not size:
+                continue
+            half = float(size.split()[2]) / 2
+            pose = pose_of(c)
+            below = [t for t in tops if t < pose[2] - half]
+            if below:
+                pose[2] = max(below) + half
+            pe = c.find("pose")
+            if pe is None:
+                pe = ET.SubElement(c, "pose")
+            pe.text = " ".join(f"{v:g}" for v in pose)
+            st = c.find("static")
+            if st is None:
+                st = ET.SubElement(c, "static")
+            st.text = "1"
+
     def convert_world(self, src, name=None):
         tree = ET.parse(src)
         root = tree.getroot()
@@ -429,6 +473,7 @@ class Converter:
                 world.remove(el)
         self.convert_roads(world)
         self.convert_tree(world)
+        self.convert_ceilings(world)
 
         # Drop scene sub-elements that gz handles differently.
         scene = world.find("scene")

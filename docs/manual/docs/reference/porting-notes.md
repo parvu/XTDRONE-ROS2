@@ -64,3 +64,21 @@ Two pitfalls:
    `call_async` and handle the result in a done-callback (see `xtdrone_py/common.py`).
 
 Use full topic names (`/iris_0/mavros/...`). Relative names resolve against the node namespace.
+
+## Findings from phases 3 and 4
+
+- **Ground truth must not reach PX4.** Gazebo's OdometryPublisher (the `/<vehicle>/ground_truth/odom` source) also
+  publishes `/model/<name>/odometry_with_covariance` by default. PX4's `gz_bridge` subscribes to exactly that topic
+  and fuses it as external vision. The models now send that output to an unused topic; vision-mode EKF setups get
+  the ground truth only through `get_local_pose`, as intended.
+- **Classic invisible ceilings.** The indoor and zhihang worlds have a dynamic 300 m × 300 m box released at 5 m. In
+  Classic (ODE) it falls onto the walls and rests there. In gz-sim (DART) the same contact situation slowed `indoor3`
+  to 5 % of real time. The converter makes these ceilings static at the height where they would rest: on the walls.
+- **AckermannSteering odometry** shares `/model/<name>/odometry` with the ground truth unless `odom_topic` is set.
+- **GPU lidars looking straight down** (pitch exactly 90°) measure wrong ranges, because the render camera is
+  degenerate. The range finders are pitched 86°.
+- **Many vehicles on one machine:** see chapter 43 (swarm MAVLink profile, MAVROS plugin set, no MAVROS `param`
+  plugin, one lazy bridge, network tuning).
+- **Orphaned processes.** If a launch is killed with SIGKILL, its children keep running: PX4's `rcS` shell, static
+  TF publishers, SLAM nodes. They then disturb later runs (stale poses, CPU load). The test runner's cleanup kills
+  them by executable path.

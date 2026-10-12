@@ -1,18 +1,22 @@
 #!/usr/bin/env python3
-"""Chapter 25 check: the ROS 2 leader/follower formation demo with 6 iris.
+"""Chapters 24/25 check: the ROS 2 leader/follower formation demo.
 
-Requires: xtdrone.launch.py scenario:=formation_6 ekf:=vision communication:=basic,
-and `ros2 run xtdrone_py get_local_pose iris 6` (shared position frame).
+  formation_test.py                                   # chapter 25: 6 iris, simple followers
+  formation_test.py --count 9 --controller consensus --avoid   # chapter 24
+
+Requires: xtdrone.launch.py scenario:=formation_6 (or world:=empty vehicles:="iris*9")
+ekf:=vision communication:=basic, and `ros2 run xtdrone_py get_local_pose iris N`
+(shared position frame).
 
 1. take off all vehicles to ~8 m (keyboard sequence i, b, t) and hover;
 2. start `ros2 launch xtdrone_formation_demo formation.launch.py uav_count:=6`;
-3. check the waiting (origin) formation, then 'T' and 'triangle' (sent like the
+3. check the waiting (origin) formation, then two more formations (sent like the
    keyboard does in leader mode: /xtdrone/leader/cmd);
 4. move the leader (/xtdrone/leader/cmd_vel_flu) and check the followers keep formation;
 5. stop the demo and land.
 Formation errors use the Gazebo ground truth (/iris_N/ground_truth/odom).
 """
-import itertools
+import argparse
 import math
 import os
 import signal
@@ -27,11 +31,13 @@ from mavros_msgs.msg import HomePosition, State
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
+from scipy.optimize import linear_sum_assignment
 from std_msgs.msg import String
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../ros2/fomation_demo"))
-from xtdrone_formation_demo.formation_dict import formation_dict_6  # noqa: E402
+from xtdrone_formation_demo.formation_dict import formation_dict_6, formation_dict_9  # noqa: E402
 
+FORMATIONS = {6: (formation_dict_6, ("T", "triangle")), 9: (formation_dict_9, ("cube", "pyramid"))}
 N = 6
 TAKEOFF_ALT = 8.0
 TOL = 0.8  # m, per-follower position tolerance
@@ -74,18 +80,16 @@ class Fleet(Node):
         return self.gt[n].z if self.gt[n] else float("nan")
 
     def rel(self):
-        """Follower positions relative to the leader (3 x 5), ground truth."""
+        """Follower positions relative to the leader (3 x N-1), ground truth."""
         L = self.gt["iris_0"]
         return np.array([[self.gt[n].x - L.x, self.gt[n].y - L.y, self.gt[n].z - L.z] for n in self.names[1:]]).T
 
 
 def formation_error(rel, target):
-    """Largest follower error under the best one-to-one assignment (the demo reassigns followers)."""
-    best = float("inf")
-    for perm in itertools.permutations(range(target.shape[1])):
-        err = max(np.linalg.norm(rel[:, i] - target[:, j]) for i, j in enumerate(perm))
-        best = min(best, err)
-    return best
+    """Largest follower error under the closest one-to-one assignment (the demo reassigns followers)."""
+    cost = np.linalg.norm(rel[:, :, None] - target[:, None, :], axis=0)
+    rows, cols = linear_sum_assignment(cost)
+    return float(cost[rows, cols].max())
 
 
 def check(fleet, name, target, timeout):
@@ -102,6 +106,14 @@ def check(fleet, name, target, timeout):
 
 
 def main():
+    global N
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--count", type=int, default=6, choices=sorted(FORMATIONS))
+    ap.add_argument("--controller", default="simple", choices=("simple", "consensus"))
+    ap.add_argument("--avoid", action="store_true")
+    a = ap.parse_args()
+    N = a.count
+    formations, sequence = FORMATIONS[N]
     rclpy.init()
     f = Fleet()
     demo = None
@@ -111,7 +123,7 @@ def main():
         if not f.wait(180, ready):
             log("FAIL: not all vehicles connected with home position")
             return 1
-        log("all 6 vehicles connected")
+        log(f"all {N} vehicles connected")
         up = lambda: [f.vel[n].publish(Twist(linear=Twist().linear.__class__(z=1.0))) for n in f.names]  # noqa
         deadline = time.time() + 90
         while time.time() < deadline and not all(f.state[n].armed for n in f.names):
@@ -133,18 +145,19 @@ def main():
         log("all vehicles hover at " + ", ".join(f"{f.z(n):.1f}" for n in f.names) + " m")
 
         demo = subprocess.Popen(["ros2", "launch", "xtdrone_formation_demo", "formation.launch.py",
-                                 "uav_type:=iris", "uav_count:=6"],
+                                 "uav_type:=iris", f"uav_count:={N}", f"controller:={a.controller}",
+                                 f"avoid:={str(a.avoid).lower()}"],
                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
         # the leader must be up (and subscribed) before formation commands are sent
         if not f.wait(60, lambda: f.leader_cmd.get_subscription_count() > 0):
             log("FAIL: formation leader did not start")
             return 1
-        ok &= check(f, "waiting (origin)", formation_dict_6["origin"], 60)
-        for name in ("T", "triangle"):
+        ok &= check(f, "waiting (origin)", formations["origin"], 60)
+        for name in sequence:
             f.leader_cmd.publish(String(data=name))
             f.wait(1.0)
-            ok &= check(f, name, formation_dict_6[name], 90)
-        # leader moves forward at 0.5 m/s for 10 s; followers keep the triangle
+            ok &= check(f, name, formations[name], 90)
+        # leader moves forward at 0.5 m/s for 10 s; followers keep the last formation
         start = (f.gt["iris_0"].x, f.gt["iris_0"].y)
         worst = 0.0
         end = time.time() + 10
@@ -153,11 +166,14 @@ def main():
         while time.time() < end:
             f.leader_vel.publish(move)
             f.wait(0.1)
-            worst = max(worst, formation_error(f.rel(), formation_dict_6["triangle"]))
+            worst = max(worst, formation_error(f.rel(), formations[sequence[-1]]))
         moved = math.dist(start, (f.gt["iris_0"].x, f.gt["iris_0"].y))
         f.leader_vel.publish(Twist())
         log(f"leader moved {moved:.1f} m; max follower error while moving {worst:.2f} m")
-        ok &= moved > 2.0 and worst < 2 * TOL
+        # 0.5 m/s for 10 s wall time; with 9+ vehicles the sim runs below real time (RTF ~0.6)
+        # consensus followers learn the leader's motion through chains of local leaders and lag more
+        moving_tol = (2.5 if a.controller == "consensus" else 2.0) * TOL
+        ok &= moved > 1.0 and worst < moving_tol
     finally:
         if demo:
             os.killpg(demo.pid, signal.SIGINT)

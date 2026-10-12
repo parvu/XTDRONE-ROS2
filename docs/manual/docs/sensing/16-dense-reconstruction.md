@@ -1,18 +1,35 @@
 # 16. 3D dense reconstruction (VINS-Fusion + RTAB-Map)
 
-!!! warning "Planned: phase 4"
-    This chapter depends on components that are not converted yet.
-    **ROS 2 / Gazebo Harmonic approach:** `ros-jazzy-rtabmap-ros` (binary) with the RGB-D topics of `iris_realsense_camera`, and odometry from VIO (chapter 14) or, until VIO is ported, from the ground truth (chapter 15).
+!!! success "Ported and tested (odometry: ground truth until VINS-Fusion is ported)"
+    `ros2 launch xtdrone_slam rtabmap_rgbd.launch.py` (RTAB-Map from `ros-jazzy-rtabmap-ros`). Test:
+    `scripts/tests/run_chapter_tests.sh ch16`: an `iris_realsense_camera` turns a full circle and flies 1.5 m in
+    `indoor1`; RTAB-Map builds a cloud map of more than 10 000 points.
 
-## What the original chapter does
+The sparse maps of visual SLAM and VIO cannot be used for obstacle avoidance. RTAB-Map fuses an odometry with the
+depth images of the RealSense camera into a dense point cloud, an OctoMap and a 2D grid.
 
-The sparse SLAM/VIO maps are not enough for obstacle avoidance. The chapter fuses VINS-Fusion odometry with the RealSense depth image in RTAB-Map to build a dense point cloud and an OctoMap (`/rtabmap/octomap_binary`).
+## Run
 
-See the [original chapter](https://www.yuque.com/xtdrone/manual_en) for the ROS 1 instructions.
+```bash
+ros2 launch xtdrone_bringup xtdrone.launch.py world:=indoor1 vehicles:=iris_realsense_camera communication:=basic
+ros2 launch xtdrone_slam rtabmap_rgbd.launch.py rviz:=true
+ros2 run xtdrone_py multirotor_keyboard_control iris 1 vel        # fly slowly through the rooms
+```
 
-## What already works on ROS 2 and Gazebo Harmonic
+Outputs: `/rtabmap/cloud_map`, `/rtabmap/octomap_full`, `/rtabmap/octomap_binary`, `/rtabmap/map`, and the database
+`~/.ros/rtabmap.db` (open it with `rtabmap-databaseViewer`).
 
-- `iris_realsense_camera` publishes `/iris_0/realsense/depth_camera/color/image_raw`, `.../depth/image_raw`, `.../depth/points` and `camera_info`.
-- Ground-truth odometry on `/iris_0/ground_truth/odom` can stand in for VIO.
+| `odom:=` | Odometry |
+|---|---|
+| `groundtruth` (default) | Gazebo ground truth through `odom_relay` (`odom → base_link`) |
+| `visual` | RTAB-Map's RGB-D visual odometry. It loses track on the plain walls of `indoor1`; use it in textured scenes |
+| `external` | any `nav_msgs/Odometry` given by `odom_topic:=` (for VINS-Fusion once chapter 14 is ported) |
 
-The [migration plan](../reference/status.md) lists the phases.
+The images carry the frame `depth_camera_base`. The launch publishes it as the optical frame of the camera
+(z forward), 0.12 m in front of `base_link`. RTAB-Map uses exact RGB/depth synchronisation: the gz `rgbd_camera`
+stamps both images identically, while approximate sync paired frames 0.05–0.1 s apart and broke the odometry in
+turns.
+
+!!! note "Slow without a GPU"
+    The RGB-D camera is rendered on the CPU. With RTAB-Map the simulation runs at about 0.2–0.3 of real time on the
+    6-core test machine.

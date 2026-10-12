@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<sdf version="1.9">
+  <!-- 2.501 m x 1.001 m plate (tags along x, the first ID at -x; the texture is stored rotated by 90 deg because the gz box top face maps image columns to -y), texture from sitl_config/models/apriltag3-5 (black tag squares 0.5 m). -->
+  <model name="apriltag3-5">
+    <static>true</static>
+    <link name="link">
+      <collision name="collision">
+        <pose>0 0 0.005 0 0 0</pose>
+        <geometry><box><size>2.5007 1.0009 0.01</size></box></geometry>
+      </collision>
+      <visual name="visual">
+        <pose>0 0 0.005 0 0 0</pose>
+        <geometry><box><size>2.5007 1.0009 0.01</size></box></geometry>
+        <material>
+          <ambient>1 1 1 1</ambient>
+          <diffuse>1 1 1 1</diffuse>
+          <specular>0 0 0 1</specular>
+          <pbr><metal><albedo_map>model://apriltag3-5/materials/textures/apriltag3-5.png</albedo_map><roughness>1</roughness><metalness>0</metalness></metal></pbr>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>
