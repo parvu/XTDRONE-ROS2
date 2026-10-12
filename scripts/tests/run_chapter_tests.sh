@@ -30,15 +30,24 @@ cleanup_sim() {
   pkill -KILL -f "^[^ ]*/lib/(vrx_ros|vrx_gz)/" 2>/dev/null
   # children of launches started by test cases (orphaned if their launch was killed)
   pkill -KILL -f "^[^ ]*/lib/(tf2_ros|robot_state_publisher|ros_gz_sim)/" 2>/dev/null
-  pkill -KILL -f "^[^ ]*/lib/(xtdrone_slam|xtdrone_formation_demo|slam_toolbox|cartographer_ros|rtabmap_[a-z]+|nav2_[a-z_]+|dwb_[a-z_]+)/" 2>/dev/null
-  pkill -KILL -f "^/usr/bin/python3 [^ ]*/lib/(xtdrone_slam|xtdrone_formation_demo)/" 2>/dev/null
+  pkill -KILL -f "^[^ ]*/lib/(xtdrone_slam|xtdrone_formation_demo|slam_toolbox|cartographer_ros|rtabmap_[a-z]+|nav2_[a-z_]+|dwb_[a-z_]+|kiss_icp|vins|loop_fusion|ego_planner|xtdrone_planning|xtdrone_orbslam3)/" 2>/dev/null
+  pkill -KILL -f "^/usr/bin/python3 [^ ]*/lib/(xtdrone_slam|xtdrone_formation_demo|xtdrone_planning)/" 2>/dev/null
   sleep 1
+  # anything still alive slipped past the patterns above: report it (it would disturb the next case), kill it
+  local strays
+  if ! strays=$("${ROOT_DIR}/scripts/tests/check_strays.sh"); then
+    echo "WARNING: cleanup left processes behind; killing them"
+    echo "${strays}" | tail -n +2 | sed 's/^/  /'
+    STRAYS+=("$(echo "${strays}" | tail -n +2 | wc -l) stray processes at a cleanup of ${CURRENT_CASE:-the first case}")
+    "${ROOT_DIR}/scripts/tests/check_strays.sh" --kill >/dev/null || echo "WARNING: some processes survived kill -9"
+  fi
 }
 
 # run_case NAME "launch args" "test args" [extra command started after launch]
 run_case() {
   local name="$1" launch_args="$2" test_args="$3" extra="${4:-}"
   local log="${LOG_DIR}/${name}.log"
+  CURRENT_CASE="${name}"
   echo "=== ${name}: ros2 launch xtdrone_bringup xtdrone.launch.py ${launch_args}"
   cleanup_sim
   # shellcheck disable=SC2086
@@ -75,6 +84,7 @@ run_script() {
 # check_world NAME: load a converted world headless and check the clock runs.
 check_world() {
   local world="$1" log="${LOG_DIR}/world_${1}.log"
+  CURRENT_CASE="world_${world}"
   cleanup_sim
   local file
   file="$(ros2 pkg prefix xtdrone_gz)/share/xtdrone_gz/worlds/${world}.sdf"
@@ -93,6 +103,7 @@ check_world() {
 # gz_case NAME "world" "commands": start a world (no vehicles), run commands that print PASS/FAIL lines
 gz_case() {
   local name="$1" world="$2" cmds="$3" log="${LOG_DIR}/${1}.log"
+  CURRENT_CASE="${name}"
   cleanup_sim
   local share; share="$(ros2 pkg prefix xtdrone_gz)/share/xtdrone_gz"
   echo "=== ${name}: gz sim ${world}"
@@ -111,6 +122,7 @@ gz_x() { gz model -m "$1" -p 2>/dev/null | grep -A1 XYZ | tail -1 | tr -d '[]' |
 export -f gz_x
 
 RESULTS=()
+STRAYS=()
 CASES=("$@")
 [[ ${#CASES[@]} -eq 0 ]] && CASES=(worlds ch03 ch05 ch06 ch07 ch24 ch25 ch27 ch28 ch36 ch42 ch37 ch38 ch41 ch43 ch08plane ch08vtol ch08rover ch09 ch11 ch16 ch17 ch18 ch20 ch30 ch32 ch10 ch12 ch15 ch44)
 trap cleanup_sim EXIT
@@ -147,6 +159,18 @@ for c in "${CASES[@]}"; do
       run_script ch18_cartographer "scenario:=indoor3 ekf:=laser2d communication:=basic px4_params:=MPC_XY_VEL_MAX=1,MPC_ACC_HOR=1" \
         "${ROOT_DIR}/scripts/tests/laser_slam_test.py --slam cartographer" \
         "sleep 20; ros2 launch xtdrone_slam laser_slam_2d.launch.py slam:=cartographer" ;;
+    ch13)  # stereo visual SLAM (ORB-SLAM3; scripts/build_orbslam3.sh first): fly on the SLAM pose only
+      run_script ch13_orbslam3 "scenario:=outdoor1_stereo ekf:=vision communication:=basic px4_params:=MPC_XY_VEL_MAX=1,MPC_ACC_HOR=1" \
+        "${ROOT_DIR}/scripts/tests/laser_slam_test.py --slam orbslam3" \
+        "sleep 20; ros2 launch xtdrone_orbslam3 stereo.launch.py" ;;
+    ch14)  # stereo visual-inertial odometry (VINS-Fusion): fly on the VIO pose only
+      run_script ch14_vins "scenario:=outdoor1_stereo ekf:=vision communication:=basic px4_params:=MPC_XY_VEL_MAX=1,MPC_ACC_HOR=1" \
+        "${ROOT_DIR}/scripts/tests/laser_slam_test.py --slam vins" \
+        "sleep 20; ros2 launch xtdrone_slam vio.launch.py" ;;
+    ch19)  # 3D laser odometry (KISS-ICP; A-LOAM in ROS 1): fly on the lidar odometry only
+      run_script ch19_kiss_icp "scenario:=outdoor1_3d_lidar ekf:=vision communication:=basic px4_params:=MPC_XY_VEL_MAX=1,MPC_ACC_HOR=1" \
+        "${ROOT_DIR}/scripts/tests/laser_slam_test.py --slam kiss_icp" \
+        "sleep 20; ros2 launch xtdrone_slam laser_slam_3d.launch.py" ;;
     ch20)  # Nav2 2D planning on slam_toolbox
       run_script ch20_nav2 "scenario:=indoor3 ekf:=laser2d communication:=enhanced px4_params:=MPC_XY_VEL_MAX=1,MPC_ACC_HOR=1" \
         "${ROOT_DIR}/scripts/tests/nav2_test.py" \
@@ -225,4 +249,8 @@ done
 echo
 echo "===== XTDrone chapter test summary ====="
 printf '%s\n' "${RESULTS[@]}"
+if [[ ${#STRAYS[@]} -gt 0 ]]; then
+  echo "cleanup warnings:"
+  printf '  %s\n' "${STRAYS[@]}"
+fi
 ! printf '%s\n' "${RESULTS[@]}" | grep -q '^FAIL'

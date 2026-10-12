@@ -40,6 +40,8 @@ target_link_libraries(stereo_node
 ament_target_dependencies(stereo_node rclcpp sensor_msgs geometry_msgs cv_bridge message_filters)
 set_target_properties(stereo_node PROPERTIES INSTALL_RPATH
   "${ORB_SLAM3_DIR}/lib;${ORB_SLAM3_DIR}/Thirdparty/DBoW2/lib;${ORB_SLAM3_DIR}/Thirdparty/g2o/lib;$ENV{HOME}/.cache/xtdrone/orbslam3/pangolin-install/lib")
+# DT_RPATH, not DT_RUNPATH: it also applies to the libraries' own dependencies (libORB_SLAM3.so -> Pangolin)
+target_link_options(stereo_node PRIVATE -Wl,--disable-new-dtags)
 install(TARGETS stereo_node DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY config launch DESTINATION share/${PROJECT_NAME})
 ament_package()

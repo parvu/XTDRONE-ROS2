@@ -1,0 +1,7 @@
+# Chapters 13 and 14 (stereo visual SLAM and VIO): iris_stereo_camera in outdoor1. indoor1 (the ROS 1 world of these chapters) has
+# plain walls after the conversion, too few features for VINS; the city of outdoor1 is textured. The origin
+# is inside a parked Polaris (see outdoor1_3d_lidar.yaml), so the vehicle starts on the road next to it, facing
+# +y: facing +x the cameras see mostly the plain red arrow_red, on which ORB-SLAM3 loses tracking.
+world: outdoor1
+vehicles:
+  - {model: iris_stereo_camera, type: iris, id: 0, pose: [3, 0, 0, 0, 0, 1.5708]}

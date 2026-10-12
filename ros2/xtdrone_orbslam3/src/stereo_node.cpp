@@ -11,7 +11,7 @@
 #include <cv_bridge/cv_bridge.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <message_filters/subscriber.h>
-#include <message_filters/sync_policies/approximate_time.h>
+#include <message_filters/sync_policies/exact_time.h>
 #include <message_filters/synchronizer.h>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/image.hpp>
@@ -19,7 +19,9 @@
 #include "System.h"
 
 using ImageMsg = sensor_msgs::msg::Image;
-using SyncPolicy = message_filters::sync_policies::ApproximateTime<ImageMsg, ImageMsg>;
+// exact stamps: under load gz drops left and right frames independently, and a pair from two
+// different render steps breaks the stereo matching while the vehicle moves
+using SyncPolicy = message_filters::sync_policies::ExactTime<ImageMsg, ImageMsg>;
 
 class StereoNode : public rclcpp::Node
 {

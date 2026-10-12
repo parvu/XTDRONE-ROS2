@@ -1,6 +1,6 @@
 """Stereo visual SLAM with ORB-SLAM3 (chapter 13; ROS 1: xtdrone_run_orbslam_stereo.sh).
 
-  ros2 launch xtdrone_bringup xtdrone.launch.py scenario:=indoor1 ekf:=vision communication:=basic
+  ros2 launch xtdrone_bringup xtdrone.launch.py scenario:=outdoor1_stereo ekf:=vision communication:=basic
   ros2 launch xtdrone_orbslam3 stereo.launch.py [viewer:=true]
 
 The ORB-SLAM3 pose (/orbslam3/vision_pose/pose, FLU) goes to /<v>/mavros/vision_pose/pose through

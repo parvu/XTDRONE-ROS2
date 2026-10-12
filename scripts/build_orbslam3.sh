@@ -32,6 +32,15 @@ for f in "${SRC}/CMakeLists.txt" "${SRC}"/Thirdparty/*/CMakeLists.txt; do
          -e 's/find_package(OpenCV 3\.[0-9]*)/find_package(OpenCV 4 REQUIRED)/; s/find_package(OpenCV 3\.[0-9]* QUIET)/find_package(OpenCV 4 REQUIRED)/' "$f"
 done
 sed -i 's/^find_package(realsense2)/#find_package(realsense2)/' "${SRC}/CMakeLists.txt"
+# C++17 forbids ++ on a bool: LoopClosing's full-BA counter becomes an int (as in later ORB-SLAM3 forks)
+sed -i 's/^\(\s*\)bool mnFullBAIdx;/\1int mnFullBAIdx;/' "${SRC}/include/LoopClosing.h"
+# Four time utilities are missing from the XTDrone copy (ORB-SLAM3's .gitignore matched them): take them from
+# ORB-SLAM3 v1.0. These are all the sources the copy lacks compared with v1.0.
+for f in DBoW2/DUtils/Timestamp.h DBoW2/DUtils/Timestamp.cpp g2o/g2o/stuff/timeutil.h g2o/g2o/stuff/timeutil.cpp; do
+  [[ -f "${SRC}/Thirdparty/${f}" ]] && continue
+  curl -sfL -o "${SRC}/Thirdparty/${f}" \
+    "https://raw.githubusercontent.com/UZ-SLAMLab/ORB_SLAM3/v1.0-release/Thirdparty/${f}"
+done
 # build only the library (the examples need ROS 1 / realsense)
 python3 - "${SRC}/CMakeLists.txt" <<'EOF'
 import re, sys

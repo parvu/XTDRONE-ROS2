@@ -1,0 +1,6 @@
+# Chapter 19 (3D laser odometry): iris_3d_lidar in outdoor1. The origin of outdoor1 is inside a parked
+# Polaris (rover_static_clone_clone_1_clone at x -0.69), which a multirotor cannot climb out of, so it
+# starts on the road next to it.
+world: outdoor1
+vehicles:
+  - {model: iris_3d_lidar, type: iris, id: 0, pose: [3, 0, 0, 0, 0, 0]}

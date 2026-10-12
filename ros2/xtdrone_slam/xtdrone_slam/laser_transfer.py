@@ -113,7 +113,7 @@ class LaserTransfer(Node):
 def main():
     argv = rclpy.utilities.remove_ros_args(sys.argv)[1:]
     if len(argv) < 3:
-        raise SystemExit("usage: laser_transfer <vehicle_type> <id> slam_toolbox|cartographer|aloam")
+        raise SystemExit("usage: laser_transfer <vehicle_type> <id> " + "|".join(FRAMES))
     rclpy.init()
     node = LaserTransfer(argv[0], argv[1], argv[2])
     try:

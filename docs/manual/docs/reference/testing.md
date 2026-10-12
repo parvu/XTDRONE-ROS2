@@ -34,7 +34,9 @@ non-zero if a case failed.
 | `ch42` | XTDGroundControl, offscreen: two iris climb above 2 m from the GUI, the state panel shows them, they land |
 | `ch11` | two CAT Vehicle UGVs on `outdoor3` drive straight and steer left; their lidar and camera topics publish |
 | `ch16` | `iris_realsense_camera` turns and flies in `indoor1`; RTAB-Map's cloud map has > 10 000 points |
+| `ch13` / `ch14` | `iris_stereo_camera` in `outdoor1` (scenario `outdoor1_stereo`) flies a 2 m square on the ORB-SLAM3 / VINS-Fusion pose only (no GPS, `ekf:=vision`); SLAM vs ground truth ≤ 0.5 m, compared in the SLAM frame (it starts along the vehicle's heading). ch13 needs `scripts/build_orbslam3.sh` |
 | `ch17` / `ch18` | `iris_2d_lidar` in `indoor3` flies a 2 m square on the slam_toolbox / Cartographer pose only (no GPS, `ekf:=laser2d`); SLAM vs ground truth ≤ 0.5 m |
+| `ch19` | `iris_3d_lidar` in `outdoor1` (scenario `outdoor1_3d_lidar`) flies a 2 m square on the KISS-ICP odometry only (no GPS, `ekf:=vision`); odometry vs ground truth ≤ 0.5 m |
 | `ch20` | Nav2 flies to three goals while slam_toolbox maps `indoor3` (≤ 0.5 m each) |
 | `ch30` | the UGV keeps its lane on `outdoor3` for 30 m (`lane_detection` + `self_driving`) |
 | `ch32` | `sandisland` + VRX WAM-V: the boat floats and drives 5 m on its thrusters; an iris takes off from the island |

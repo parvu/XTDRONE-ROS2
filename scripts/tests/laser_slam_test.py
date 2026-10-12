@@ -25,6 +25,10 @@ from std_msgs.msg import String
 V = "iris_0"
 
 
+def yaw(q):
+    return math.atan2(2 * (q.w * q.z + q.x * q.y), 1 - 2 * (q.y * q.y + q.z * q.z))
+
+
 def log(m):
     print(f"[laser_slam_test] {m}", flush=True)
 
@@ -76,6 +80,15 @@ def main():
         log(f"{a.slam} pose reaches PX4: local position ({t.pose.position.x:.2f}, {t.pose.position.y:.2f})")
         s0 = (t.pose.position.x, t.pose.position.y)
         g0 = (t.gt.position.x, t.gt.position.y)
+        # visual odometry starts with the vehicle's heading as its x axis: express the ground-truth
+        # displacement in the SLAM frame (rotate by the heading difference at the start)
+        rot = yaw(t.pose.orientation) - yaw(t.gt.orientation)
+
+        def gt_rel():
+            dx, dy = t.gt.position.x - g0[0], t.gt.position.y - g0[1]
+            return (dx * math.cos(rot) - dy * math.sin(rot), dx * math.sin(rot) + dy * math.cos(rot))
+        if abs(math.remainder(rot, 2 * math.pi)) > 0.05:
+            log(f"SLAM frame turned {math.degrees(rot):.0f} deg from the world frame")
         up = lambda: t.vel.publish(Twist(linear=Twist().linear.__class__(z=0.6)))  # noqa: E731
         deadline = time.time() + 60
         while time.time() < deadline and not t.state.armed:
@@ -102,11 +115,11 @@ def main():
                     sent[0] = time.time()
                 if t.pose and t.gt:
                     ds = (t.pose.position.x - s0[0], t.pose.position.y - s0[1])
-                    dg = (t.gt.position.x - g0[0], t.gt.position.y - g0[1])
+                    dg = gt_rel()
                     worst = max(worst, math.dist(ds, dg))
             reached = t.wait(30, lambda: math.dist((t.pose.position.x, t.pose.position.y),
                                                    (goal.position.x, goal.position.y)) < 0.25, every=track)
-            dg = (t.gt.position.x - g0[0], t.gt.position.y - g0[1])
+            dg = gt_rel()
             log(f"{'ok  ' if reached else 'FAIL'} corner ({cx}, {cy}): ground truth ({dg[0]:.2f}, {dg[1]:.2f})")
             ok &= reached
         good = worst < a.tolerance  # slam_toolbox scan matching at 5 cm cells: about +-0.3-0.4 m

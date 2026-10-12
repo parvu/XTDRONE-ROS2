@@ -1,6 +1,6 @@
 """3D laser odometry for an iris_3d_lidar (chapter 19; A-LOAM in ROS 1, KISS-ICP here).
 
-  ros2 launch xtdrone_bringup xtdrone.launch.py world:=outdoor1 vehicles:=iris_3d_lidar ekf:=vision communication:=basic
+  ros2 launch xtdrone_bringup xtdrone.launch.py scenario:=outdoor1_3d_lidar ekf:=vision communication:=basic
   ros2 launch xtdrone_slam laser_slam_3d.launch.py
 
 KISS-ICP (submodule ros2/kiss-icp, v1.2.3) on /<v>/velodyne_points with base_link as base frame

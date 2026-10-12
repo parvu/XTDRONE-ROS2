@@ -105,6 +105,22 @@ ln -sfn "${ROOT_DIR}/ros2/kiss-icp/ros" "${WORKSPACE}/src/kiss_icp"
 # VINS-Fusion, ROS 2 Jazzy fork (stereo VIO, chapter 14; packages vins, camera_models, loop_fusion, global_fusion)
 git -C "${ROOT_DIR}" submodule update --init ros2/vins-fusion
 ln -sfn "${ROOT_DIR}/ros2/vins-fusion" "${WORKSPACE}/src/vins-fusion"
+# EGO-Planner-Swarm, ROS 2 port (branch ros2_version; chapters 21-22): only the planner packages and
+# quadrotor_msgs, not its own simulator (XTDrone flies the PX4 vehicles in Gazebo instead)
+git -C "${ROOT_DIR}" submodule update --init ros2/ego-planner-swarm
+mkdir -p "${WORKSPACE}/src/ego_planner"
+for pkg in planner/plan_env planner/path_searching planner/bspline_opt planner/traj_utils planner/plan_manage \
+           uav_simulator/Utils/quadrotor_msgs; do
+  ln -sfn "${ROOT_DIR}/ros2/ego-planner-swarm/src/${pkg}" "${WORKSPACE}/src/ego_planner/$(basename "${pkg}")"
+done
+# Jazzy has only cv_bridge/cv_bridge.hpp: give the EGO packages a cv_bridge.h that includes it
+EGO_META="${WORKSPACE}/xtdrone_ego.meta"
+python3 - "${EGO_META}" "${ROOT_DIR}/ros2/xtdrone_planning/compat" <<'PY'
+import json, sys
+flags = ["-DCMAKE_CXX_FLAGS=-isystem " + sys.argv[2]]
+names = ["plan_env", "path_searching", "bspline_opt", "traj_utils", "ego_planner"]
+json.dump({"names": {n: {"cmake-args": flags} for n in names}}, open(sys.argv[1], "w"), indent=1)
+PY
 # VRX v3.1.2 (Gazebo Harmonic ocean, WAM-V USV) for the UAV + USV chapter (32). XTDRONE_NO_VRX=1 skips it.
 if [[ "${XTDRONE_NO_VRX:-0}" != "1" ]]; then
   ln -sfn "${ROOT_DIR}/ros2/vrx" "${WORKSPACE}/src/vrx"
@@ -117,7 +133,7 @@ set +u
 source "/opt/ros/${ROS_DISTRO}/setup.bash"
 set -u
 cd "${WORKSPACE}"
-colcon build --symlink-install --parallel-workers "${JOBS}"
+colcon build --symlink-install --parallel-workers "${JOBS}" --metas "${EGO_META}"
 
 printf '\nBuild complete. In every new terminal run:\n'
 printf '  source %s/install/setup.bash\n' "${WORKSPACE}"

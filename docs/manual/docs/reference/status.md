@@ -17,13 +17,13 @@ ROS 2 Jazzy / Gazebo Harmonic 8.15 / PX4 v1.16.2 / MAVROS 2.16 (6-core CPU, no G
 | 10 | Add a vehicle at runtime | **Tested** | `ch10` | 1 |
 | 11 | UGV (CAT Vehicle) | **Tested** (2 UGVs drive and steer; lidars and cameras publish) | `ch11` | 4 |
 | 12 | Sensor configuration | **Tested** | `ch12` | 2 |
-| 13 | Visual SLAM | Planned | — | 5 |
-| 14 | VIO | Planned | — | 5 |
+| 13 | Visual SLAM | **Tested** (ORB-SLAM3 stereo in `outdoor1`: 2 m square on the SLAM pose, ≤ 0.2 m from ground truth) | `ch13` | 5 |
+| 14 | VIO | **Tested** (VINS-Fusion stereo + IMU in `outdoor1`: 2 m square on the VIO pose, ≤ 0.3 m from ground truth) | `ch14` | 5 |
 | 15 | Ground-truth pose | **Tested** | `ch15` | 1 |
 | 16 | Dense reconstruction | **Tested** with ground-truth odometry (RTAB-Map cloud map; VINS odometry waits for chapter 14) | `ch16` | 4 |
 | 17 | 2D laser SLAM (Hector → slam_toolbox) | **Tested** (2 m square on the SLAM pose only, ≤ 0.4 m) | `ch17` | 4 |
 | 18 | 2D laser SLAM (Cartographer) | **Tested** (2 m square on the SLAM pose only, ≤ 0.1 m) | `ch18` | 4 |
-| 19 | 3D laser SLAM | Planned | — | 5 |
+| 19 | 3D laser SLAM | **Tested** (KISS-ICP in `outdoor1`: 2 m square on the lidar odometry, ≤ 0.35 m from ground truth) | `ch19` | 5 |
 | 20 | 2D motion planning (move_base → Nav2) | **Tested** (3 goals while mapping, ≤ 0.4 m) | `ch20` | 4 |
 | 21 | 3D motion planning | Planned | — | 5 |
 | 22 | Swarm motion planning | Planned | — | 5 |
