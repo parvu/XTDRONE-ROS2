@@ -48,6 +48,15 @@ fi
 echo "This script will ask sudo to install system packages."
 export DEBIAN_FRONTEND=noninteractive
 
+# The ros2-apt-source package (installed below) replaces the older manual ROS 2 apt
+# setup (ros2.list + ros-archive-keyring.gpg); keeping both makes apt fail with
+# "Conflicting values set for option Signed-By".
+for legacy in /etc/apt/sources.list.d/ros2.list /etc/apt/sources.list.d/ros2-latest.list; do
+  if [[ -f "${legacy}" ]] && grep -q 'packages.ros.org/ros2' "${legacy}"; then
+    echo "Removing legacy ROS 2 apt source ${legacy} (replaced by ros2-apt-source)"
+    sudo rm -f "${legacy}"
+  fi
+done
 # PX4's setup script and pip must use the system Python, not a virtualenv
 # activated by the login shell (e.g. an ArduPilot venv from ~/.profile).
 if [[ -n "${VIRTUAL_ENV:-}" ]]; then
