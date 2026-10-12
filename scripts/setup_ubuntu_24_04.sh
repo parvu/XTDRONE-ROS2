@@ -28,6 +28,23 @@ if [[ "${ID}" != "ubuntu" || "${VERSION_ID}" != "24.04" ]]; then
   exit 1
 fi
 
+# Packages from noble-updates (e.g. libunwind8) only fit their -dev packages when the
+# updates pocket is configured; without it PX4's dependencies fail with "held broken packages".
+if ! grep -rqsE '(^Suites:.*|^deb .*)[[:space:]]noble-updates([[:space:]]|$)' \
+     /etc/apt/sources.list /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list; then
+  cat >&2 <<'MSG'
+The Ubuntu "noble-updates" apt pocket is not configured. Packages already installed from it
+(e.g. libunwind8) then conflict with their -dev packages. Add it and update, for example:
+
+  sudo cp /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list.d/ubuntu.sources.bak
+  sudo sed -i 's/^Suites: noble$/Suites: noble noble-updates noble-backports/' /etc/apt/sources.list.d/ubuntu.sources
+  sudo apt update && sudo apt upgrade
+
+then run this script again.
+MSG
+  exit 1
+fi
+
 echo "This script will ask sudo to install system packages."
 export DEBIAN_FRONTEND=noninteractive
 
