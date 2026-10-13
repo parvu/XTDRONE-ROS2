@@ -30,6 +30,23 @@ mavlink start -x -u $udp_offboard_port_local -r 4000000 -f -m onboard -o $udp_of
 # XTDRONE_MAVLINK_PROFILE=swarm (xtdrone.launch.py mavlink_profile:=swarm, the default for
 # more than 6 vehicles): lower the rates of streams that XTDrone nodes do not need at full rate,
 # so that MAVROS and PX4 keep up with many vehicles on one machine.
+# XTDRONE_MAVLINK_PROFILE=light (mavlink_profile:=light): the same streams off, but attitude, IMU, position and
+# VFR_HUD at the rates the fixed-wing formation (chapter 35) needs. Full rates kept each MAVROS at a whole core
+# with three VTOLs, and the starved PX4 instances lost their airspeed and estimator.
+if [ "$XTDRONE_MAVLINK_PROFILE" = "light" ]; then
+	for s in ATTITUDE ODOMETRY ESC_INFO ESC_STATUS NAV_CONTROLLER_OUTPUT RC_CHANNELS SERVO_OUTPUT_RAW_0 \
+		WIND_COV DEBUG DEBUG_FLOAT_ARRAY DEBUG_VECT NAMED_VALUE_FLOAT OPTICAL_FLOW_RAD; do
+		mavlink stream -u $udp_offboard_port_local -s $s -r 0
+	done
+	mavlink stream -u $udp_offboard_port_local -s HIGHRES_IMU -r 50
+	mavlink stream -u $udp_offboard_port_local -s ATTITUDE_QUATERNION -r 50
+	mavlink stream -u $udp_offboard_port_local -s GLOBAL_POSITION_INT -r 50
+	mavlink stream -u $udp_offboard_port_local -s ALTITUDE -r 10
+	mavlink stream -u $udp_offboard_port_local -s VFR_HUD -r 20
+	mavlink stream -u $udp_offboard_port_local -s ATTITUDE_TARGET -r 2
+	mavlink stream -u $udp_offboard_port_local -s POSITION_TARGET_LOCAL_NED -r 2
+	mavlink stream -u $udp_offboard_port_local -s POSITION_TARGET_GLOBAL_INT -r 2
+fi
 if [ "$XTDRONE_MAVLINK_PROFILE" = "swarm" ]; then
 	for s in ATTITUDE ODOMETRY ESC_INFO ESC_STATUS NAV_CONTROLLER_OUTPUT RC_CHANNELS SERVO_OUTPUT_RAW_0 \
 		WIND_COV DEBUG DEBUG_FLOAT_ARRAY DEBUG_VECT NAMED_VALUE_FLOAT OPTICAL_FLOW_RAD; do

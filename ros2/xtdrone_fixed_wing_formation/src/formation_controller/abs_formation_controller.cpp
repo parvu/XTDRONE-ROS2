@@ -442,6 +442,8 @@ void ABS_FORMATION_CONTROLLER::control_law()
  _tecs.set_speed_weight(tecs_params.speed_weight);
  _tecs.set_time_const_throt(tecs_params.time_const_throt); //***影响油门，越大，kp越小
  _tecs.set_time_const(tecs_params.time_const); //***影响pitch， 越大，kp越小
+ _tecs.set_max_climb_rate(3.0f);  // ROS 2 port: 5 m/s (TECS default) made the followers zoom and stall
+ _tecs.set_max_sink_rate(3.0f);
  _tecs.enable_airspeed(true);
 
   //***发现问题，fw_sp.altitude没有正确传递进来，已解决！

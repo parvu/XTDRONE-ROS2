@@ -1,8 +1,10 @@
 # 29. Set waypoints for multiple UAVs with QGroundControl
 
-!!! info "Ported"
+!!! success "Ported and tested"
     No XTDrone code is involved. PX4 v1.16 already gives every SITL instance its own mission storage, so the
-    `rcS` change of the original chapter is no longer needed.
+    `rcS` change of the original chapter is no longer needed. Test: `scripts/tests/run_chapter_tests.sh ch29`: three
+    iris get different missions over MAVLink (MAVROS `mission/push`, as QGroundControl uploads them), read them back
+    unchanged, and fly them in AUTO.MISSION, each to its own waypoint (within 2 m).
 
 ## The original problem
 

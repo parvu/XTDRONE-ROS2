@@ -47,6 +47,8 @@ public:
     spawn_x_ = declare_parameter<double>("spawn_x", -600.0);
     spawn_y_ = declare_parameter<double>("spawn_y", 0.0);
     loiter_altitude_ = declare_parameter<double>("loiter_altitude", 50.0);
+    orbit_radius_ = declare_parameter<double>("orbit_radius", 150.0);  // 0: the UGV position itself, as ROS 1
+    lead_angle_ = declare_parameter<double>("orbit_lead_angle", 0.6);   // rad
 
     auto qos = rclcpp::SensorDataQoS();
     auto sub = [&](auto *member, const std::string &topic) {
@@ -173,11 +175,22 @@ private:
   void leader_fol_ugv() {
     mavros_msgs::msg::PositionTarget sp;
     sp.header.stamp = now();
-    sp.position.x = ugv_.pose.pose.position.x - spawn_x_;
-    sp.position.y = ugv_.pose.pose.position.y - spawn_y_;
+    // the UGV in the leader's local frame (ENU, origin at the leader's spawn point)
+    const double ux = ugv_.pose.pose.position.x - spawn_x_, uy = ugv_.pose.pose.position.y - spawn_y_;
+    sp.position.x = ux;
+    sp.position.y = uy;
     sp.position.z = loiter_altitude_;
-    // ROS 1 sent type_mask 12288, PX4's old "loiter" bits. PX4 1.16 ignores them (velocity and acceleration
-    // would be read as zero); a position-only setpoint becomes a loiter once within the acceptance radius.
+    // ROS 1 sent the UGV position with type_mask 12288, PX4's old "loiter" bits, and PX4 loitered around it. PX4
+    // 1.16 ignores those bits; a position-only setpoint flies to the point and keeps crossing it in ~25 m turns,
+    // too tight for the followers' fixed offsets. Within orbit_radius of the UGV the setpoint is therefore a
+    // point on a circle of that radius around it, lead_angle ahead of the leader (counter-clockwise).
+    const double dx = local_position_.pose.position.x - ux, dy = local_position_.pose.position.y - uy;
+    const double dist = std::hypot(dx, dy);
+    if (orbit_radius_ > 0.0 && dist < 2.0 * orbit_radius_) {
+      const double ahead = std::atan2(dy, dx) + lead_angle_;
+      sp.position.x = ux + orbit_radius_ * std::cos(ahead);
+      sp.position.y = uy + orbit_radius_ * std::sin(ahead);
+    }
     using PT = mavros_msgs::msg::PositionTarget;
     sp.type_mask = PT::IGNORE_VX | PT::IGNORE_VY | PT::IGNORE_VZ | PT::IGNORE_AFX | PT::IGNORE_AFY |
                    PT::IGNORE_AFZ | PT::IGNORE_YAW | PT::IGNORE_YAW_RATE;
@@ -204,7 +217,7 @@ private:
 
   int plane_id_;
   std::string ns_;
-  double spawn_x_, spawn_y_, loiter_altitude_;
+  double spawn_x_, spawn_y_, loiter_altitude_, orbit_radius_, lead_angle_;
   float att_angle_euler_[3] = {0, 0, 0};
   rclcpp::Time last_mode_request_{0, 0, RCL_ROS_TIME};
 

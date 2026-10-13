@@ -131,3 +131,8 @@ Use full topic names (`/iris_0/mavros/...`). Relative names resolve against the 
   `standard_vtol` climbs away by hundreds of metres. With three VTOLs at half real time the airspeed selector's
   plausibility checks sometimes reject the simulated airspeed and switch to that mode; chapter 35 sets
   `ASPD_DO_CHECKS=0` (the simulated airspeed is ground truth).
+- **PX4 timers under load.** With three VTOLs on a 6-core machine, a PX4 instance sometimes stopped running its
+  timer-driven modules (airspeed selector, battery simulation) right when it was armed, while the sensor-driven
+  controllers kept flying it; without airspeed its transition then timed out. Less load made it rare
+  (`ugv_nosensor`, `mavlink_profile:=light`, `SDLOG_MODE=-1`); the chapter 35 test also arms each VTOL on the ground
+  first and arms it again if its airspeed is lost.

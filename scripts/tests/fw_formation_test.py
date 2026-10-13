@@ -22,7 +22,7 @@ import time
 
 import rclpy
 from geometry_msgs.msg import PoseStamped
-from mavros_msgs.msg import ExtendedState, State
+from mavros_msgs.msg import ExtendedState, State, SysStatus
 from mavros_msgs.srv import CommandBool, CommandLong, SetMode
 from nav_msgs.msg import Odometry
 from rclpy.qos import qos_profile_sensor_data
@@ -53,6 +53,7 @@ def main():
     for i in SPAWN:
         ns = f"/{PREFIX}{i}/mavros/"
         n.create_subscription(State, ns + "state", lambda m, i=i: d[i].__setitem__("state", m), qos_profile_sensor_data)
+        n.create_subscription(SysStatus, ns + "sys_status", lambda m, i=i: d[i].__setitem__("sys", m), qos_profile_sensor_data)
         n.create_subscription(ExtendedState, ns + "extended_state",
                               lambda m, i=i: d[i].__setitem__("ext", m), qos_profile_sensor_data)
         n.create_subscription(PoseStamped, ns + "local_position/pose",
@@ -113,16 +114,43 @@ def main():
             return 1
         # PX4 needs a home position (GPS fix) before it arms
         spin(20)
-
-        def takeoff():
-            for i in SPAWN:
-                if mode(i) != "AUTO.TAKEOFF" and not d[i]["state"].armed:
-                    call(cli[i]["mode"], SetMode.Request(custom_mode="AUTO.TAKEOFF"))
-                if not d[i]["state"].armed:
-                    call(cli[i]["arm"], CommandBool.Request(value=True))
-        if not wait(120, lambda: all(d[i]["state"].armed for i in SPAWN), every=takeoff):
-            log("FAIL: not armed: " + ", ".join(f"{i} {mode(i)}" for i in SPAWN if not d[i]["state"].armed))
+        # ... and the airspeed sensor: PX4's airspeed selector counts its sensors only while disarmed, so a VTOL armed
+        # before its airspeed topic appeared flew without airspeed and its transition timed out (quad-chute)
+        aspd = 0x10  # MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE
+        if not wait(120, lambda: all(d[i].get("sys") and d[i]["sys"].sensors_present & aspd and d[i]["sys"].sensors_health & aspd
+                                     for i in SPAWN)):
+            log("FAIL: airspeed not healthy: " + ", ".join(
+                f"{i}: {(d[i]['sys'].sensors_health & aspd) if d[i].get('sys') else 'no sys_status'}" for i in SPAWN))
             return 1
+        log("ok   airspeed sensors healthy")
+
+        def aspd_ok(i):
+            st = d[i].get("sys")
+            return bool(st and st.sensors_health & aspd)
+
+        # Arm on the ground and check the airspeed for a few seconds before the take-off: in some runs a PX4
+        # instance's timer-driven modules (airspeed selector, battery simulation) stopped when it was armed, and
+        # without airspeed its transition later timed out. Such a vehicle is disarmed and armed again.
+        for i in SPAWN:
+            for attempt in range(4):
+                if not wait(30, lambda: mode(i) == "AUTO.LOITER" and d[i]["state"].armed, every=lambda: (
+                        call(cli[i]["mode"], SetMode.Request(custom_mode="AUTO.LOITER")) if mode(i) != "AUTO.LOITER"
+                        else call(cli[i]["arm"], CommandBool.Request(value=True)))):
+                    log(f"FAIL: {i} not armed: {mode(i)}")
+                    return 1
+                wait(5, lambda: False)
+                if aspd_ok(i):
+                    break
+                log(f"     {i}: airspeed lost when armed (attempt {attempt + 1}): disarm and arm again")
+                call(cli[i]["arm"], CommandBool.Request(value=False))
+                wait(30, lambda: not d[i]["state"].armed and aspd_ok(i))
+            else:
+                log(f"FAIL: {i}: no airspeed when armed")
+                return 1
+            if not wait(20, lambda: mode(i) == "AUTO.TAKEOFF", every=lambda: call(
+                    cli[i]["mode"], SetMode.Request(custom_mode="AUTO.TAKEOFF"))):
+                log(f"FAIL: {i} not in AUTO.TAKEOFF: {mode(i)}")
+                return 1
         log("ok   armed in AUTO.TAKEOFF")
         # transition only after the take-off: commanded during the climb, the VTOLs quad-chuted (back to
         # multicopter) and returned

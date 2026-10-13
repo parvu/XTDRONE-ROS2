@@ -120,9 +120,9 @@ SWARM_THRESHOLD = 6  # mavlink_profile:=auto picks "swarm" above this many vehic
 
 
 def mavlink_profile(profile, vehicle_count):
-    """full | swarm | auto -> full or swarm (px4-rc.mavlink stream rates)."""
-    if profile not in ("full", "swarm", "auto"):
-        raise RuntimeError("mavlink_profile must be full, swarm or auto")
+    """full | light | swarm | auto -> full, light or swarm (px4-rc.mavlink stream rates)."""
+    if profile not in ("full", "light", "swarm", "auto"):
+        raise RuntimeError("mavlink_profile must be full, light, swarm or auto")
     if profile == "auto":
         return "swarm" if vehicle_count > SWARM_THRESHOLD else "full"
     return profile
@@ -204,6 +204,9 @@ def vehicle_actions(v, world, paths, rootfs, mavros=True, bridge=True, communica
     px4 = px4 and v.has_px4
     tmp = tmp or tempfile.mkdtemp(prefix="xtdrone_launch_")
     params = px4_params("gps") if params is None else params
+    if 'type="air_speed"' in paths.model_sdf(v.model).read_text():
+        # the model has a gz airspeed sensor (standard_vtol_xtd): use it, not PX4's airspeed simulation
+        params = "SENS_EN_ARSPDSIM=0 " + params
     x, y, z, roll, pitch, yaw = v.pose
     if z <= 0.0:
         # Like PX4's own gz spawn: start slightly above the ground and let the vehicle drop,

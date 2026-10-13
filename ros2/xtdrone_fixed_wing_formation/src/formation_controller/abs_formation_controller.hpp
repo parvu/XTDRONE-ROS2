@@ -30,9 +30,11 @@ public:
 
         float speed_weight{1};
 
-        float time_const_throt{8.0}; //8.0           //***调整TECS参数，看效果是否更好
+        float time_const_throt{10.0};  // ROS 1: 8; softer, the followers oscillated in height and speed (ROS 2 port)
+        //8.0           //***调整TECS参数，看效果是否更好
 
-        float time_const{5.0}; //5.0   //***试过调为1.0 没有影响
+        float time_const{8.0};  // ROS 1: 5 (see time_const_throt)
+        //5.0   //***试过调为1.0 没有影响
     };
 
     //***控制律参数

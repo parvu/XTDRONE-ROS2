@@ -119,8 +119,8 @@ def generate_launch_description():
                               description="Start PX4's uXRCE-DDS client (for px4_msgs / ROS 2 offboard "
                                           "code next to MAVROS; needs MicroXRCEAgent udp4 -p 8888)."),
         DeclareLaunchArgument("mavlink_profile", default_value="auto",
-                              description="PX4 MAVLink stream rates: full, swarm (lower rates for many "
-                                          "vehicles) or auto (swarm above 6 vehicles)."),
+                              description="PX4 MAVLink stream rates: full, light (unused streams off), swarm "
+                                          "(lower rates for many vehicles) or auto (swarm above 6 vehicles)."),
         DeclareLaunchArgument("mavros_plugins", default_value="auto",
                               description="MAVROS plugins: 'xtdrone' (those XTDrone uses), 'swarm' (the minimum "
                                           "for the XTDrone nodes), 'all', or 'auto' (swarm with the swarm "

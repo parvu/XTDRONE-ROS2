@@ -179,6 +179,30 @@ def kit_imu_gazebo():
     return "", [(scope + "/imu", "imu_gazebo", "sensor_msgs/msg/Imu", "gz.msgs.IMU")]
 
 
+def kit_airspeed():
+    # A gz air_speed sensor where PX4's gz_bridge reads it (link airspeed_link, sensor air_speed). PX4's own
+    # airspeed simulation (SENS_EN_ARSPDSIM) derives it from the ground truth that gz_bridge takes from the world's
+    # pose/info and stalled with several VTOLs on a loaded machine; the transitions then timed out. Use with
+    # SENS_EN_ARSPDSIM=0 (xtdrone_bringup does so for these models).
+    sdf = """
+    <link name="airspeed_link">
+      <pose relative_to="base_link">0 0 0 0 0 0</pose>
+      <inertial><mass>0.015</mass>
+        <inertia><ixx>1e-5</ixx><iyy>1e-5</iyy><izz>1e-5</izz><ixy>0</ixy><ixz>0</ixz><iyz>0</iyz></inertia>
+      </inertial>
+      <sensor name="air_speed" type="air_speed">
+        <always_on>1</always_on>
+        <update_rate>20</update_rate>
+        <air_speed><pressure><noise type="gaussian"><mean>0</mean><stddev>0.01</stddev></noise></pressure></air_speed>
+      </sensor>
+    </link>
+    <joint name="airspeed_joint" type="fixed">
+      <parent>base_link</parent>
+      <child>airspeed_link</child>
+    </joint>"""
+    return sdf, []
+
+
 def kit_bumper(size="0.65 0.65 0.31", z=-0.072):
     # Like XTDrone's bumper_sensor_iris: a light box around the frame whose
     # contacts are reported (a gz contact sensor only sees its own link).
@@ -218,6 +242,7 @@ KITS = {
     "3d_lidar": kit_3d_lidar,
     "imu_gazebo": kit_imu_gazebo,
     "bumper": kit_bumper,
+    "airspeed": kit_airspeed,
 }
 
 # ---------------------------------------------------------------------------
@@ -236,7 +261,7 @@ VEHICLES = {
     "solo_stereo_camera": (QUAD, ["stereo_camera", "imu_gazebo", "bumper"]),
     "plane": ("rc_cessna", []),
     # Wrappers must not share the name of the PX4 model they include (model:// would resolve to itself).
-    "standard_vtol_xtd": ("standard_vtol", []),
+    "standard_vtol_xtd": ("standard_vtol", ["airspeed"]),
     "rover": ("r1_rover", []),
     "rover_with_lidar_stereo": ("r1_rover", ["front_stereo", "rover_3d_lidar"]),
     # PX4 v1.16 Gazebo VTOLs (PX4's quad tailsitter differs from XTDrone's Classic duo tailsitter).

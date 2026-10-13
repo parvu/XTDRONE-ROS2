@@ -4,6 +4,7 @@
 // attitude and throttle (FwCmd) to pack_fw_states; the leader only asks for OFFBOARD.
 //   ros2 run xtdrone_fixed_wing_formation task_main --ros-args -p plane_id:=1
 // The ROS 1 version had one executable per plane (leader_main, follower1_main, ...).
+#include <algorithm>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -139,6 +140,22 @@ private:
     fw_4cmd_.throttle_sp = formation_cmd_.thrust;
     fw_4cmd_.roll_angle_sp = formation_cmd_.roll;
     fw_4cmd_.pitch_angle_sp = formation_cmd_.pitch;
+    // slew limits (not in ROS 1): the lateral law reversed the bank in a second and the followers departed
+    const double dt = 0.02;  // the 50 Hz loop
+    const auto slew = [dt](double target, double prev, double rate) {
+      return std::clamp(target, prev - rate * dt, prev + rate * dt);
+    };
+    fw_4cmd_.roll_angle_sp = slew(fw_4cmd_.roll_angle_sp, last_roll_sp_, 0.52);    // 30 deg/s
+    fw_4cmd_.pitch_angle_sp = slew(fw_4cmd_.pitch_angle_sp, last_pitch_sp_, 0.26);  // 15 deg/s
+    // stall guard (not in ROS 1): in OFFBOARD attitude mode PX4's own airspeed protection does not act, and a
+    // follower far from its slot climbed in a steep bank until it stalled and spun in
+    if (thisfw_states_.air_speed < stall_guard_airspeed_) {
+      fw_4cmd_.pitch_angle_sp = std::min(fw_4cmd_.pitch_angle_sp, 0.0);
+      fw_4cmd_.roll_angle_sp = std::clamp(fw_4cmd_.roll_angle_sp, -0.35, 0.35);
+      fw_4cmd_.throttle_sp = 1.0;
+    }
+    last_roll_sp_ = fw_4cmd_.roll_angle_sp;
+    last_pitch_sp_ = fw_4cmd_.pitch_angle_sp;
     fw_4cmd_.yaw_angle_sp = formation_cmd_.yaw;
     fw_4cmd_.cmd_mode = "OFFBOARD";
     fw_cmd_pub_->publish(fw_4cmd_);
@@ -179,6 +196,8 @@ private:
 
   int plane_id_;
   int formation_type_id_ = 1;
+  double stall_guard_airspeed_ = 10.0;  // m/s (standard_vtol: stall at about 10, trim 15)
+  double last_roll_sp_ = 0.0, last_pitch_sp_ = 0.0;  // rad, for the slew limits
   std::string fw_col_mode_current_{"MANUAL"}, fw_col_mode_last_{"MANUAL"};
   msg::FwStates fwstates_;
   msg::FwCmd fw_4cmd_;

@@ -41,9 +41,11 @@ non-zero if a case failed.
 | `ch22` | the 4 iris of `ego_swarm` fly with EGO-Planner-Swarm through the windows of `ego_swarm_4` to XTDrone's goals; every vehicle within 1 m of its goal, no two closer than 0.5 m, none down to the floor (positions in `ego_swarm_trace.csv`). |
 | `ch23` | `typhoon_h480` in `outdoor1` hovers at 5 m, gimbal 60° down; YOLO (OpenCV DNN, YOLOv4-tiny) detects the walking pedestrian (waits until simulation time 330 s, the pedestrian's second pass), then `yolo_human_tracking` follows it: the typhoon moves and the person stays detected |
 | `ch20` | Nav2 flies to three goals while slam_toolbox maps `indoor3` (≤ 0.5 m each) |
+| `ch29` | 3 iris in `outdoor2` (`mavros_plugins:=all`): a different mission uploaded to each (`mission/push`), read back, flown in AUTO.MISSION; each within 2 m of its own waypoint |
 | `ch30` | the UGV keeps its lane on `outdoor3` for 30 m (`lane_detection` + `self_driving`) |
 | `ch31` | the UGV in `outdoor1` (scenario `outdoor1_ugv`): slam_toolbox maps from the front lidar, hybrid A* plans to (20, −1.5) (a lane change), pure pursuit drives there; within 2 m of the goal, planner and follower still running |
 | `ch33` | `iris_arm` in `grasping` (scenario `grasping_arm`): vision sees the cube, MoveIt moves the arm to it, the gripper takes it and lifts it (≥ 1 cm); the iris takes off and the cube stays within 0.5 m of it above 1.5 m |
+| `ch35` | 3 standard VTOLs and the UGV in `outdoor2` (scenario `outdoor2_fw_formation`, `mavlink_profile:=light`): armed once the airspeed is healthy, take-off, one at a time transition and OFFBOARD formation (triangle); over the last minute the leader circles within 250 m of the UGV, the followers keep their slots (mean < 40 m; about 1.5 m) and nobody comes down. A PX4 instance whose timers stall when it is armed (see the porting notes) is disarmed and armed again |
 | `ch32` | `sandisland` + VRX WAM-V: the boat floats and drives 5 m on its thrusters; an iris takes off from the island |
 | `ch38` | two `robocup` actors walk to commanded points (`/actor_i/cmd_motion`, `xtdrone::ActorMotion`) |
 | `ch25` | 6 iris at 8 m: the formation demo forms the waiting grid, `T` and `triangle` (≤ 0.8 m per follower) and keeps the triangle while the leader moves |

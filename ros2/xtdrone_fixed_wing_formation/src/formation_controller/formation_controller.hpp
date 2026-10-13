@@ -34,19 +34,21 @@ public:
         /*for tecs use*/
 
         /* 最小油门 */
-        float throttle_min{0.1};
+        float throttle_min{0.2};  // ROS 1: 0.1; at idle the followers dove and overshot
 
         /* 最大油门 */
         float throttle_max{1};
 
         /* 巡航油门 */
-        float throttle_cruise{0.3};
+        float throttle_cruise{0.25};  // PX4 v1.16 standard_vtol FW_THR_TRIM (ROS 1: 0.3)
 
         /* 最小俯仰角rad */
-        float pitch_min_rad{-PI /4};   //设置较小的失速度迎角 10度  PI/36  18  根据QGC的门限设为45度
+        float pitch_min_rad{-PI / 12};  // -15 deg as PX4's FW_P_LIM_MIN for this airframe (ROS 1: -45 deg, which dove the
+                                        // followers out of control in OFFBOARD, where PX4's own limits do not apply)
+        // ROS 1 note:   //设置较小的失速度迎角 10度  PI/36  18  根据QGC的门限设为45度
 
         /* 最大俯仰角rad */
-        float pitch_max_rad{PI / 4};
+        float pitch_max_rad{PI / 9};  // 20 deg (ROS 1: 45; 30 still stalled a follower climbing in a 36 deg bank)
 
         /* 最大俯仰角速度 */
         float pitch_rate_max{PI / 3};
@@ -54,7 +56,7 @@ public:
         /* for later_controller use*/
 
         /* 最大滚转角rad */
-        float roll_max{PI / 4}; 
+        float roll_max{PI / 7.2f};  // 25 deg (ROS 1: 45; with 36 deg reversals the followers departed)
 
         /* 最大滚转角速度rad/s */
         float roll_rate_max{PI / 3}; 
@@ -68,7 +70,8 @@ public:
         float maxdec_acc{10.0};
 
         /* 飞机空速最大设定值,此处的最大速度，一定要和飞机的最快速度贴合，否则容易造成油门抖动 */
-        float max_arispd_sp{22.0}; //***TECS给的速度期望范围在3-30，这里这样设置符合  QGC的vtol是25 试一下大点的速度(原为20)
+        float max_arispd_sp{20.0};  // PX4 v1.16 standard_vtol FW_AIRSPD_MAX (ROS 1: 22)
+        //***TECS给的速度期望范围在3-30，这里这样设置符合  QGC的vtol是25 试一下大点的速度(原为20)
 
         /* 飞机空速最小设定值 */
         float min_arispd_sp{12.0};   //***根据QGC采取的飞机模型STALL_SPEED为10
