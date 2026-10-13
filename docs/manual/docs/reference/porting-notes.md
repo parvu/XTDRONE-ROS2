@@ -134,5 +134,6 @@ Use full topic names (`/iris_0/mavros/...`). Relative names resolve against the 
 - **PX4 timers under load.** With three VTOLs on a 6-core machine, a PX4 instance sometimes stopped running its
   timer-driven modules (airspeed selector, battery simulation) right when it was armed, while the sensor-driven
   controllers kept flying it; without airspeed its transition then timed out. Less load made it rare
-  (`ugv_nosensor`, `mavlink_profile:=light`, `SDLOG_MODE=-1`); the chapter 35 test also arms each VTOL on the ground
-  first and arms it again if its airspeed is lost.
+  (`ugv_nosensor`, `mavlink_profile:=light`, `SDLOG_MODE=-1`). A stalled instance does not recover when disarmed
+  (PX4 then refuses to arm); the chapter 35 test arms each VTOL on the ground first and, if its airspeed is lost,
+  exits with code 3, on which `run_chapter_tests.sh` repeats the case with a fresh simulation (up to twice).

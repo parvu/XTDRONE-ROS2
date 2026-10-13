@@ -58,8 +58,9 @@ Topics are in `/standard_vtol_N/fixed_wing_formation_control/` (`fw_states`, `fw
 - **Airspeed.** The VTOL model has a Gazebo airspeed sensor (PX4's airspeed simulation stalled with three VTOLs).
   PX4's airspeed selector looks for sensors only while disarmed: arm after the airspeed is healthy (the test waits
   for it in `sys_status`), or the transition times out and PX4 returns the VTOL to multicopter flight for good. Under
-  heavy load a PX4 instance has also lost its airspeed right when it was armed; the test arms each VTOL on the
-  ground, checks the airspeed for a few seconds and arms it again if needed, before the take-off.
+  heavy load a PX4 instance has also lost its airspeed right when it was armed, and stayed so after disarming; the
+  test arms each VTOL on the ground and checks the airspeed for a few seconds before the take-off (if it is lost,
+  restart the simulation; the test runner does so up to twice).
 - **Transitions one at a time**, each VTOL straight into the formation: VTOLs left loitering after their transition
   flew into the ones still taking off.
 - **CPU load.** Three VTOLs, their MAVROS nodes and Gazebo fill a 6-core machine. When the PX4 instances fall

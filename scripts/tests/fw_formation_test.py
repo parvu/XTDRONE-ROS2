@@ -136,17 +136,19 @@ def main():
                 if not wait(30, lambda: mode(i) == "AUTO.LOITER" and d[i]["state"].armed, every=lambda: (
                         call(cli[i]["mode"], SetMode.Request(custom_mode="AUTO.LOITER")) if mode(i) != "AUTO.LOITER"
                         else call(cli[i]["arm"], CommandBool.Request(value=True)))):
-                    log(f"FAIL: {i} not armed: {mode(i)}")
-                    return 1
+                    # after a lost airspeed PX4 refuses to arm: the instance's timers stay stopped (exit 3: the
+                    # runner starts a fresh simulation)
+                    log(f"FAIL: {i} not armed: {mode(i)}" + (" (PX4 instance stalled)" if attempt else ""))
+                    return 3 if attempt else 1
                 wait(5, lambda: False)
                 if aspd_ok(i):
                     break
-                log(f"     {i}: airspeed lost when armed (attempt {attempt + 1}): disarm and arm again")
+                log(f"     {i}: airspeed lost when armed (attempt {attempt + 1}): disarm and try again")
                 call(cli[i]["arm"], CommandBool.Request(value=False))
                 wait(30, lambda: not d[i]["state"].armed and aspd_ok(i))
             else:
-                log(f"FAIL: {i}: no airspeed when armed")
-                return 1
+                log(f"FAIL: {i}: no airspeed when armed (PX4 instance stalled)")
+                return 3
             if not wait(20, lambda: mode(i) == "AUTO.TAKEOFF", every=lambda: call(
                     cli[i]["mode"], SetMode.Request(custom_mode="AUTO.TAKEOFF"))):
                 log(f"FAIL: {i} not in AUTO.TAKEOFF: {mode(i)}")

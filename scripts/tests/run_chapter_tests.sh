@@ -61,13 +61,24 @@ run_case() {
     extra_pid=$!
   fi
   # shellcheck disable=SC2086
-  if ${FLIGHT} ${test_args} 2>&1 | tee -a "${log}"; then
-    RESULTS+=("PASS ${name}")
+  ${FLIGHT} ${test_args} 2>&1 | tee -a "${log}"
+  local rc=${PIPESTATUS[0]}
+  [[ -n "${extra_pid}" ]] && kill "${extra_pid}" 2>/dev/null
+  cleanup_sim
+  # exit code 3: the test found the simulation itself broken (chapter 35: a PX4 instance that stopped its timers
+  # under load), not the code under test; run the case again on a fresh simulation (STALL_RETRIES times, default 2)
+  local tries=${XTD_RETRIED:-0}
+  if [[ ${rc} -eq 3 && ${tries} -lt ${STALL_RETRIES:-2} ]]; then
+    mv "${log}" "${log%.log}.stalled$((tries + 1)).log"
+    echo "=== ${name}: the simulation stalled (exit 3, log ${log%.log}.stalled$((tries + 1)).log): again"
+    XTD_RETRIED=$((tries + 1)) run_case "$@"
+    return
+  fi
+  if [[ ${rc} -eq 0 ]]; then
+    RESULTS+=("PASS ${name}${XTD_RETRIED:+ (after ${XTD_RETRIED} stalled simulation(s))}")
   else
     RESULTS+=("FAIL ${name}  (log: ${log})")
   fi
-  [[ -n "${extra_pid}" ]] && kill "${extra_pid}" 2>/dev/null
-  cleanup_sim
 }
 
 # run_script NAME "launch args" "test script + args" [extra command]: like run_case with another test script
