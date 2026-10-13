@@ -15,7 +15,7 @@ plate on the roof). The xacro is expanded with ROS 2 xacro and converted with
     texture of the xtdrone_gz apriltag models;
   * OdometryPublisher for the ground truth, as on every XTDrone vehicle.
 
-Models: ugv (tags 0-2) and ugv_tags3_5. The meshes are copied from sitl_config at
+Models: ugv (tags 0-2), ugv_tags3_5 and ugv_nosensor (ugv without cameras and lidars). The meshes are copied from sitl_config at
 build time (not committed).
 
 Usage: generate_ugv_models.py [output_models_dir]
@@ -34,9 +34,12 @@ REPO = Path(__file__).resolve().parents[3]
 SRC = REPO / "sitl_config" / "ugv" / "catvehicle"
 SCOPE = "/world/{world}/model/{name}/link/base_link/sensor/{sensor}"
 
-VARIANTS = {  # model name: (xacro, tag plate model)
-    "ugv": ("catvehicle1-3.xacro", "apriltag0-2"),
-    "ugv_tags3_5": ("catvehicle4-6.xacro", "apriltag3-5"),
+VARIANTS = {  # model name: (xacro, tag plate model, sensors)
+    "ugv": ("catvehicle1-3.xacro", "apriltag0-2", True),
+    "ugv_tags3_5": ("catvehicle4-6.xacro", "apriltag3-5", True),
+    # no cameras and lidars: rendered on the CPU they halve the real-time factor; for scenarios that only drive the
+    # UGV (chapter 35)
+    "ugv_nosensor": ("catvehicle1-3.xacro", "apriltag0-2", False),
 }
 
 WHEEL_BASE = 1.55 + 1.05          # tyre_front_x - tyre_back_x
@@ -82,7 +85,7 @@ def el(text):
     return ET.fromstring(text)
 
 
-def build(name, xacro_name, tags, out):
+def build(name, xacro_name, tags, sensors, out):
     sdf = xacro_to_sdf(xacro_name).replace("MODEL_NAME", name)
     root = ET.fromstring(sdf)
     model = root.find("model")
@@ -116,6 +119,9 @@ def build(name, xacro_name, tags, out):
 
     bridges = []
     for s in base.findall("sensor"):
+        if not sensors:
+            base.remove(s)
+            continue
         sname = s.get("name")
         for p in s.findall("plugin"):
             s.remove(p)
@@ -200,8 +206,8 @@ def build(name, xacro_name, tags, out):
 
 def main():
     out = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parents[1] / "models"
-    for name, (xacro_name, tags) in VARIANTS.items():
-        print("generated", build(name, xacro_name, tags, out))
+    for name, (xacro_name, tags, sensors) in VARIANTS.items():
+        print("generated", build(name, xacro_name, tags, sensors, out))
 
 
 if __name__ == "__main__":

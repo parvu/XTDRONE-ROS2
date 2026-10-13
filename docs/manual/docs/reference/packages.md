@@ -14,6 +14,9 @@
 | `ros2/xtdrone_slam/` | laser SLAM launch (slam_toolbox / Cartographer), RTAB-Map launch, `laser_transfer`, `odom_relay` (chapters 16–18) |
 | `ros2/xtdrone_planning/` | Nav2 launch and parameters for 2D planning (chapter 20) |
 | `ros2/xtdrone_gz_plugins/` | Gazebo Harmonic systems: `xtdrone::ActorMotion` (chapter 38) |
+| `ros2/xtdrone_ugv_planning/` | hybrid A* planner and pure-pursuit follower for the CAT Vehicle, with slam_toolbox (chapter 31) |
+| `ros2/xtdrone_robotic_arm/` | le_arm under the iris: URDF, ros2_control, MoveIt 2 configuration, vision and grasping nodes; generates the `iris_arm` model (chapter 33) |
+| `ros2/xtdrone_fixed_wing_formation/` | fixed-wing formation control (messages, `pack_fw_states`, `task_main`, `vir_sim_leader`, `switch_fw_mode`; chapter 35) |
 | `ros2/vrx/` | VRX v3.1.2 submodule (ocean, WAM-V; chapter 32) |
 | `sitl_config/`, `communication/`, `control/`, … | the original ROS 1 / Classic XTDrone sources (input of the converters, reference) |
 | `scripts/` | setup, build, environment, verification, tests, manual build |

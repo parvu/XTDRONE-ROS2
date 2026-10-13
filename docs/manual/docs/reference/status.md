@@ -35,10 +35,10 @@ ROS 2 Jazzy / Gazebo Harmonic 8.15 / PX4 v1.16.2 / MAVROS 2.16 (6-core CPU, no G
 | 28 | Precision landing | **Tested** (3 iris land within 2 cm of tags 0-2, OpenCV detector) | `ch28` | 3 |
 | 29 | QGC waypoints for many UAVs | Ported | — | 1 |
 | 30 | Self-driving car | **Tested** with the UGV (30 m lane keeping); PX4 rover variant ported | `ch30` | 4 |
-| 31 | UGV planning | Planned | — | 5 |
+| 31 | UGV planning | **Tested** (slam_toolbox map, hybrid A* + pure pursuit: the CAT Vehicle changes lanes in `outdoor1`, 18 m to within 1 m of the goal) | `ch31` | 5 |
 | 32 | UAV + USV (VRX) | **Tested** (WAM-V floats and drives, iris flies from the island) | `ch32` | 4 |
-| 33 | Aerial robotic arm | Planned | — | 5 |
-| 34 | Fixed-wing affine formation | Planned | — | 5 |
+| 33 | Aerial robotic arm | **Tested** (MoveIt 2 + gz_ros2_control: the le_arm under the iris takes the cube from the table and the iris flies off with it) | `ch33` | 5 |
+| 34 | Fixed-wing affine formation | Not ported (the source is not in the repository; chapter 35's framework is the template) | — | 5 |
 | 35 | Fixed-wing formation tracking a UGV | Planned | — | 5 |
 | 36 | Flat models | **Tested** | `ch36` | 2 |
 | 37 | Moving environment models | **Tested** | `ch37` | 2 |

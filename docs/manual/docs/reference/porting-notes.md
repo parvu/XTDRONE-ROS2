@@ -113,3 +113,21 @@ Use full topic names (`/iris_0/mavros/...`). Relative names resolve against the 
   the camera also break ORB-SLAM3 tracking.
 - **Stereo pairs.** Under load Gazebo drops left and right camera frames independently; pair them by exact time
   stamp, not approximately.
+- **The ground is finite.** Gazebo Harmonic's physics (DART) collides a `<plane>` as a box about 2100 m wide
+  (±1050 m around its origin); Classic's ODE plane was infinite. XTDrone's fixed-wing formation started the VTOLs at
+  x = −1500 m, where they fell through the world; chapter 35 starts them at −600 m.
+- **PX4 offboard loiter.** PX4 v1.16 no longer reads the "loiter" bits of the `PositionTarget` type mask
+  (`12288`); with velocity and acceleration not masked it reads them as zero. A fixed-wing loiter is now a
+  position-only setpoint (`IGNORE_VX|VY|VZ|AFX|AFY|AFZ|YAW|YAW_RATE`), which PX4 turns into a loiter at the point.
+- **Mixed units in hybrid A*.** XTDrone's hybrid A* (chapter 31) used metres as grid cells in several places, which
+  holds only for 1 m cells; on 1 m cells the CAT Vehicle hardly fits the roads of `outdoor1`. The port converts
+  consistently and runs on 0.5 m cells.
+- **Low obstacles.** Curbs (0.15 m) and fire hydrants are below the CAT Vehicle's lidar (0.93 m) and not in its
+  map; the vehicle cannot climb a curb.
+- **PX4 parameters persist.** PX4 SITL saves parameters set at startup in its working directory
+  (`~/.ros/xtdrone_px4/<instance>/parameters.bson`) and loads them on the next start, so `px4_params` of one run
+  stayed in force for later runs of the same instance. The bringup deletes the saved parameters before each start.
+- **Airspeed of the simulated VTOL.** Without airspeed (`FW_USE_AIRSPD=0`) PX4 v1.16's fixed-wing control of the
+  `standard_vtol` climbs away by hundreds of metres. With three VTOLs at half real time the airspeed selector's
+  plausibility checks sometimes reject the simulated airspeed and switch to that mode; chapter 35 sets
+  `ASPD_DO_CHECKS=0` (the simulated airspeed is ground truth).

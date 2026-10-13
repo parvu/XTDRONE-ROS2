@@ -105,6 +105,7 @@ XTDRONE_MAVROS_PLUGINS = [
     "sys_status", "sys_time", "command", "local_position", "global_position", "imu",
     "altitude", "home_position", "setpoint_raw", "setpoint_position", "setpoint_velocity",
     "setpoint_accel", "setpoint_attitude", "vision_pose", "vision_speed", "odometry",
+    "vfr_hud", "wind_estimation",  # fixed-wing formation (chapter 35)
 ]
 # mavros_plugins:=swarm (the default for mavlink_profile swarm): only what the XTDrone nodes use
 # (state/set_mode, arming, local position, home, setpoint_raw, vision). Fewer plugins = fewer DDS
@@ -215,6 +216,11 @@ def vehicle_actions(v, world, paths, rootfs, mavros=True, bridge=True, communica
     if px4:
         workdir = Path(rootfs).expanduser() / str(v.instance)
         workdir.mkdir(parents=True, exist_ok=True)
+        # Fresh parameters every launch: PX4 saves the parameters set at startup (px4_params) in the working
+        # directory and loads them on the next start, so one run's px4_params leaked into later runs of the same
+        # vehicle instance (FW_USE_AIRSPD=0 from a test made later VTOL transitions climb away).
+        for saved in ("parameters.bson", "parameters_backup.bson"):
+            (workdir / saved).unlink(missing_ok=True)
         overlay = paths.gz_share / "px4" / "init.d-posix"
         actions.append(ExecuteProcess(
             cmd=[str(paths.build_dir / "bin" / "px4"), "-i", str(v.instance), "-d", str(paths.build_dir / "etc")],

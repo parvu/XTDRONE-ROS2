@@ -1,0 +1,29 @@
+# ros2_control controllers of the le_arm in Gazebo (gz_ros2_control), ROS 1: le_arm/controller/*.yaml.
+# Loaded by the spawners of robotic_arm.launch.py (--param-file) into /iris_0/controller_manager.
+/**/controller_manager:
+  ros__parameters:
+    update_rate: 100
+
+/**/le_arm_controller:
+  ros__parameters:
+    type: joint_trajectory_controller/JointTrajectoryController
+    joints: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint]
+    command_interfaces: [position]
+    state_interfaces: [position, velocity]
+    constraints:
+      goal_time: 0.6
+      stopped_velocity_tolerance: 0.05
+
+/**/gripper_controller:
+  ros__parameters:
+    type: joint_trajectory_controller/JointTrajectoryController
+    joints: [left_knuckle_joint]
+    command_interfaces: [position]
+    state_interfaces: [position, velocity]
+    constraints:
+      goal_time: 0.6
+      stopped_velocity_tolerance: 0.05
+
+/**/joint_state_broadcaster:
+  ros__parameters:
+    type: joint_state_broadcaster/JointStateBroadcaster

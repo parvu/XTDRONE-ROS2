@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<!-- The le_arm under an iris (chapter 33), as sitl_config/robotic_arm/le_arm/urdf/iris_arm_base.xacro.
+     base_link is the body of the x500 (iris) model; this description holds the arm, the gripper and the camera
+     for robot_state_publisher, MoveIt and gz_ros2_control. The Gazebo model iris_arm (xtdrone_gz) is generated
+     from it by scripts/generate_iris_arm_model.py. -->
+<robot name="le_arm" xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:include filename="$(find xtdrone_robotic_arm)/urdf/le_arm.urdf.xacro"/>
+
+  <link name="base_link"/>
+
+  <xacro:le_arm parent="base_link">
+    <origin xyz="-0.1 0 -0.05" rpy="0 3.14 3.14"/>
+  </xacro:le_arm>
+
+  <!-- the camera that looks for the object (ROS 1: sensors/camera.urdf.xacro, which looked down; here it looks
+       ahead, at the object on the table and the gripper) -->
+  <joint name="camera_joint" type="fixed">
+    <origin xyz="0.05 0 -0.07" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="camera_link"/>
+  </joint>
+  <link name="camera_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="-3.14 0 -1.57"/>
+      <geometry><mesh filename="package://xtdrone_robotic_arm/meshes/sensors/camera.STL"/></geometry>
+    </visual>
+    <inertial>
+      <mass value="0.005"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/>
+    </inertial>
+  </link>
+
+  <ros2_control name="le_arm" type="system">
+    <hardware>
+      <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+    </hardware>
+    <!-- initial: the stowed pose, gripper folded up under the body (at 0 it points forward at ground level) -->
+    <xacro:macro name="position_joint" params="name initial:=0.0">
+      <joint name="${name}">
+        <command_interface name="position"/>
+        <state_interface name="position"><param name="initial_value">${initial}</param></state_interface>
+        <state_interface name="velocity"/>
+      </joint>
+    </xacro:macro>
+    <xacro:position_joint name="shoulder_pan_joint"/>
+    <xacro:position_joint name="shoulder_lift_joint" initial="-0.1"/>
+    <xacro:position_joint name="elbow_joint"/>
+    <xacro:position_joint name="wrist_1_joint" initial="-1.5"/>
+    <xacro:position_joint name="wrist_2_joint"/>
+    <xacro:position_joint name="left_knuckle_joint" initial="0.5"/>
+    <!-- the other gripper joints follow left_knuckle_joint (<mimic> in le_arm_gripper.urdf.xacro) -->
+    <xacro:macro name="mimic_joint" params="name">
+      <joint name="${name}">
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+      </joint>
+    </xacro:macro>
+    <xacro:mimic_joint name="right_knuckle_joint"/>
+    <xacro:mimic_joint name="left_inner_knuckle_joint"/>
+    <xacro:mimic_joint name="left_finger_joint"/>
+    <xacro:mimic_joint name="right_inner_knuckle_joint"/>
+    <xacro:mimic_joint name="right_finger_joint"/>
+  </ros2_control>
+</robot>

@@ -2,3 +2,4 @@ generated/
 models/typhoon_h480/meshes/
 models/ugv/meshes/
 models/ugv_tags3_5/meshes/
+models/ugv_nosensor/meshes/

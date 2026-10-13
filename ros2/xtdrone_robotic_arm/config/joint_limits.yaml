@@ -1,0 +1,60 @@
+# MoveIt 2 joint limits of the le_arm (ROS 1: le_arm_moveit_config/config/joint_limits.yaml). MoveIt 2's time
+# parameterization needs acceleration limits, which ROS 1 left out.
+default_velocity_scaling_factor: 0.2
+default_acceleration_scaling_factor: 0.2
+joint_limits:
+  shoulder_pan_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0
+    has_acceleration_limits: true
+    max_acceleration: 2.0
+  shoulder_lift_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0
+    has_acceleration_limits: true
+    max_acceleration: 2.0
+  elbow_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0
+    has_acceleration_limits: true
+    max_acceleration: 2.0
+  wrist_1_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0
+    has_acceleration_limits: true
+    max_acceleration: 2.0
+  wrist_2_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0
+    has_acceleration_limits: true
+    max_acceleration: 2.0
+  left_knuckle_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0
+    has_acceleration_limits: true
+    max_acceleration: 2.0
+  right_knuckle_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0
+    has_acceleration_limits: true
+    max_acceleration: 2.0
+  left_inner_knuckle_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0
+    has_acceleration_limits: true
+    max_acceleration: 2.0
+  left_finger_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0
+    has_acceleration_limits: true
+    max_acceleration: 2.0
+  right_inner_knuckle_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0
+    has_acceleration_limits: true
+    max_acceleration: 2.0
+  right_finger_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0
+    has_acceleration_limits: true
+    max_acceleration: 2.0

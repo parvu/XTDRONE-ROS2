@@ -1,0 +1,6 @@
+# Converted from sitl_config/launch/iris_arm.launch (chapter 33): the iris with the le_arm (iris_arm) next to the
+# table with the green cube. ROS 1 placed it at x = -0.1; the PX4 x500 frame is lower than the ROS 1 iris, so
+# the arm reaches less high: the iris stands closer to the table.
+world: grasping
+vehicles:
+  - {model: iris_arm, type: iris, id: 0, pose: [0.1, 0, 0, 0, 0, 0]}

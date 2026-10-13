@@ -95,7 +95,7 @@ fi
 
 echo "== Building the colcon workspace ${WORKSPACE}"
 mkdir -p "${WORKSPACE}/src"
-for pkg in xtdrone_msgs xtdrone_gz xtdrone_bringup xtdrone_py xtdrone_groundcontrol xtdrone_slam xtdrone_planning xtdrone_gz_plugins xtdrone_orbslam3; do
+for pkg in xtdrone_msgs xtdrone_gz xtdrone_bringup xtdrone_py xtdrone_groundcontrol xtdrone_slam xtdrone_planning xtdrone_gz_plugins xtdrone_orbslam3 xtdrone_ugv_planning xtdrone_fixed_wing_formation xtdrone_robotic_arm; do
   ln -sfn "${ROOT_DIR}/ros2/${pkg}" "${WORKSPACE}/src/${pkg}"
 done
 ln -sfn "${ROOT_DIR}/ros2/fomation_demo" "${WORKSPACE}/src/xtdrone_formation_demo"

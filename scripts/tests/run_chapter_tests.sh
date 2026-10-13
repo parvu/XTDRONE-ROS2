@@ -30,7 +30,7 @@ cleanup_sim() {
   pkill -KILL -f "^[^ ]*/lib/(vrx_ros|vrx_gz)/" 2>/dev/null
   # children of launches started by test cases (orphaned if their launch was killed)
   pkill -KILL -f "^[^ ]*/lib/(tf2_ros|robot_state_publisher|ros_gz_sim)/" 2>/dev/null
-  pkill -KILL -f "^[^ ]*/lib/(xtdrone_slam|xtdrone_formation_demo|slam_toolbox|cartographer_ros|rtabmap_[a-z]+|nav2_[a-z_]+|dwb_[a-z_]+|kiss_icp|vins|loop_fusion|ego_planner|xtdrone_planning|xtdrone_orbslam3)/" 2>/dev/null
+  pkill -KILL -f "^[^ ]*/lib/(xtdrone_slam|xtdrone_formation_demo|slam_toolbox|cartographer_ros|rtabmap_[a-z]+|nav2_[a-z_]+|dwb_[a-z_]+|xtdrone_ugv_planning|xtdrone_fixed_wing_formation|xtdrone_robotic_arm|moveit_ros_move_group|kiss_icp|vins|loop_fusion|ego_planner|xtdrone_planning|xtdrone_orbslam3)/" 2>/dev/null
   pkill -KILL -f "^/usr/bin/python3 [^ ]*/lib/(xtdrone_slam|xtdrone_formation_demo|xtdrone_planning)/" 2>/dev/null
   sleep 1
   # anything still alive slipped past the patterns above: report it (it would disturb the next case), kill it
@@ -124,7 +124,7 @@ export -f gz_x
 RESULTS=()
 STRAYS=()
 CASES=("$@")
-[[ ${#CASES[@]} -eq 0 ]] && CASES=(worlds ch03 ch05 ch06 ch07 ch24 ch25 ch27 ch28 ch36 ch42 ch37 ch38 ch41 ch43 ch08plane ch08vtol ch08rover ch09 ch11 ch16 ch17 ch18 ch20 ch30 ch32 ch10 ch12 ch15 ch44 ch13 ch14 ch19 ch21 ch22 ch23)
+[[ ${#CASES[@]} -eq 0 ]] && CASES=(worlds ch03 ch05 ch06 ch07 ch24 ch25 ch27 ch28 ch36 ch42 ch37 ch38 ch41 ch43 ch08plane ch08vtol ch08rover ch09 ch11 ch16 ch17 ch18 ch20 ch30 ch32 ch10 ch12 ch15 ch44 ch13 ch14 ch19 ch21 ch22 ch23 ch31 ch33 ch35)
 trap cleanup_sim EXIT
 
 for c in "${CASES[@]}"; do
@@ -178,6 +178,13 @@ for c in "${CASES[@]}"; do
     ch30)  # lane keeping of the CAT Vehicle on the outdoor3 track
       run_script ch30_self_driving "scenario:=outdoor3_ugv" "${ROOT_DIR}/scripts/tests/self_driving_test.py" \
         "sleep 25; ros2 run xtdrone_py lane_detection ugv 0 & ros2 run xtdrone_py self_driving ugv 0 --speed 3" ;;
+    ch31)  # hybrid A* + pure pursuit for the CAT Vehicle on slam_toolbox's map of outdoor1
+      run_script ch31_ugv_planning "scenario:=outdoor1_ugv" "${ROOT_DIR}/scripts/tests/ugv_planning_test.py --goal 20,-1.5" ;;
+    ch33)  # le_arm under the iris: MoveIt 2 + gz_ros2_control grasp, then take off with the cube
+      run_script ch33_robotic_arm "scenario:=grasping_arm" "${ROOT_DIR}/scripts/tests/arm_grasp_test.py" ;;
+    ch35)  # three VTOLs in formation, the leader loitering over the UGV (outdoor2)
+      run_script ch35_fw_formation "scenario:=outdoor2_fw_formation px4_params:=MIS_TAKEOFF_ALT=40,VT_TRANS_TIMEOUT=30,VT_F_TRANS_THR=0.75,ASPD_DO_CHECKS=0" \
+        "${ROOT_DIR}/scripts/tests/fw_formation_test.py" ;;
     ch32)  # UAVs + VRX WAM-V in sandisland
       run_script ch32_usv "scenario:=sandisland communication:=basic" "${ROOT_DIR}/scripts/tests/usv_test.py" \
         "sleep 40; ros2 launch xtdrone_bringup usv.launch.py" ;;
