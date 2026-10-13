@@ -5,7 +5,7 @@ the visual servo keeps following it.
 Requires: xtdrone.launch.py scenario:=outdoor1 communication:=basic, and
 `ros2 run xtdrone_py gimbal_control typhoon_h480 0` + `ros2 run xtdrone_py yolo_detection typhoon_h480 0`.
 
-1. take off to ~8 m and hover; the camera looks 60 deg down;
+1. take off to --altitude (5 m) and hover; the camera looks 60 deg down;
 2. wait until "person" is detected. The actor walks along y = 3 from x = 0 to 41 at sim time 0-40 s and again
    from 240 s (its loop is 240 s; in between it is far away), so the test waits up to sim time 330 s;
 3. start yolo_human_tracking and check that the typhoon moves (follows) while detections continue.
@@ -34,6 +34,10 @@ def log(m):
 
 
 def main():
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--altitude", type=float, default=5.0, help="hover height above the ground (m)")
+    a = ap.parse_args()
     rclpy.init()
     n = rclpy.create_node("yolo_tracking_test")
     d = {"persons": 0, "frames": 0}
@@ -75,7 +79,7 @@ def main():
             wait(1, every=up)
             cmd.publish(String(data="ARM"))
             wait(2, lambda: d["st"].armed, every=up)
-        if not wait(90, lambda: d["gt"].z > 8.0, every=up):
+        if not wait(90, lambda: d["gt"].z > a.altitude, every=up):
             log("FAIL: takeoff")
             return 1
         cmd.publish(String(data="HOVER"))

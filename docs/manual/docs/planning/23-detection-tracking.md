@@ -3,18 +3,18 @@
 !!! success "Ported and tested"
     Package `xtdrone_py` (`yolo.py`): `gimbal_control`, `yolo_detection` and `yolo_human_tracking`, the ports of
     `gimbal_control.py`, `darknet_ros` and `yolo_human_tracking.py`. Test: `scripts/tests/run_chapter_tests.sh
-    ch23`: a `typhoon_h480` in `outdoor1` hovers at 8 m with its gimbal camera 60° down, YOLO finds the walking
-    pedestrian, and the visual servo follows it (about 36 m along the street).
+    ch23`: a `typhoon_h480` in `outdoor1` hovers at 5 m with its gimbal camera 60° down, YOLO finds the walking
+    pedestrian, and the visual servo follows it (about 33–36 m along the street).
 
 ## Run
 
 ```bash
-# 1. outdoor1 with a typhoon_h480 (it starts at (2, 2), beside the pedestrian's path)
+# 1. outdoor1 with a typhoon_h480 at the origin, beside the pedestrian's path (y = 3)
 ros2 launch xtdrone_bringup xtdrone.launch.py scenario:=outdoor1 communication:=basic
 # 2. gimbal 60 deg down, and YOLO on the gimbal camera
 ros2 run xtdrone_py gimbal_control typhoon_h480 0 --pitch -60
 ros2 run xtdrone_py yolo_detection typhoon_h480 0
-# 3. take off to about 8 m with the keyboard and hover, then start the tracking
+# 3. take off to about 5 m with the keyboard and hover, then start the tracking
 ros2 run xtdrone_py multirotor_keyboard_control typhoon_h480 1 vel
 ros2 run xtdrone_py yolo_human_tracking typhoon_h480 0
 ```
@@ -38,8 +38,6 @@ then far from the start. From the start point it is in view at 0–40 s and agai
       960 × 544, about 70 ms per image).
     - The gimbal joints are commanded directly instead of MAVROS mount control. The cgo3 camera joint turns about
       −y, so "60° down" is the joint angle −1.05 rad (its lower limit).
-    - The typhoon starts at (2, 2) instead of the origin, which is inside a parked utility vehicle in the converted
-      world.
     - In the converted `outdoor1` the pedestrian and the terrain needed fixes in the world converter: the
       `walk.dae` skin is found in the Classic media, its waypoints go up 1 m (the mesh origin is at the hips), and
       the `city_terrain` heightmap is drawn at the heights of Classic. Before that the terrain lay over the

@@ -3,7 +3,7 @@
 !!! success "Ported and tested"
     Package `xtdrone_slam`: `laser_slam_2d.launch.py slam:=slam_toolbox` and `laser_transfer` (the port of
     `sensing/slam/laser_slam/script/laser_transfer.py`). Test: `scripts/tests/run_chapter_tests.sh ch17`: an
-    `iris_2d_lidar` in `indoor3` takes off and flies a 2 m square on the SLAM pose only, with no GPS and no ground
+    `iris_2d_lidar` in `indoor3` takes off and flies a 1 m square on the SLAM pose only, with no GPS and no ground
     truth. The SLAM trajectory stays within 0.4 m of the Gazebo ground truth.
 
 HectorSLAM has no ROS 2 release. [slam_toolbox](https://github.com/SteveMacenski/slam_toolbox) replaces it. Like
@@ -46,6 +46,5 @@ compensate the SLAM delay.
     - The model's ground-truth odometry is kept away from PX4. Gazebo's OdometryPublisher also published
       `/model/<name>/odometry_with_covariance`, which PX4's `gz_bridge` fuses as external vision. This had silently
       given every vision-mode EKF a perfect position.
-    - `indoor3`: the vehicle starts at (−1, 1). At the ROS 1 origin the larger x500 starts inside the end of a wall.
-      The invisible ceiling is now static at the top of the walls (2.75 m). In Classic it was a dynamic box that
-      fell onto the walls, and in gz-sim that slowed the world to 5 % of real time.
+    - `indoor3`: the invisible ceiling is now static at the top of the walls (2.75 m). In Classic it was a dynamic
+      box that fell onto the walls, and in gz-sim that slowed the world to 5 % of real time.

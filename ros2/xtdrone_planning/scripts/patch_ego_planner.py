@@ -47,8 +47,28 @@ def main():
     root = pathlib.Path(sys.argv[1])
     (root / "include" / "ego_planner" / "ego_clock.h").write_text(HEADER)
     now = ("rclcpp::Clock().now()", "ego_planner::egoNow()")
+    # Swarm sequential start: each planner sends its trajectories to the next one once, on
+    # /drone_<id>_planning/swarm_trajs. With slow DDS discovery on a loaded machine the next planner's
+    # subscription may match only after that message: transient-local QoS hands it the last one.
+    latched = "rclcpp::QoS(10).reliable().transient_local()"
     edit(root / "src" / "ego_replan_fsm.cpp",
-         [now, ("rclcpp::Clock clock(RCL_SYSTEM_TIME);", "rclcpp::Clock clock(RCL_ROS_TIME);")],
+         [now, ("rclcpp::Clock clock(RCL_SYSTEM_TIME);", "rclcpp::Clock clock(RCL_ROS_TIME);"),
+          ("create_publisher<traj_utils::msg::MultiBsplines>(pub_topic_name, 10);",
+           f"create_publisher<traj_utils::msg::MultiBsplines>(pub_topic_name, {latched});"),
+          ("create_subscription<traj_utils::msg::MultiBsplines>(\n          sub_topic_name,\n          10,",
+           f"create_subscription<traj_utils::msg::MultiBsplines>(\n          sub_topic_name,\n          {latched},"),
+          # fsm/sequential_start (default true, the upstream behaviour): false lets every planner start
+          # without the trajectories of the one before it; they still avoid each other through
+          # /broadcast_bspline. XTDrone's swarm launch sets it false: on a loaded machine the one-off hand-over
+          # was lost in about half of the runs and left vehicles waiting for ever.
+          ("      if (planner_manager_->pp_.drone_id <= 0 || (planner_manager_->pp_.drone_id >= 1 && have_recv_pre_agent_))",
+           "      static const bool sequential = [this] {\n"
+           "        if (!node_->has_parameter(\"fsm/sequential_start\"))\n"
+           "          node_->declare_parameter(\"fsm/sequential_start\", true);\n"
+           "        return node_->get_parameter(\"fsm/sequential_start\").as_bool();\n"
+           "      }();\n"
+           "      if (!sequential || planner_manager_->pp_.drone_id <= 0 ||\n"
+           "          (planner_manager_->pp_.drone_id >= 1 && have_recv_pre_agent_))")],
          include_after="#include <ego_planner/ego_replan_fsm.h>")
     edit(root / "src" / "planner_manager.cpp", [now], include_after="#include <ego_planner/planner_manager.h>")
     edit(root / "src" / "ego_planner_node.cpp",

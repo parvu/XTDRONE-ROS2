@@ -504,6 +504,62 @@ class Converter:
                 st = ET.SubElement(c, "static")
             st.text = "1"
 
+    @staticmethod
+    def apply_state_poses(world):
+        """Put the models where the <state> of a Classic-saved world has them, as Classic does on load.
+
+        A world saved from the Classic GUI keeps the pose of each model and link of when it was inserted, and in
+        <state> the world poses of the model and of each link at save time; Classic shows the second.
+        ego_swarm_4, for example, has its 1 m cylinders at z = 0 (half underground) and a few at z = -2.5 (out of
+        play) in the <state> only. The model takes its state pose and each link the state pose relative to it
+        (gas_station_73 in outdoor1 keeps its offset in the link: model and link are both at 61.88 -30.82).
+        """
+        state = world.find("state")
+        if state is None:
+            return
+
+        def mat(text):
+            x, y, z, r, p, w = ([float(v) for v in text.split()] + [0.0] * 6)[:6]
+            cr, sr, cp, sp, cw, sw = math.cos(r), math.sin(r), math.cos(p), math.sin(p), math.cos(w), math.sin(w)
+            rot = [[cw * cp, cw * sp * sr - sw * cr, cw * sp * cr + sw * sr],
+                   [sw * cp, sw * sp * sr + cw * cr, sw * sp * cr - cw * sr],
+                   [-sp, cp * sr, cp * cr]]
+            return rot, [x, y, z]
+
+        def relative(parent, child):  # parent^-1 * child, as "x y z roll pitch yaw"
+            (pr, pt), (cr_, ct) = mat(parent), mat(child)
+            rt = [[pr[j][i] for j in range(3)] for i in range(3)]
+            rot = [[sum(rt[i][k] * cr_[k][j] for k in range(3)) for j in range(3)] for i in range(3)]
+            d = [ct[i] - pt[i] for i in range(3)]
+            t = [sum(rt[i][k] * d[k] for k in range(3)) for i in range(3)]
+            pitch = math.asin(max(-1.0, min(1.0, -rot[2][0])))
+            roll, yaw = math.atan2(rot[2][1], rot[2][2]), math.atan2(rot[1][0], rot[0][0])
+            return " ".join(f"{v:.6g}" for v in t + [roll, pitch, yaw])
+
+        for sm in state.findall("model"):
+            mpose = sm.findtext("pose")
+            if not mpose:
+                continue
+            name = sm.get("name")
+            el = next((e for e in world if (e.tag == "model" and e.get("name") == name)
+                       or (e.tag == "include" and e.findtext("name") == name)), None)
+            if el is None:
+                continue
+            pose = el.find("pose")
+            if pose is None:
+                pose = ET.SubElement(el, "pose")
+            pose.text = " ".join(mpose.split())
+            if el.tag != "model":
+                continue
+            for sl in sm.findall("link"):
+                link = next((l for l in el.findall("link") if l.get("name") == sl.get("name")), None)
+                if link is None or not sl.findtext("pose"):
+                    continue
+                lp = link.find("pose")
+                if lp is None:
+                    lp = ET.SubElement(link, "pose")
+                lp.text = relative(mpose, sl.findtext("pose"))
+
     def convert_world(self, src, name=None):
         tree = ET.parse(src)
         root = tree.getroot()
@@ -519,6 +575,7 @@ class Converter:
             if pose is not None and pose.text:
                 camera_pose = " ".join(pose.text.split())
             world.remove(gui)
+        self.apply_state_poses(world)
         for tag in ("state", "physics"):
             for el in world.findall(tag):
                 world.remove(el)

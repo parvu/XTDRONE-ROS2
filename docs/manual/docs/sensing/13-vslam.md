@@ -45,15 +45,11 @@ ros2 run xtdrone_py multirotor_keyboard_control iris 1 vel
   its image time.
 
 The SLAM frame starts at the vehicle with its x axis along the vehicle's heading. With `ekf:=vision`, PX4's local
-frame is this frame. In `outdoor1_stereo` the vehicle faces the world's y axis, so the local x axis is the world's y
-axis.
+frame is this frame.
 
 !!! note "Changes from the ROS 1 version"
     - ORB-SLAM2 → ORB-SLAM3 v1.0 (XTDrone ships both; the ROS 1 chapter used ORB-SLAM2, ORB-SLAM3 works the same way).
     - The world is `outdoor1` instead of `indoor1`: after the conversion the walls of `indoor1` are plain, too few
       features to track.
-    - The vehicle starts at (3, 0) facing +y (scenario `outdoor1_stereo`). The world origin is inside a parked
-      utility vehicle, and facing +x the camera sees mostly a large plain red arrow (`arrow_red`), on which ORB-SLAM3
-      loses tracking as soon as the vehicle climbs.
     - Left and right images are paired only with equal time stamps. Under load Gazebo drops left and right frames
       independently, and a pair from two different render steps breaks the stereo matching while the vehicle moves.

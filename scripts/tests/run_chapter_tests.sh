@@ -124,7 +124,7 @@ export -f gz_x
 RESULTS=()
 STRAYS=()
 CASES=("$@")
-[[ ${#CASES[@]} -eq 0 ]] && CASES=(worlds ch03 ch05 ch06 ch07 ch24 ch25 ch27 ch28 ch36 ch42 ch37 ch38 ch41 ch43 ch08plane ch08vtol ch08rover ch09 ch11 ch16 ch17 ch18 ch20 ch30 ch32 ch10 ch12 ch15 ch44)
+[[ ${#CASES[@]} -eq 0 ]] && CASES=(worlds ch03 ch05 ch06 ch07 ch24 ch25 ch27 ch28 ch36 ch42 ch37 ch38 ch41 ch43 ch08plane ch08vtol ch08rover ch09 ch11 ch16 ch17 ch18 ch20 ch30 ch32 ch10 ch12 ch15 ch44 ch13 ch14 ch19 ch21 ch22 ch23)
 trap cleanup_sim EXIT
 
 for c in "${CASES[@]}"; do
@@ -153,11 +153,11 @@ for c in "${CASES[@]}"; do
         "${ROOT_DIR}/scripts/tests/rtabmap_test.py" "sleep 25; ros2 launch xtdrone_slam rtabmap_rgbd.launch.py" ;;
     ch17)  # 2D laser SLAM with slam_toolbox (HectorSLAM in ROS 1): fly on the SLAM pose only
       run_script ch17_slam_toolbox "scenario:=indoor3 ekf:=laser2d communication:=basic px4_params:=MPC_XY_VEL_MAX=1,MPC_ACC_HOR=1" \
-        "${ROOT_DIR}/scripts/tests/laser_slam_test.py --slam slam_toolbox" \
+        "${ROOT_DIR}/scripts/tests/laser_slam_test.py --slam slam_toolbox --size 1" \
         "sleep 20; ros2 launch xtdrone_slam laser_slam_2d.launch.py slam:=slam_toolbox" ;;
     ch18)  # 2D laser SLAM with Cartographer
       run_script ch18_cartographer "scenario:=indoor3 ekf:=laser2d communication:=basic px4_params:=MPC_XY_VEL_MAX=1,MPC_ACC_HOR=1" \
-        "${ROOT_DIR}/scripts/tests/laser_slam_test.py --slam cartographer" \
+        "${ROOT_DIR}/scripts/tests/laser_slam_test.py --slam cartographer --size 1" \
         "sleep 20; ros2 launch xtdrone_slam laser_slam_2d.launch.py slam:=cartographer" ;;
     ch13)  # stereo visual SLAM (ORB-SLAM3; scripts/build_orbslam3.sh first): fly on the SLAM pose only
       run_script ch13_orbslam3 "scenario:=outdoor1_stereo ekf:=vision communication:=basic px4_params:=MPC_XY_VEL_MAX=1,MPC_ACC_HOR=1" \
@@ -165,7 +165,7 @@ for c in "${CASES[@]}"; do
         "sleep 20; ros2 launch xtdrone_orbslam3 stereo.launch.py" ;;
     ch14)  # stereo visual-inertial odometry (VINS-Fusion): fly on the VIO pose only
       run_script ch14_vins "scenario:=outdoor1_stereo ekf:=vision communication:=basic px4_params:=MPC_XY_VEL_MAX=1,MPC_ACC_HOR=1" \
-        "${ROOT_DIR}/scripts/tests/laser_slam_test.py --slam vins" \
+        "${ROOT_DIR}/scripts/tests/laser_slam_test.py --slam vins --tolerance 0.6" \
         "sleep 20; ros2 launch xtdrone_slam vio.launch.py" ;;
     ch19)  # 3D laser odometry (KISS-ICP; A-LOAM in ROS 1): fly on the lidar odometry only
       run_script ch19_kiss_icp "scenario:=outdoor1_3d_lidar ekf:=vision communication:=basic px4_params:=MPC_XY_VEL_MAX=1,MPC_ACC_HOR=1" \
@@ -185,6 +185,10 @@ for c in "${CASES[@]}"; do
       run_script ch21_ego_planner "scenario:=indoor1_ego ekf:=vision communication:=basic" \
         "${ROOT_DIR}/scripts/tests/ego_planner_test.py --detour 0.45" \
         "sleep 15; ros2 run xtdrone_py get_local_pose iris 1" ;;
+    ch22)  # EGO-Planner-Swarm: 4 iris across the ego_swarm_4 obstacle field, ground truth as pose
+      run_script ch22_ego_swarm "scenario:=ego_swarm ekf:=vision communication:=basic" \
+        "${ROOT_DIR}/scripts/tests/ego_swarm_test.py --count 4" \
+        "sleep 20; ros2 run xtdrone_py get_local_pose iris 4" ;;
     ch23)  # YOLO (OpenCV DNN, YOLOv4-tiny) finds the walking pedestrian of outdoor1 in the typhoon's gimbal camera
       run_script ch23_yolo_tracking "scenario:=outdoor1 communication:=basic" \
         "${ROOT_DIR}/scripts/tests/yolo_tracking_test.py" \

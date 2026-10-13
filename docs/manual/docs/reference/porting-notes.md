@@ -96,10 +96,14 @@ Use full topic names (`/iris_0/mavros/...`). Relative names resolve against the 
 - **Actors with `walk.dae`.** A bare skin name was found by Classic in its media; the mesh origin is at the hips, so
   gz-sim needs the waypoints 1 m higher. Classic-saved worlds also carry the skin as `<link>` visuals, which the
   converter drops. A converted world can load without errors and still show no actor: check it in a camera image.
-- **Spawn points inside models.** The origin of `outdoor1` is inside a parked utility vehicle: a multirotor
-  spawned there cannot climb past 0.4 m. Its scenarios start the vehicles beside it.
+- **Saved Classic worlds.** A world saved from the Classic GUI keeps the insertion pose of each model and the world
+  poses of the model and its links at save time in `<state>`; Classic shows the second, and so does the converter
+  now (each link gets its state pose relative to the model: some models keep their offset in the link). Before, models of 13 worlds
+  stood where they were inserted: in `outdoor1` a parked utility vehicle at the origin (the spawn point) and a
+  plain red arrow on the ground in front of it, in `indoor3` the walls 4 m off, in `ego_swarm` the obstacle
+  cylinders half underground.
 - **Visual odometry needs texture.** After the conversion the walls of `indoor1` are plain, and ORB-SLAM3 and
   VINS lose their features there; chapters 13 and 14 use the city of `outdoor1`. Plain, close surfaces in front of
-  the camera (the large red arrow of `outdoor1`) also break ORB-SLAM3 tracking.
+  the camera also break ORB-SLAM3 tracking.
 - **Stereo pairs.** Under load Gazebo drops left and right camera frames independently; pair them by exact time
   stamp, not approximately.

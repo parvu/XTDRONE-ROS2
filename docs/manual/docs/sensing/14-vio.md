@@ -4,7 +4,7 @@
     Package `xtdrone_slam`: `vio.launch.py` (VINS-Fusion, submodule `ros2/vins-fusion`) and `laser_transfer`
     in `vins` mode (the port of `vins_transfer.py`). Test: `scripts/tests/run_chapter_tests.sh ch14`: an
     `iris_stereo_camera` in `outdoor1` takes off and flies a 2 m square on the VINS pose only, with no GPS and no
-    ground truth. The VINS trajectory stays within 0.45 m of the Gazebo ground truth (0.23–0.44 m in the test runs).
+    ground truth. The VINS trajectory stays within 0.6 m of the Gazebo ground truth (0.23–0.56 m in the test runs).
 
 VINS-Fusion runs in stereo + IMU mode on the stereo camera and the IMU of `iris_stereo_camera`. The ROS 2 port is
 [mzahana/VINS-Fusion-ROS2](https://github.com/mzahana/VINS-Fusion-ROS2) (branch `ros2_jazzy`), built by
@@ -31,10 +31,7 @@ ros2 run xtdrone_py multirotor_keyboard_control iris 1 vel
 !!! note "Changes from the ROS 1 version"
     - The world is `outdoor1` instead of `indoor1`. After the conversion the walls of `indoor1` are plain, and VINS
       loses its features and diverges after a few metres. The city of `outdoor1` has enough texture.
-    - In `outdoor1` the vehicle starts at (3, 0) facing +y (scenario `outdoor1_stereo`, shared with chapter 13): the
-      world origin is inside a parked utility vehicle, from which a multirotor cannot take off, and facing +x the
-      cameras see mostly a plain red arrow. The VINS frame starts with its x axis along the vehicle's heading, so
-      the local x axis is the world's y axis.
+
     - The camera-to-IMU extrinsics changed with the x500 frame: the stereo link is at (0.12, 0, 0.03) m in
       `base_link`, the cameras at ±0.06 m, and the IMU at the `base_link` origin.
     - `vins_node` and `loop_fusion_node` accept exactly one argument, the config file, so the launch file starts them

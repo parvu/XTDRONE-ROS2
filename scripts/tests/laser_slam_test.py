@@ -5,7 +5,7 @@ Requires: xtdrone.launch.py scenario:=indoor3 ekf:=laser2d communication:=basic 
 `ros2 launch xtdrone_slam laser_slam_2d.launch.py slam:=<slam>` (pose -> vision_pose).
 
 1. wait until PX4 has a local position from the SLAM pose and a map is published;
-2. take off to ~1.5 m, fly a 2 m x 2 m square with position commands in the SLAM frame;
+2. take off to ~1.5 m, fly a square (--size, 2 m) with position commands in the SLAM frame;
 3. compare the SLAM/EKF trajectory with the Gazebo ground truth (both relative to the start);
 4. land.
 """
@@ -65,6 +65,7 @@ def main():
     ap.add_argument("--slam", default="slam_toolbox",
                     help="slam_toolbox, cartographer (2D, also check /map), kiss_icp, vins (odometry only)")
     ap.add_argument("--tolerance", type=float, default=0.5, help="largest SLAM vs ground truth difference (m)")
+    ap.add_argument("--size", type=float, default=2.0, help="side of the square (m)")
     a = ap.parse_args()
     rclpy.init()
     t = T()
@@ -101,7 +102,8 @@ def main():
             return 1
         z = t.pose.position.z
         worst = 0.0
-        corners = [(2, 0), (2, 2), (0, 2), (0, 0)]
+        q = a.size
+        corners = [(q, 0), (q, q), (0, q), (0, 0)]
         for cx, cy in corners:
             goal = Pose()
             goal.position.x, goal.position.y, goal.position.z = s0[0] + cx, s0[1] + cy, z

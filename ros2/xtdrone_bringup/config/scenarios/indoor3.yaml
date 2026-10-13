@@ -1,6 +1,4 @@
 # Converted from sitl_config/launch/indoor3.launch
 world: indoor3
 vehicles:
-# The ROS 1 launch spawned at the origin, 6 cm from the end of a room5 wall: the larger PX4 x500
-# airframe starts inside that wall and cannot climb. (-1, 1) has 1.35 m clearance.
-  - {model: iris_2d_lidar, type: iris, id: 0, pose: [-1, 1, 0, 0, 0, 0]}
+  - {model: iris_2d_lidar, type: iris, id: 0, pose: [0, 0, 0, 0, 0, 0]}

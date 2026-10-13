@@ -21,8 +21,10 @@ ros2 run xtdrone_py multirotor_keyboard_control iris 1 vel
 ros2 launch xtdrone_planning ego_planner.launch.py target_x:=0 target_y:=-4 target_z:=1.2
 ```
 
-`goal:=rviz` instead plans to each 2D goal set in RViz (`/goal_pose`). `max_vel`, `max_acc`, `ceiling` (the
-planner's virtual ceiling, 2.9 m below the 3.1 m ceiling of `indoor1`) and `map_size_x|y|z` are launch arguments.
+`goal:=rviz` instead plans to each 2D goal set in RViz (`/goal_pose`). `max_vel`, `max_acc`, `inflation`,
+`floor` (the bottom of the planner's map), `ceiling` (its virtual ceiling) and `map_size_x|y|z` are launch arguments;
+the defaults of the first five are those of XTDrone's ROS 1 `advanced_param_xtdrone.xml` and `run_in_xtdrone.launch`
+(1 m/s, 2 m/s², 0.2 m, −1 m, 3 m).
 
 `ego_planner.launch.py` starts these:
 - **`ego_planner_node`** with the parameters of the port's `advanced_param.launch.py` and of XTDrone's

@@ -34,5 +34,3 @@ z, intensity and ring. Gazebo Harmonic renders every lidar on the GPU (or on the
       (TF `camera_init → aft_mapped`, as A-LOAM publishes it) is kept for a community A-LOAM port.
     - The cloud has no per-point time, so KISS-ICP runs without deskewing (it says so at startup). At the speeds
       of this chapter that makes no visible difference.
-    - In `outdoor1` the vehicle starts at (3, 0) (scenario `outdoor1_3d_lidar`): the world origin is inside a
-      parked utility vehicle, from which a multirotor cannot take off.

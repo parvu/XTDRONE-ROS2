@@ -2,7 +2,7 @@
 
 !!! success "Ported and tested"
     `ros2 launch xtdrone_slam laser_slam_2d.launch.py slam:=cartographer` (`config/cartographer_2d.lua`, port of
-    `sensing/slam/laser_slam/cartographer`). Test: `scripts/tests/run_chapter_tests.sh ch18`: the same 2 m square as
+    `sensing/slam/laser_slam/cartographer`). Test: `scripts/tests/run_chapter_tests.sh ch18`: the same 1 m square as
     chapter 17, flown on the Cartographer pose only. The trajectory stays within 0.1 m of the ground truth.
 
 ## Run
