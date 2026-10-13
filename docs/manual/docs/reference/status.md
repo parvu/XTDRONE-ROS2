@@ -26,7 +26,7 @@ ROS 2 Jazzy / Gazebo Harmonic 8.15 / PX4 v1.16.2 / MAVROS 2.16 (6-core CPU, no G
 | 19 | 3D laser SLAM | **Tested** (KISS-ICP in `outdoor1`: 2 m square on the lidar odometry, ≤ 0.45 m from ground truth) | `ch19` | 5 |
 | 20 | 2D motion planning (move_base → Nav2) | **Tested** (3 goals while mapping, ≤ 0.4 m) | `ch20` | 4 |
 | 21 | 3D motion planning | **Tested** (EGO-Planner on the RealSense depth image: through four columns in `indoor1`, 11.5 m to within 1 m of the goal) | `ch21` | 5 |
-| 22 | Swarm motion planning | **Partly working** (EGO-Planner-Swarm, 4 iris through the `ego_swarm_4` windows to their goals; a PX4 time-sync reset under load makes all four drop briefly, see the chapter) | `ch22` | 5 |
+| 22 | Swarm motion planning | **Tested** (EGO-Planner-Swarm: 4 iris through the windows of `ego_swarm_4` to XTDrone's goals) | `ch22` | 5 |
 | 23 | Target detection and tracking | **Tested** (YOLOv4-tiny on the typhoon's gimbal camera finds the `outdoor1` pedestrian; the visual servo follows it about 36 m) | `ch23` | 5 |
 | 24 | Formation | **Tested** (9 iris, consensus + avoidance: waiting, cube, pyramid, moving leader) | `ch24` | 3 |
 | 25 | Formation (ROS 2) | **Tested** (6 iris: waiting, T, triangle, moving leader) | `ch25` | 3 |

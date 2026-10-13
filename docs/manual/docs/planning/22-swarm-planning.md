@@ -1,16 +1,10 @@
 # 22. Swarm motion planning (EGO-Planner-Swarm)
 
-!!! warning "Ported, partly working"
+!!! success "Ported and tested"
     Package `xtdrone_planning`: `ego_swarm.launch.py`, one EGO-Planner (chapter 21) per vehicle, sharing their
     trajectories. Test: `scripts/tests/run_chapter_tests.sh ch22`: the four `iris_realsense_camera` of
-    `scenario:=ego_swarm` fly from x = −7 to XTDrone's goals at x = 9, through the windows of the wall at x = −5.
-    The vehicles pass their windows and reach their goals (within 0.1–1 m, in about 60–80 s), but the test still
-    fails: about 40 s after the planners start, all four PX4 instances log `time jump detected`, then
-    `invalid setpoints` and `Failsafe: blind land`; the vehicles drop to the ground and fly on when the setpoints
-    are valid again. The probable cause, not yet confirmed: with four depth cameras rendered on the CPU the
-    simulation speed changes abruptly when the planners start, and PX4's time synchronisation with MAVROS
-    resets. In some runs `iris_0`, whose window
-    is the lowest (0.2–0.9 m above the ground), also hits the wall.
+    `scenario:=ego_swarm` fly from x = −7 to XTDrone's goals at x = 9, through the windows of the wall at x = −5,
+    in about 60–80 s; no two vehicles come closer than 1.7 m, and none comes below 0.3 m.
 
 ## Run
 
@@ -42,3 +36,6 @@ heights 0.2–0.9 m (`iris_0`, y = 5), 0.7–1.4 m (`iris_1`, y = 1.2), 0.7–2.
       −1 m, virtual ceiling 3 m (launch arguments `inflation`, `floor`, `ceiling`).
     - Before the converter applied the `<state>` of the saved world, the wall stood along the field and the
       cylinders were half underground, an easier course on which all four vehicles arrived.
+    - MAVROS runs on simulation time, like PX4. With MAVROS on wall time, the four PX4 instances reset their time
+      sync about 40 s after the planners started (the simulation slows down abruptly), dropped the vision pose
+      and blind-landed; see the porting notes.

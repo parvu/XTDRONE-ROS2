@@ -13,6 +13,7 @@ from nav_msgs.msg import Odometry
 
 from xtdrone_py.common import run
 from rclpy.node import Node
+from rclpy.parameter import Parameter
 
 
 def rotate(q, v):
@@ -29,7 +30,9 @@ def rotate(q, v):
 class GroundTruth(Node):
 
     def __init__(self, vehicle_type, vehicle_num):
-        super().__init__(f"{vehicle_type}_get_pose_groundtruth")
+        # simulation time, like MAVROS (sim.py): the stamps reach PX4 through MAVROS' time sync
+        super().__init__(f"{vehicle_type}_get_pose_groundtruth",
+                         parameter_overrides=[Parameter("use_sim_time", Parameter.Type.BOOL, True)])
         self.names = [f"{vehicle_type}_{i}" for i in range(vehicle_num)]
         self.poses = {n: None for n in self.names}
         self.speeds = {n: None for n in self.names}

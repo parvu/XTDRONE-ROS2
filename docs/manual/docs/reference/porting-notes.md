@@ -85,6 +85,12 @@ Use full topic names (`/iris_0/mavros/...`). Relative names resolve against the 
 
 ## Findings from phase 5
 
+- **MAVROS on simulation time.** PX4 SITL runs on simulation time (lockstep) and synchronises its clock with
+  MAVROS to date the vision poses. With MAVROS on wall time the offset drifts whenever Gazebo is slower than real
+  time; a sudden change of speed (four EGO planners starting, chapter 22) made PX4 reset its time sync, drop the
+  vision pose and blind-land (`time jump detected`, `invalid setpoints`, `Failsafe: blind land`). `sim.py` starts
+  MAVROS with `use_sim_time`, and the nodes that send stamped poses to PX4 (`get_local_pose`, `laser_transfer`)
+  use simulation time too.
 - **Wall clock in ROS 2 ports.** Code that reads `rclcpp::Clock()` (or an unattached `RCL_ROS_TIME` clock) runs on
   the wall clock even with `use_sim_time`. With Gazebo slower than real time this breaks anything that times
   trajectories: the EGO-Planner port did (chapter 21), and `xtdrone_planning/scripts/patch_ego_planner.py` moves

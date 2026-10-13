@@ -18,6 +18,7 @@ from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Odometry
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
+from rclpy.parameter import Parameter
 from rclpy.qos import qos_profile_sensor_data
 from rclpy.duration import Duration
 from rclpy.time import Time
@@ -33,7 +34,9 @@ FRAMES = {"slam_toolbox": ("map", "base_link"), "hector": ("map", "base_link"),
 class LaserTransfer(Node):
 
     def __init__(self, vehicle_type, vehicle_id, slam):
-        super().__init__(f"{vehicle_type}{vehicle_id}_{slam}_laser_transfer")
+        # simulation time, like MAVROS (sim.py): "now - age" is then the sensor time of the pose
+        super().__init__(f"{vehicle_type}{vehicle_id}_{slam}_laser_transfer",
+                         parameter_overrides=[Parameter("use_sim_time", Parameter.Type.BOOL, True)])
         if slam not in FRAMES:
             raise SystemExit(f"unknown SLAM '{slam}', use one of {', '.join(FRAMES)}")
         n = f"{vehicle_type}_{vehicle_id}"
@@ -46,8 +49,8 @@ class LaserTransfer(Node):
         if self.use_height:
             self.create_subscription(LaserScan, f"/{n}/distance", self.distance_callback, qos_profile_sensor_data)
         self.tracked = None
-        # The SLAM pose describes a moment in the past (sensor time, simulation clock). MAVROS needs ROS
-        # (wall) time stamps, so the pose is stamped "now - its age" for EKF2's delay compensation.
+        # The SLAM pose describes a moment in the past (sensor time, simulation clock); it is stamped
+        # "now - its age" for EKF2's delay compensation (the node and MAVROS run on simulation time).
         self.sim_now = None
         self.create_subscription(Clock, "/clock", lambda m: setattr(self, "sim_now", m.clock), 10)
         if slam == "cartographer":

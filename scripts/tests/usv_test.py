@@ -108,6 +108,10 @@ def main():
     landed = wait(90, lambda: not d["st"].armed)
     log(f"{'ok  ' if landed else 'FAIL'} iris_0 landed and disarmed")
     ok &= landed
+    # stop the gz-transport subscriber before the interpreter exits: left to the interpreter's teardown its
+    # threads aborted the process ("terminate called without an active exception") after a passed test
+    gz.unsubscribe("/world/sydney_regatta/pose/info")
+    del gz
     n.destroy_node()
     rclpy.try_shutdown()
     log("PASS" if ok else "FAIL")

@@ -136,8 +136,12 @@ def mavros_params(vehicle, plugins="xtdrone"):
     (MAVROS' PX4 default set)."""
     share = Path(get_package_share_directory("mavros")) / "launch"
     params = [str(share / f) for f in ("px4_pluginlists.yaml", "px4_config.yaml") if (share / f).is_file()]
+    # use_sim_time: PX4 runs on simulation time (lockstep); with MAVROS on wall time their clock offset drifts
+    # whenever Gazebo is slower than real time. A sudden change of simulation speed then made PX4 reset its
+    # time sync, drop the vision poses and blind-land (chapter 22). The stamps of the messages sent to PX4
+    # (vision pose: get_local_pose, laser_transfer) are simulation time as well.
     params.append({"fcu_url": vehicle.fcu_url, "gcs_url": "", "tgt_system": vehicle.mav_sys_id,
-                   "tgt_component": 1, "fcu_protocol": "v2.0"})
+                   "tgt_component": 1, "fcu_protocol": "v2.0", "use_sim_time": True})
     if plugins in ("xtdrone", "swarm"):
         # allowlist entries override the denylist in MAVROS
         allow = XTDRONE_MAVROS_PLUGINS if plugins == "xtdrone" else XTDRONE_SWARM_MAVROS_PLUGINS
