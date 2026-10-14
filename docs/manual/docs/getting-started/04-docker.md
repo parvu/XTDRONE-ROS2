@@ -22,8 +22,9 @@ git submodule update --init --recursive PX4-Autopilot
 docker build -f docker/Dockerfile -t xtdrone:jazzy-harmonic .
 ```
 
-Inside the image, the build runs `scripts/setup_ubuntu_24_04.sh` and then `scripts/build_xtdrone_ros2.sh` as a user
-named `xtdrone`. `.dockerignore` keeps host build output (the PX4 build, generated worlds) out of the image.
+Inside the image, the build runs `scripts/setup_ubuntu_24_04.sh`, `scripts/setup_ubuntu_24_04_extras.sh --all`,
+`scripts/build_orbslam3.sh` and `scripts/build_xtdrone_ros2.sh` as a user named `xtdrone`, so every chapter's
+packages are in the image (a failed step fails the image build). `.dockerignore` keeps host build output (the PX4 build, generated worlds) out of the image.
 
 ## Run
 
