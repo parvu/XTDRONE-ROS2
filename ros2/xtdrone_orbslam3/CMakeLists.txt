@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(xtdrone_orbslam3)
 
-# ORB-SLAM3 v1.0 (XTDrone copy in sensing/slam/vslam/ORB_SLAM3) and Pangolin are built by
+# ORB-SLAM3 v1.0 (upstream v1.0-release, patched) and Pangolin are built by
 # scripts/build_orbslam3.sh into ORB_SLAM3_DIR (default ~/.cache/xtdrone/orbslam3).
 set(CMAKE_CXX_STANDARD 17)
 find_package(ament_cmake REQUIRED)

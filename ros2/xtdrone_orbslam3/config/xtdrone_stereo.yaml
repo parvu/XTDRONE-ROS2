@@ -1,6 +1,6 @@
 %YAML:1.0
 # iris_stereo_camera of XTDrone (Gazebo Harmonic): 752 x 480, fx = fy = 376, baseline 0.12 m. From
-# sensing/slam/vslam/ORB_SLAM3/Examples/Stereo/px4_sitl.yaml.
+# XTDrone's sensing/slam/vslam/ORB_SLAM3/Examples/Stereo/px4_sitl.yaml.
 
 #--------------------------------------------------------------------------------------------
 # System config

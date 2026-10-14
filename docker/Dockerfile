@@ -26,6 +26,10 @@ WORKDIR /home/${USERNAME}/XTDRONE-ROS2
 # (with the PX4-Autopilot submodule checked out) is copied first.
 COPY --chown=${USERNAME}:${USERNAME} . .
 RUN ./scripts/setup_ubuntu_24_04.sh && sudo rm -rf /var/lib/apt/lists/*
+# the optional chapter dependencies too (SLAM, navigation, MoveIt 2, Ceres for VINS-Fusion, Pangolin, ...): the build
+# below compiles every package, as on a workstation set up with the extras
+RUN ./scripts/setup_ubuntu_24_04_extras.sh --all && sudo rm -rf /var/lib/apt/lists/*
+RUN ./scripts/build_orbslam3.sh
 # (a failed build must fail the image: no "|| true" over the build itself)
 RUN ./scripts/build_xtdrone_ros2.sh && rm -rf PX4-Autopilot/build/px4_sitl_default/build_gz*
 

@@ -20,12 +20,10 @@ project with Pangolin as its viewer.
 ./scripts/build_xtdrone_ros2.sh
 ```
 
-`build_orbslam3.sh` builds a patched copy and leaves XTDrone's sources untouched:
+`build_orbslam3.sh` clones ORB-SLAM3 v1.0 into `~/.cache/xtdrone/orbslam3` and patches the clone:
 - C++17 (Pangolin 0.9 needs it) and OpenCV 4. Under C++17, `LoopClosing::mnFullBAIdx` becomes an `int`: it is
   incremented with `++`, which C++17 forbids on a `bool`.
-- Four time utilities (`DBoW2/DUtils/Timestamp.*`, `g2o/stuff/timeutil.*`) are missing from the XTDrone copy, because
-  ORB-SLAM3's `.gitignore` matched them. The script downloads them from ORB-SLAM3 v1.0.
-- Only the library is built; the examples need ROS 1 or RealSense.
+- Only the library is built; the examples need RealSense or ROS.
 
 ## Run
 

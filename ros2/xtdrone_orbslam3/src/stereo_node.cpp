@@ -1,5 +1,5 @@
 // XTDrone stereo ORB-SLAM3 node for ROS 2 (chapter 13). Port of
-// sensing/slam/vslam/ORB_SLAM3/Examples/ROS/ORB_SLAM3/src/ros_stereo.cc (XTDrone version):
+// XTDrone's sensing/slam/vslam/ORB_SLAM3/Examples/ROS/ORB_SLAM3/src/ros_stereo.cc (XTDrone version):
 // tracks the stereo pair and publishes the camera pose as /orbslam3/vision_pose/pose in a FLU world
 // frame (x forward, y left, z up at the start), ready for /<vehicle>/mavros/vision_pose/pose.
 //
