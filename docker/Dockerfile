@@ -14,8 +14,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends apt-utils \
 ARG USERNAME=xtdrone
 RUN (userdel -r ubuntu 2>/dev/null || true) \
     && useradd -m -s /bin/bash ${USERNAME} \
-    && echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${USERNAME}
+    && echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${USERNAME} \
+    && mkdir -p /home/${USERNAME}/XTDRONE-ROS2 && chown ${USERNAME}:${USERNAME} /home/${USERNAME}/XTDRONE-ROS2
+# The repository directory belongs to the user: WORKDIR would create it owned by root, and COPY --chown does not
+# change the directory itself; git then refuses to work in it ("detected dubious ownership") and the build stops.
 USER ${USERNAME}
+RUN git config --global --add safe.directory '*'
 WORKDIR /home/${USERNAME}/XTDRONE-ROS2
 
 # The setup script uses PX4's own Tools/setup/ubuntu.sh, so the repository
