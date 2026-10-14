@@ -1,4 +1,4 @@
-# Converted from sitl_config/launch/zhihang2.launch
+# From XTDrone's ROS 1 zhihang2.launch
 world: zhihang2
 vehicles:
   - {model: iris_zhihang, type: iris, id: 0, pose: [-16, 0, 0.5, 0, 0, 0]}

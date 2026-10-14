@@ -2,7 +2,7 @@
 #   source scripts/xtdrone_env.sh
 #
 # It leaves any Python virtualenv (e.g. one activated from ~/.profile), drops
-# a ROS 1 environment (e.g. /opt/ros/noetic sourced from ~/.bashrc), then sources
+# any other ROS distribution sourced from ~/.bashrc, then sources
 # ROS 2 Jazzy and the XTDrone workspace. Only the current shell is changed.
 
 # ROS setup files are not 'set -u' safe; relax it while sourcing and restore it at the end.

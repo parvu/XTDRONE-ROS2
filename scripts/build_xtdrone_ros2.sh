@@ -16,7 +16,7 @@ PX4_DIR="${ROOT_DIR}/PX4-Autopilot"
 GZ_PKG="${ROOT_DIR}/ros2/xtdrone_gz"
 JOBS="${JOBS:-$(nproc)}"
 
-# Leave a Python venv and a ROS 1 environment, if the login shell set them up.
+# Leave a Python venv and any other ROS distribution, if the login shell set them up.
 if [[ -n "${VIRTUAL_ENV:-}" ]]; then
   PATH="$(printf '%s' "${PATH}" | tr ':' '\n' | grep -vxF "${VIRTUAL_ENV}/bin" | paste -sd: -)"
   unset VIRTUAL_ENV
@@ -75,8 +75,8 @@ python3 "${GZ_PKG}/scripts/generate_ugv_models.py" "${GZ_PKG}/models" >/dev/null
 rm -rf "${GZ_PKG}/generated"
 # shellcheck disable=SC2046
 python3 "${GZ_PKG}/scripts/classic_to_gz.py" \
-  --worlds "${ROOT_DIR}"/sitl_config/worlds/*.world \
-  --model-path "${ROOT_DIR}/sitl_config/models" "${CACHE_DIR}/gazebo_models" \
+  --worlds "${GZ_PKG}"/classic_assets/worlds/*.world \
+  --model-path "${GZ_PKG}/classic_assets/models" "${CACHE_DIR}/gazebo_models" \
                "${PX4_DIR}/Tools/simulation/gazebo-classic/sitl_gazebo-classic/models" \
   --classic-media "${CACHE_DIR}/gazebo-classic/media" \
   --skip-models $(ls "${GZ_PKG}/models") \

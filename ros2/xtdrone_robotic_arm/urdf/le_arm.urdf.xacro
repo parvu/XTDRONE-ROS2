@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!-- Ported from sitl_config/robotic_arm/le_arm/urdf (chapter 33): mesh paths, masses, no ROS 1 plugins. -->
+<!-- Ported from XTDrone's sitl_config/robotic_arm/le_arm/urdf (chapter 33): mesh paths, masses, no ROS 1 plugins. -->
 <robot xmlns:xacro="http://ros.org/wiki/xacro">
         <xacro:include filename="$(find xtdrone_robotic_arm)/urdf/le_arm_gripper.urdf.xacro" />
     <xacro:macro name="le_arm" params="parent *origin">  

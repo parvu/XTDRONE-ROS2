@@ -1,19 +1,14 @@
 # 29. Set waypoints for multiple UAVs with QGroundControl
 
 !!! success "Ported and tested"
-    No XTDrone code is involved. PX4 v1.16 already gives every SITL instance its own mission storage, so the
-    `rcS` change of the original chapter is no longer needed. Test: `scripts/tests/run_chapter_tests.sh ch29`: three
-    iris get different missions over MAVLink (MAVROS `mission/push`, as QGroundControl uploads them), read them back
-    unchanged, and fly them in AUTO.MISSION, each to its own waypoint (within 2 m).
+    No XTDrone code is involved. Test: `scripts/tests/run_chapter_tests.sh ch29`: three iris get different missions
+    over MAVLink (MAVROS `mission/push`, as QGroundControl uploads them), read them back unchanged, and fly them in
+    AUTO.MISSION, each to its own waypoint (within 2 m).
 
-## The original problem
+## Mission storage
 
-With PX4 1.11–1.13, all SITL instances shared one `dataman` file. Missions uploaded to different vehicles
-overwrote each other, and every vehicle flew the last mission. XTDrone patched `rcS` to use
-`dataman start -f dataman$((px4_instance+1))`.
-
-In this setup, every PX4 instance runs in its own working directory, `~/.ros/xtdrone_px4/<instance>/`,
-which holds its own dataman storage. Nothing needs to change.
+Every PX4 instance runs in its own working directory, `~/.ros/xtdrone_px4/<instance>/`, which holds its own
+mission storage (`dataman`). Missions uploaded to different vehicles stay separate; nothing needs to be set up.
 
 ## Use it
 

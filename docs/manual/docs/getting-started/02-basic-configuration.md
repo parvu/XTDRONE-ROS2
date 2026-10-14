@@ -1,7 +1,7 @@
 # 2. Basic configuration of the simulation platform
 
 !!! success "Ported and tested"
-    Replaces the original chapters 2 and 3 (PX4 1.11 and PX4 1.13). Test: `scripts/tests/run_chapter_tests.sh ch03`.
+    Replaces the original chapters 2 and 3. Test: `scripts/tests/run_chapter_tests.sh ch03`.
 
 ## Notes before you start
 
@@ -65,10 +65,10 @@ ROS 2 packages. Install them when you get there:
 ./scripts/setup_ubuntu_24_04_extras.sh --all    # plus MoveIt 2 and the build dependencies of ORB-SLAM3, VINS-Fusion, ...
 ```
 
-!!! warning "Python virtual environments and ROS 1"
+!!! warning "Python virtual environments and other ROS distributions"
     PX4 and colcon must use the system Python (`/usr/bin/python3`). If your login shell activates a virtualenv
-    (for example an ArduPilot venv from `~/.profile`), or sources ROS 1 (`/opt/ros/noetic/setup.bash` in
-    `~/.bashrc`), the XTDrone scripts strip those from their environment. Use
+    (for example an ArduPilot venv from `~/.profile`), or sources another ROS distribution in `~/.bashrc`, the
+    XTDrone scripts strip those from their environment. Use
     `source scripts/xtdrone_env.sh` in your own terminals (see step 4).
 
 ## 3. Build
@@ -82,9 +82,9 @@ The first run takes 10 to 30 minutes. It:
 1. builds PX4 SITL: `make px4_sitl_default` in `PX4-Autopilot`. The build includes `gz_bridge`, PX4's Gazebo
    Harmonic interface, and fails if Gazebo Harmonic is missing;
 2. copies the XTDrone PX4 airframes (for example the hexacopter `4901_gz_typhoon_h480`) into the PX4 build;
-3. downloads the Gazebo Classic model library (`osrf/gazebo_models`) and the Classic media (textures, actor
+3. downloads the model library the original worlds use (`osrf/gazebo_models`) and its media (textures, actor
    meshes) to `~/.cache/xtdrone`;
-4. converts all XTDrone worlds (`sitl_config/worlds/*.world`) and the models they use to Gazebo Harmonic
+4. converts all XTDrone worlds (`ros2/xtdrone_gz/classic_assets/worlds`) and the models they use to Gazebo Harmonic
    (`ros2/xtdrone_gz/generated`);
 5. regenerates the XTDrone vehicle models (`iris`, `iris_stereo_camera`, ..., `typhoon_h480`);
 6. creates the colcon workspace `~/xtdrone_ros2_ws` with links to `ros2/xtdrone_gz`, `ros2/xtdrone_bringup`,
@@ -118,7 +118,7 @@ The original `roslaunch px4 indoor1.launch` becomes:
 ros2 launch xtdrone_bringup xtdrone.launch.py scenario:=indoor1
 ```
 
-`scenario:=indoor1` reproduces `sitl_config/launch/indoor1.launch`: world `indoor1` and one `iris_stereo_camera`
+`scenario:=indoor1` reproduces the original `indoor1.launch`: world `indoor1` and one `iris_stereo_camera`
 named `iris_0` at (0, 7.5, 1). The launch file starts:
 
 - the Gazebo Harmonic server with the converted world, and the GUI a few seconds later, once the vehicles

@@ -1,4 +1,4 @@
-# Converted from sitl_config/launch/outdoor1_ugv.launch (chapter 31): the CAT Vehicle UGV in outdoor1.
+# From XTDrone's ROS 1 outdoor1_ugv.launch (chapter 31): the CAT Vehicle UGV in outdoor1.
 world: outdoor1
 vehicles:
   - {model: ugv, type: ugv, id: 0, pose: [1, 1, 0, 0, 0, 0]}

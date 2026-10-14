@@ -1,11 +1,11 @@
 # 45. Electro-mechanical model: from control commands to actuators
 
 !!! success "Rewritten for PX4 v1.16 and Gazebo Harmonic"
-    Background chapter. The mixers and the `gazebo_mavlink_interface` plugin of the original no longer exist.
+    Background chapter.
 
 ## Background
 
-- **Control allocation**: since PX4 1.13, a control allocation module replaces the mixer files. It turns the
+- **Control allocation**: PX4's control allocation module turns the
   torque and thrust demand of the controllers into normalised motor and servo commands. Each airframe describes
   its geometry with parameters: `CA_AIRFRAME`, `CA_ROTOR_COUNT`, and `CA_ROTORi_PX/PY/KM` for position and
   moment coefficient. See the [PX4 actuator configuration](https://docs.px4.io/v1.16/en/config/actuators.html).
@@ -19,8 +19,7 @@ and `vehicle_thrust_setpoint` → **control allocation** → `actuator_motors` /
 
 ## SITL with Gazebo Harmonic
 
-In SITL, the output driver is PX4's **`gz_bridge`** module. Gazebo Classic needed the `gazebo_mavlink_interface`
-plugin and MAVLink `HIL_ACTUATOR_CONTROLS` messages. `gz_bridge` instead publishes the actuator values directly on
+In SITL, the output driver is PX4's **`gz_bridge`** module. It publishes the actuator values directly on
 gz-transport:
 
 | Output | gz topic | PX4 parameters | Gazebo side |
@@ -52,7 +51,7 @@ param set-default CA_ROTOR0_KM -0.05       # cw rotor
 ...
 param set-default SIM_GZ_EC_FUNC1 101      # actuator index 0 = Motor 1 = <motorNumber>0
 param set-default SIM_GZ_EC_MIN1 150
-param set-default SIM_GZ_EC_MAX1 1500      # = <maxRotVelocity> of the Classic model
+param set-default SIM_GZ_EC_MAX1 1500      # = <maxRotVelocity> of the original model
 ```
 
 The generator numbers the rotors in link order. It writes the same index into `<motorNumber>` of each

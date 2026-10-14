@@ -1,4 +1,4 @@
-# Converted from sitl_config/launch/outdoor2_precision_landing.launch
+# From XTDrone's ROS 1 outdoor2_precision_landing.launch
 world: outdoor2
 vehicles:
   - {model: iris_downward_camera, type: iris, id: 0, pose: [-3, 0, 0, 0, 0, 0]}

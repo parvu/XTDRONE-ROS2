@@ -4,7 +4,7 @@
   <name>xtdrone_robotic_arm</name>
   <version>0.1.0</version>
   <description>XTDrone chapter 33 on ROS 2: the le_arm robotic arm under an iris, MoveIt 2, gz_ros2_control,
-    vision and grasping (port of sitl_config/robotic_arm).</description>
+    vision and grasping (port of XTDrone's sitl_config/robotic_arm).</description>
   <maintainer email="parvupv@gmail.com">parvu</maintainer>
   <license>Apache-2.0</license>
 

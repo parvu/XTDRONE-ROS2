@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!-- The le_arm under an iris (chapter 33), as sitl_config/robotic_arm/le_arm/urdf/iris_arm_base.xacro.
+<!-- The le_arm under an iris (chapter 33), as XTDrone's sitl_config/robotic_arm/le_arm/urdf/iris_arm_base.xacro.
      base_link is the body of the x500 (iris) model; this description holds the arm, the gripper and the camera
      for robot_state_publisher, MoveIt and gz_ros2_control. The Gazebo model iris_arm (xtdrone_gz) is generated
      from it by scripts/generate_iris_arm_model.py. -->

@@ -7,8 +7,9 @@
     on the ORB-SLAM3 pose only, with no GPS and no ground truth. The SLAM trajectory stays within 0.2 m of the Gazebo
     ground truth.
 
-ORB-SLAM3 v1.0 runs in stereo mode. It is XTDrone's own copy in `sensing/slam/vslam/ORB_SLAM3`, built outside the
-colcon workspace because it is a plain CMake project with Pangolin as its viewer.
+ORB-SLAM3 v1.0 runs in stereo mode. `scripts/build_orbslam3.sh` clones it (upstream `v1.0-release`, the version
+XTDrone used), patches it for Ubuntu 24.04 and builds it outside the colcon workspace, because it is a plain CMake
+project with Pangolin as its viewer.
 
 ## Build
 

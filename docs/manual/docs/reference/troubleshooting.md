@@ -66,10 +66,10 @@ The terminal runs inside a snap (e.g. the VS Code snap) and passes the snap's li
 pkill -f "gz sim"; pkill -x px4; pkill -f 'etc/init.d-posix/rc[S]'; pkill -f mavros_node; pkill -f parameter_bridge
 ```
 
-## `ros2` fails after `source /opt/ros/noetic/setup.bash`
+## `ros2` fails after sourcing another ROS distribution
 
-ROS 1 and ROS 2 environments must not be mixed. Open a new terminal and use `source scripts/xtdrone_env.sh`,
-which removes a ROS 1 environment and a Python venv.
+ROS environments must not be mixed. Open a new terminal and use `source scripts/xtdrone_env.sh`, which removes
+any other ROS distribution and a Python venv from the shell.
 
 ## PX4 build fails with Python errors
 

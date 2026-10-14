@@ -5,7 +5,7 @@
 | Path | Content |
 |---|---|
 | `PX4-Autopilot/` | PX4 v1.16.2 submodule (unchanged) |
-| `ros2/xtdrone_gz/` | vehicle models (`models/`), hand-made worlds (`worlds/`), PX4 overlays (`px4/`), converters (`scripts/`); converted Classic assets in `generated/` (build output) |
+| `ros2/xtdrone_gz/` | vehicle models (`models/`), hand-made worlds (`worlds/`), PX4 overlays (`px4/`), converters (`scripts/`), the flat-model tool (`tools/make_gazebo_model`); the worlds and models of the original XTDrone (`classic_assets/`) and their Gazebo Harmonic conversion in `generated/` (build output) |
 | `ros2/xtdrone_bringup/` | `xtdrone.launch.py`, `spawn_vehicle.launch.py`, scenarios (`config/scenarios/*.yaml`), fleet logic |
 | `ros2/xtdrone_py/` | rclpy nodes: communication, keyboard, ground truth, demos, Gazebo helpers |
 | `ros2/fomation_demo/` | package `xtdrone_formation_demo`: leader/followers, consensus, avoidance, communication model (chapters 24–27) |
@@ -18,7 +18,6 @@
 | `ros2/xtdrone_robotic_arm/` | le_arm under the iris: URDF, ros2_control, MoveIt 2 configuration, vision and grasping nodes; generates the `iris_arm` model (chapter 33) |
 | `ros2/xtdrone_fixed_wing_formation/` | fixed-wing formation control (messages, `pack_fw_states`, `task_main`, `vir_sim_leader`, `switch_fw_mode`; chapter 35) |
 | `ros2/vrx/` | VRX v3.1.2 submodule (ocean, WAM-V; chapter 32) |
-| `sitl_config/`, `communication/`, `control/`, … | the original ROS 1 / Classic XTDrone sources (input of the converters, reference) |
 | `scripts/` | setup, build, environment, verification, tests, manual build |
 | `docs/manual/` | this manual (MkDocs) |
 
@@ -52,7 +51,7 @@ Vehicles requested at z ≤ 0 spawn at z = 0.3 m (`SPAWN_CLEARANCE` in `xtdrone_
 
 ## `xtdrone_py` executables
 
-| Executable | Arguments | Original script |
+| Executable | Arguments | Original XTDrone script |
 |---|---|---|
 | `multirotor_communication` | `<type> <id>` | communication/multirotor_communication.py |
 | `multirotor_communication_enhanced` | `<type> <id>` | communication/multirotor_communication_enhanced.py |
@@ -94,7 +93,7 @@ Global: `/clock` (rosgraph_msgs/Clock), `/wind_xtdrone` (in, with `wind_control`
 
 ## `xtdrone_formation_demo` executables
 
-| Executable | Arguments | Original script |
+| Executable | Arguments | Original XTDrone script |
 |---|---|---|
 | `leader` | `<type> <6|9|18>` | coordination/formation_demo/leader.py |
 | `follower` | `<type> <id> <num>` | coordination/formation_demo/follower.py |

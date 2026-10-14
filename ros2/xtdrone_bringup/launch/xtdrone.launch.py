@@ -1,6 +1,6 @@
 """XTDrone simulation on Gazebo Harmonic + PX4 v1.16.2 + MAVROS 2.
 
-Replaces the ROS 1 launch files in sitl_config/launch (indoor1.launch,
+Replaces the ROS 1 launch files in XTDrone's sitl_config/launch (indoor1.launch,
 outdoor2.launch, multi_vehicle.launch, ...).
 
   ros2 launch xtdrone_bringup xtdrone.launch.py scenario:=indoor1

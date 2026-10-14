@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <sdf version="1.9">
-  <!-- 2.501 m x 1.001 m plate (tags along x, the first ID at -x; the texture is stored rotated by 90 deg because the gz box top face maps image columns to -y), texture from sitl_config/models/apriltag3-5 (black tag squares 0.5 m). -->
+  <!-- 2.501 m x 1.001 m plate (tags along x, the first ID at -x; the texture is stored rotated by 90 deg because the gz box top face maps image columns to -y), texture from XTDrone's sitl_config/models/apriltag3-5 (black tag squares 0.5 m). -->
   <model name="apriltag3-5">
     <static>true</static>
     <link name="link">

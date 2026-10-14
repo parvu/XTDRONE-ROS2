@@ -255,8 +255,8 @@ for c in "${CASES[@]}"; do
     ch36)  # flat image model: generate with make_gazebo_model.py, spawn into a running world
       out="$(mktemp -d)"
       gz_case ch36_flat_model empty "
-        cd '${ROOT_DIR}/sitl_config/make_gazebo_model/script' &&
-        /usr/bin/python3 make_gazebo_model.py -i '${ROOT_DIR}/sitl_config/make_gazebo_model/image/' -g '${out}' -s 1000 -w 0 >/dev/null 2>&1
+        cd '${ROOT_DIR}/ros2/xtdrone_gz/tools/make_gazebo_model/script' &&
+        /usr/bin/python3 make_gazebo_model.py -i '${ROOT_DIR}/ros2/xtdrone_gz/tools/make_gazebo_model/image/' -g '${out}' -s 1000 -w 0 >/dev/null 2>&1
         test -f '${out}/landing1/meshes/landing1.png' || { echo 'FAIL texture not next to the mesh'; exit; }
         gz service -s /world/empty/create --reqtype gz.msgs.EntityFactory --reptype gz.msgs.Boolean --timeout 5000 \
           --req 'sdf_filename: \"${out}/landing1/model.sdf\", name: \"pad\"' >/dev/null

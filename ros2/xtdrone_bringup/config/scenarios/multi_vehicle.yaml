@@ -1,4 +1,4 @@
-# Converted from sitl_config/launch/multi_vehicle.launch
+# From XTDrone's ROS 1 multi_vehicle.launch
 world: empty
 vehicles:
   - {model: typhoon_h480, type: typhoon_h480, id: 0, pose: [0, 3, 0, 0, 0, 0]}

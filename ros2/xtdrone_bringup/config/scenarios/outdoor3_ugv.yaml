@@ -1,4 +1,4 @@
-# Converted from sitl_config/launch/outdoor3_ugv.launch (chapter 11): two CAT Vehicle UGVs,
+# From XTDrone's ROS 1 outdoor3_ugv.launch (chapter 11): two CAT Vehicle UGVs,
 # ugv_0 with AprilTags 0-2 and ugv_1 with AprilTags 3-5 on the roof.
 world: outdoor3
 vehicles:

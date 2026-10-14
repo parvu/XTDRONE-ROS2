@@ -1,4 +1,4 @@
-# Converted from sitl_config/launch/outdoor4.launch
+# From XTDrone's ROS 1 outdoor4.launch
 world: outdoor4
 vehicles:
   - {model: iris_2d_lidar, type: iris, id: 0, pose: [-75, -4, 5, 0, 0, 0]}

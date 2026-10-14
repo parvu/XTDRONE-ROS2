@@ -1,4 +1,4 @@
-# Converted from sitl_config/launch/ego_swarm_8.launch
+# From XTDrone's ROS 1 ego_swarm_8.launch
 world: ego_swarm_8
 vehicles:
   - {model: iris_realsense_camera, type: iris, id: 0, pose: [-7, 7, 1, 0, 0, 0]}

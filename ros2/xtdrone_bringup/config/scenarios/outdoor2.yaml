@@ -1,4 +1,4 @@
-# Converted from sitl_config/launch/outdoor2.launch
+# From XTDrone's ROS 1 outdoor2.launch
 world: outdoor2
 vehicles:
   - {model: rover_with_lidar_stereo, type: rover, id: 0, pose: [0, 0, 0, 0, 0, 0]}

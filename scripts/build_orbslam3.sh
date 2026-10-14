@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
-# Build Pangolin v0.9.1 and ORB-SLAM3 v1.0 (XTDrone copy, sensing/slam/vslam/ORB_SLAM3) for the ROS 2
-# package xtdrone_orbslam3 (chapter 13). Needs the --all packages of setup_ubuntu_24_04_extras.sh.
+# Build Pangolin v0.9.1 and ORB-SLAM3 v1.0 (upstream UZ-SLAMLab/ORB_SLAM3 v1.0-release, the version XTDrone's copy
+# was) for the ROS 2 package xtdrone_orbslam3 (chapter 13). Needs the --all packages of setup_ubuntu_24_04_extras.sh.
 #   ./scripts/build_orbslam3.sh          (then ./scripts/build_xtdrone_ros2.sh)
 # Output: ~/.cache/xtdrone/orbslam3/{pangolin-install,ORB_SLAM3} (set XTDRONE_CACHE to move it).
-# The XTDrone sources are not modified: a copy is patched for Ubuntu 24.04 (C++17, OpenCV 4).
+# The clone is patched for Ubuntu 24.04 (C++17, OpenCV 4) and only the library is built.
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="${XTDRONE_CACHE:-${HOME}/.cache/xtdrone}/orbslam3"
 JOBS="${JOBS:-$(nproc)}"
 mkdir -p "${OUT}"
@@ -22,26 +21,23 @@ if [[ ! -f "${OUT}/pangolin-install/lib/cmake/Pangolin/PangolinConfig.cmake" ]];
   cmake --install "${OUT}/Pangolin/build" >/dev/null
 fi
 
-echo "== ORB-SLAM3 (patched copy)"
+echo "== ORB-SLAM3 v1.0"
 SRC="${OUT}/ORB_SLAM3"
-rsync -a --delete --exclude build --exclude lib --exclude 'Thirdparty/*/build' --exclude 'Thirdparty/*/lib' \
-  "${ROOT_DIR}/sensing/slam/vslam/ORB_SLAM3/" "${SRC}/"
-# C++17 (Pangolin 0.9) instead of C++11, OpenCV 4 instead of "OpenCV 3.2", no realsense examples
+if [[ "$(git -C "${SRC}" describe --tags 2>/dev/null)" != "v1.0-release" ]]; then
+  rm -rf "${SRC}"
+  git clone -q --depth 1 --branch v1.0-release https://github.com/UZ-SLAMLab/ORB_SLAM3.git "${SRC}"
+else
+  git -C "${SRC}" checkout -q -- .  # undo the patches below before applying them again
+fi
+# C++17 (Pangolin 0.9) instead of C++11, any OpenCV 4 (Ubuntu 24.04: 4.6) instead of "OpenCV 4.4", no realsense
 for f in "${SRC}/CMakeLists.txt" "${SRC}"/Thirdparty/*/CMakeLists.txt; do
   sed -i -e 's/-std=c++11/-std=c++17/g; s/-std=c++0x/-std=c++17/g' \
-         -e 's/find_package(OpenCV 3\.[0-9]*)/find_package(OpenCV 4 REQUIRED)/; s/find_package(OpenCV 3\.[0-9]* QUIET)/find_package(OpenCV 4 REQUIRED)/' "$f"
+         -e 's/find_package(OpenCV [34]\.[0-9]*)/find_package(OpenCV 4 REQUIRED)/; s/find_package(OpenCV [34]\.[0-9]* QUIET)/find_package(OpenCV 4 REQUIRED)/' "$f"
 done
 sed -i 's/^find_package(realsense2)/#find_package(realsense2)/' "${SRC}/CMakeLists.txt"
 # C++17 forbids ++ on a bool: LoopClosing's full-BA counter becomes an int (as in later ORB-SLAM3 forks)
 sed -i 's/^\(\s*\)bool mnFullBAIdx;/\1int mnFullBAIdx;/' "${SRC}/include/LoopClosing.h"
-# Four time utilities are missing from the XTDrone copy (ORB-SLAM3's .gitignore matched them): take them from
-# ORB-SLAM3 v1.0. These are all the sources the copy lacks compared with v1.0.
-for f in DBoW2/DUtils/Timestamp.h DBoW2/DUtils/Timestamp.cpp g2o/g2o/stuff/timeutil.h g2o/g2o/stuff/timeutil.cpp; do
-  [[ -f "${SRC}/Thirdparty/${f}" ]] && continue
-  curl -sfL -o "${SRC}/Thirdparty/${f}" \
-    "https://raw.githubusercontent.com/UZ-SLAMLab/ORB_SLAM3/v1.0-release/Thirdparty/${f}"
-done
-# build only the library (the examples need ROS 1 / realsense)
+# build only the library (the examples need realsense or ROS)
 python3 - "${SRC}/CMakeLists.txt" <<'EOF'
 import re, sys
 p = sys.argv[1]

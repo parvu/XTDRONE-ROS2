@@ -3,17 +3,17 @@
 XTDrone is a UAV simulation platform built on PX4, ROS and Gazebo. It covers multirotors, fixed-wing
 aircraft, VTOLs, ground vehicles, multi-vehicle swarms and many perception and planning examples.
 
-This manual is the ROS 2 edition of the [XTDrone manual](https://www.yuque.com/xtdrone/manual_en).
-It keeps the 48 chapters of the original, and rewrites each one for this stack:
+This manual is the ROS 2 edition of the [XTDrone manual](https://www.yuque.com/xtdrone/manual_en). It keeps its
+48 chapters, rewritten for this stack (the only one supported):
 
-| Layer | Original manual | This manual |
-|---|---|---|
-| OS | Ubuntu 16.04 / 18.04 / 20.04 | **Ubuntu 24.04** |
-| ROS | ROS 1 Kinetic / Melodic / Noetic | **ROS 2 Jazzy** |
-| Simulator | Gazebo Classic 9 / 11 | **Gazebo Harmonic** (gz-sim 8) |
-| Autopilot | PX4 1.11 / 1.13 (`sitl_gazebo`) | **PX4 v1.16.2** (`gz_bridge`), pinned as a submodule |
-| Flight controller link | MAVROS | **MAVROS 2** |
-| Build | catkin | colcon |
+| Layer | Version |
+|---|---|
+| OS | **Ubuntu 24.04** |
+| ROS | **ROS 2 Jazzy** |
+| Simulator | **Gazebo Harmonic** (gz-sim 8) |
+| Autopilot | **PX4 v1.16.2** (`gz_bridge`), pinned as a submodule |
+| Flight controller link | **MAVROS 2** |
+| Build | colcon |
 
 ## What stays the same
 
@@ -28,12 +28,13 @@ The interfaces of the original are kept, so that algorithms and scripts written 
 
 ## What changes
 
-- One launch file, `xtdrone_bringup/xtdrone.launch.py`, replaces the ROS 1 launch files and the
+- One launch file, `xtdrone_bringup/xtdrone.launch.py`, replaces the original launch files and the
   launch-file generator. A `scenario:=` argument reproduces each original launch file, e.g.
   `scenario:=indoor1`. A `vehicles:=` argument describes a fleet in one line, e.g. `vehicles:="iris*6"`.
 - Python scripts run as ROS 2 executables, for example
   `ros2 run xtdrone_py multirotor_communication iris 0`, instead of `python multirotor_communication.py iris 0`.
-- Worlds and models are converted from Gazebo Classic automatically at build time.
+- The worlds and models of the original XTDrone (`ros2/xtdrone_gz/classic_assets`) are converted to Gazebo
+  Harmonic at build time.
 - The PX4 iris airframe becomes PX4's Gazebo `x500` airframe. XTDrone keeps the name `iris` and its
   sensor variants.
 

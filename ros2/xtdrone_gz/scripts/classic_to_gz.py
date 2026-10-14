@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Convert Gazebo Classic worlds and models (XTDrone sitl_config) to Gazebo Harmonic.
+"""Convert Gazebo Classic worlds and models to Gazebo Harmonic: the worlds and models of the original XTDrone,
+kept in xtdrone_gz/classic_assets.
 
 What it does
   * worlds: adds the gz-sim systems PX4 needs (physics @250 Hz, sensors/ogre2,

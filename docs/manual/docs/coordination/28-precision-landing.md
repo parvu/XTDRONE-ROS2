@@ -51,7 +51,7 @@ Other options: `--tag-id` (default: the vehicle id) and `--tag-size` (black squa
 ## Models
 
 `apriltag0-2` (IDs 0, 1, 2) and `apriltag3-5` (IDs 5, 4, 3 from −x to +x) are static 2.5 m × 1.0 m plates
-with collision, built from the textures of `sitl_config/models`. Add them to any scenario with `objects:`:
+with collision, built from the textures of the original XTDrone models. Add them to any scenario with `objects:`:
 
 ```yaml
 objects:

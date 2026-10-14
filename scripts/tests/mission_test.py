@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
-"""Chapter 29 check: every PX4 instance keeps its own mission (the original chapter's dataman problem).
+"""Chapter 29 check: every PX4 instance keeps its own mission.
 
 Requires: xtdrone.launch.py world:=outdoor2 vehicles:="iris*3" mavros_plugins:=all (the MAVROS mission plugin).
 
 1. upload a different mission to each iris through MAVROS (as QGroundControl does over MAVLink): take off to 5 m,
    then a waypoint 10, 20 and 30 m north of its home;
-2. read the missions back: each vehicle still has its own (with a shared mission storage, as with PX4 1.11-1.13,
-   the last upload overwrote the others);
+2. read the missions back: each vehicle still has its own (each PX4 instance keeps its own mission storage);
 3. AUTO.MISSION and arm all three; check that each one ends within 2 m of its own waypoint.
 """
 import argparse

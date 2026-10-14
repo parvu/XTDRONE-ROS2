@@ -1,4 +1,4 @@
-# Converted from coordination/fixed_wing_formation_control/launchfile/fixed_wing_formation_control.launch
+# From XTDrone's ROS 1 fixed_wing_formation_control.launch
 # (chapter 35): a CAT Vehicle UGV and three standard VTOLs, the leader standard_vtol_0 and two followers.
 # ROS 1 started the VTOLs at x = -1500 (ODE's ground plane is infinite). Gazebo Harmonic's DART collides a plane as
 # a box about 2100 m wide (+-1050 m): beyond it the vehicles fall. Here they start 600 m west of the UGV.

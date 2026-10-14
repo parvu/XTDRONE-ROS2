@@ -1,4 +1,4 @@
-// grasping_demo (chapter 33), ROS 2 port of sitl_config/robotic_arm/le_arm_grasping: the le_arm under the iris
+// grasping_demo (chapter 33), ROS 2 port of XTDrone's sitl_config/robotic_arm/le_arm_grasping: the le_arm under the iris
 // picks up the green cube of the grasping world.
 //   0. wait until the controllers are active (they come up after move_group);
 //   1. wait until vision_manager sees the object;

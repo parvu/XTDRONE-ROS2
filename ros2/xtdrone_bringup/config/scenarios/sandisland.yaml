@@ -1,4 +1,4 @@
-# Converted from sitl_config/launch/sandisland.launch (chapter 32). The world is VRX v3's sydney_regatta
+# From XTDrone's ROS 1 sandisland.launch (chapter 32). The world is VRX v3's sydney_regatta
 # (sand island in VRX for Gazebo Classic) + AirPressure; the iris stand on the island (ground ~2.3 m) as in ROS 1.
 # The ROS 1 launch used iris_stereo_camera; plain iris keep the CPU-only simulation fast (change the model
 # to iris_stereo_camera for the cameras). Add the WAM-V with: ros2 launch xtdrone_bringup usv.launch.py

@@ -1,7 +1,7 @@
 /*
  * XTDrone actor motion system for Gazebo Harmonic (manual chapter 38).
  *
- * Port of sitl_config/gazebo_plugin/gazebo_ros_actor_plugin (ros_actor_cmd_pose_plugin): an actor
+ * Port of XTDrone's sitl_config/gazebo_plugin/gazebo_ros_actor_plugin (ros_actor_cmd_pose_plugin): an actor
  * walks to a commanded (x, y) at a commanded speed, with its walking animation, and stays there.
  * Commands: gz topic /<actor name>/cmd_motion, gz.msgs.Vector3d (x, y, z = speed in m/s); with
  * xtdrone.launch.py the ROS topic of the same name (geometry_msgs/Vector3) is bridged to it.

@@ -1,4 +1,4 @@
-# Converted from sitl_config/launch/robocup_indoor.launch
+# From XTDrone's ROS 1 robocup_indoor.launch
 world: robocup_indoor
 vehicles:
   - {model: iris_realsense_camera, type: iris, id: 0, pose: [0.8, 0.5, 1, 0, 0, 0]}

@@ -1,4 +1,4 @@
-# Converted from sitl_config/launch/indoor3.launch
+# From XTDrone's ROS 1 indoor3.launch
 world: indoor3
 vehicles:
   - {model: iris_2d_lidar, type: iris, id: 0, pose: [0, 0, 0, 0, 0, 0]}

@@ -8,17 +8,15 @@ positioning (SLAM, VIO, motion capture, or the ground truth of chapter 15) needs
 configuration. Whatever the source, check that `/<type>_<id>/mavros/local_position/pose` is correct before you
 fly autonomously.
 
-## Parameter names in PX4 v1.16
+## EKF2 parameters
 
-PX4 1.14 replaced the bit masks of the original chapter:
-
-| PX4 1.11 / 1.13 | PX4 v1.16 | Meaning |
-|---|---|---|
-| `EKF2_AID_MASK` bit 0 (GPS) | `EKF2_GPS_CTRL` (7 = lon/lat, altitude, 3D velocity; 0 = off) | GPS fusion |
-| `EKF2_AID_MASK` bits 3, 4 (vision position, yaw) | `EKF2_EV_CTRL` (bits: 1 horizontal position, 2 vertical position, 4 velocity, 8 yaw) | External vision fusion |
-| `EKF2_HGT_MODE` (0 baro, 3 vision) | `EKF2_HGT_REF` (0 baro, 1 GPS, 2 range, 3 vision) | Height reference |
-| — | `EKF2_BARO_CTRL` (0/1) | Barometer fusion |
-| — | `EKF2_MAG_TYPE` (5 = none) | Magnetometer; off when vision provides yaw |
+| Parameter | Meaning |
+|---|---|
+| `EKF2_GPS_CTRL` (7 = lon/lat, altitude, 3D velocity; 0 = off) | GPS fusion |
+| `EKF2_EV_CTRL` (bits: 1 horizontal position, 2 vertical position, 4 velocity, 8 yaw) | External vision fusion |
+| `EKF2_HGT_REF` (0 baro, 1 GPS, 2 range, 3 vision) | Height reference |
+| `EKF2_BARO_CTRL` (0/1) | Barometer fusion |
+| `EKF2_MAG_TYPE` (5 = none) | Magnetometer; off when vision provides yaw |
 
 ## Select a preset at launch
 
@@ -29,7 +27,7 @@ PX4 1.14 replaced the bit masks of the original chapter:
 | `ekf:=` | Parameters | Use |
 |---|---|---|
 | `gps` (default) | `EKF2_GPS_CTRL=7 EKF2_EV_CTRL=0 EKF2_HGT_REF=1 EKF2_BARO_CTRL=1 EKF2_MAG_TYPE=0` | GPS + barometer, outdoor and default |
-| `vision` | `EKF2_GPS_CTRL=0 EKF2_EV_CTRL=15 EKF2_HGT_REF=3 EKF2_BARO_CTRL=0 EKF2_MAG_TYPE=5` | GPS denied; vision position, height and yaw (the original `EKF2_AID_MASK 24` + `EKF2_HGT_MODE 3`) |
+| `vision` | `EKF2_GPS_CTRL=0 EKF2_EV_CTRL=15 EKF2_HGT_REF=3 EKF2_BARO_CTRL=0 EKF2_MAG_TYPE=5` | GPS denied; vision position, height and yaw |
 
 ```bash
 ros2 launch xtdrone_bringup xtdrone.launch.py scenario:=indoor1 ekf:=vision

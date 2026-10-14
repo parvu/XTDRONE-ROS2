@@ -1,7 +1,7 @@
 # 36. Make a flat (image) Gazebo model
 
 !!! success "Ported and tested"
-    `sitl_config/make_gazebo_model/script/make_gazebo_model.py` textures a COLLADA panel. It now also copies the
+    `ros2/xtdrone_gz/tools/make_gazebo_model/script/make_gazebo_model.py` textures a COLLADA panel. It now also copies the
     image next to the mesh, where Gazebo Harmonic looks for COLLADA textures. The output directory changes from
     `~/.gazebo/models` to a directory on `GZ_SIM_RESOURCE_PATH`. The white border (`-w`) needs ImageMagick
     (`convert`, installed by the setup script). Test: `scripts/tests/run_chapter_tests.sh ch36`.
@@ -24,7 +24,7 @@ export GZ_SIM_RESOURCE_PATH=~/xtdrone_models:$GZ_SIM_RESOURCE_PATH
 ## make_gazebo_model
 
 ```bash
-cd ~/XTDRONE-ROS2/sitl_config/make_gazebo_model/script
+cd ~/XTDRONE-ROS2/ros2/xtdrone_gz/tools/make_gazebo_model/script
 python3 make_gazebo_model.py -i IMAGE_DIRECTORY -g ~/xtdrone_models -s SIZE_IN_MILLIMETER -w CONTOUR_SIZE_IN_MM
 ```
 

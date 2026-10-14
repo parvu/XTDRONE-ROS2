@@ -1,4 +1,4 @@
-// vision_manager (chapter 33), ROS 2 port of sitl_config/robotic_arm/le_arm_vision: finds the green object in the
+// vision_manager (chapter 33), ROS 2 port of XTDrone's sitl_config/robotic_arm/le_arm_vision: finds the green object in the
 // image of the arm camera. ROS 1 thresholded the green channel (> 200) and took the centre of the bounding box of
 // the pixels; here green must clearly exceed red and blue (the cube is in shade; white sky and ground are not it).
 // Publishes the object's pixel position (x, y) and its size in pixels (z) on le_arm/object, and nothing while the
