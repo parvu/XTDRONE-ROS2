@@ -26,6 +26,12 @@ ros2 run xtdrone_py multirotor_keyboard_control iris 1 vel
   publishes `/kiss/odometry` and the TF `odom_lidar → base_link`.
 - **`laser_transfer iris 0 kiss_icp`:** sends that TF at 30 Hz to `/iris_0/mavros/vision_pose/pose`.
 
+Two warnings at startup are expected and harmless:
+`Field 't', 'timestamp', or 'time' does not exist. Disabling scan deskewing` (the cloud has no per-point time) and
+`waiting for TF odom_lidar -> base_link (LookupException)` from `laser_transfer` (until KISS-ICP has its first scan).
+To check that data flows, run `ros2 topic echo /kiss/odometry` and
+`ros2 topic echo /iris_0/mavros/vision_pose/pose`.
+
 `iris_3d_lidar` and `iris_3d_gpu_lidar` publish the same cloud: 32 × 512 points, ±15°, 15 Hz, with the fields x, y,
 z, intensity and ring. Gazebo Harmonic renders every lidar on the GPU (or on the CPU when there is no GPU).
 

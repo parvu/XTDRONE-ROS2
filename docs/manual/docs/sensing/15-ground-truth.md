@@ -32,6 +32,10 @@ ros2 run xtdrone_py get_local_pose iris 1        # "1" = one iris
 
 To make PX4 fuse them, select `ekf:=vision` (chapter 6).
 
+!!! note "The node prints nothing"
+    `get_local_pose` only publishes; it does not print the poses. Keep it running and look at them from another
+    terminal: `ros2 topic echo /iris_0/mavros/vision_pose/pose`.
+
 !!! warning "Only one source of vision pose"
     `get_local_pose` publishes `/mavros/vision_pose/pose`. If you use the ground truth to evaluate a SLAM system that
     also publishes `vision_pose`, do not run both. Subscribe to `/<type>_<id>/ground_truth/odom` directly instead.

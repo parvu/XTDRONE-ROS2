@@ -41,6 +41,8 @@ ros2 run xtdrone_py multirotor_keyboard_control iris 1 vel
 ```bash
 # ORB-SLAM3's own Pangolin window: tracked map points, keyframes, camera trajectory (needs a GL display, WSLg is enough)
 ros2 launch xtdrone_orbslam3 stereo.launch.py viewer:=true
+# the camera images without RViz: select /iris_0/stereo_camera/left/image_raw or .../right/image_raw
+ros2 run rqt_image_view rqt_image_view
 # RViz: the SLAM pose and the camera image (Fixed Frame: any name, e.g. map)
 rviz2
 # in RViz add: Pose on /orbslam3/vision_pose/pose, Image on /iris_0/stereo_camera/left/image_raw

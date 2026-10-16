@@ -53,11 +53,14 @@ the launch sets the parameters on every start, and they overwrite stored values.
 
 ## Change parameters at runtime
 
-MAVROS 2 exposes all PX4 parameters as ROS parameters of the node `/<type>_<id>/mavros/param`:
+MAVROS 2 exposes all PX4 parameters as ROS parameters of the node `/<type>_<id>/mavros/param`. The launch loads only
+the MAVROS plugins the XTDrone nodes use, and the parameter plugin is not one of them (`ros2 param get` answers
+"Node not found"). Start the launch with all plugins:
 
 ```bash
+ros2 launch xtdrone_bringup xtdrone.launch.py scenario:=indoor1 ekf:=vision mavros_plugins:=all
 ros2 param get /iris_0/mavros/param EKF2_EV_CTRL
-ros2 param set /iris_0/mavros/param EKF2_EV_DELAY 20
+ros2 param set /iris_0/mavros/param EKF2_EV_DELAY 20.0      # a float parameter needs a float value
 ```
 
 EKF2 fusion settings take effect after a PX4 restart. Use the launch argument for those. QGroundControl
