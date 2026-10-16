@@ -1,4 +1,5 @@
 """Launch building blocks shared by xtdrone.launch.py and spawn_vehicle.launch.py."""
+import functools
 import os
 import tempfile
 import xml.etree.ElementTree as ET
@@ -128,7 +129,21 @@ def mavlink_profile(profile, vehicle_count):
     return profile
 
 
-SPAWN_CLEARANCE = 0.3  # m, spawn height for vehicles requested at z <= 0
+SPAWN_CLEARANCE = 0.3  # m, spawn height above the ground for vehicles requested at z <= 0
+
+
+@functools.lru_cache(maxsize=None)
+def ground_level(world):
+    """z of the world's ground_plane model (outdoor4 is built 5 m up), 0 if the world has none."""
+    try:
+        sdf = Path(get_package_share_directory("xtdrone_gz")) / "worlds" / f"{world}.sdf"
+        for m in ET.parse(sdf).getroot().find("world").findall("model"):
+            if m.get("name") == "ground_plane":
+                pose = lambda e: [float(x) for x in (e.findtext("pose") or "0 0 0").split()]  # noqa: E731
+                return pose(m)[2] + sum(pose(l)[2] for l in m.findall("link"))
+    except (OSError, ET.ParseError, ValueError, IndexError, LookupError):
+        pass
+    return 0.0
 
 
 def mavros_params(vehicle, plugins="xtdrone"):
@@ -228,7 +243,7 @@ def vehicle_actions(v, world, paths, rootfs, mavros=True, bridge=True, communica
     if z <= 0.0:
         # Like PX4's own gz spawn: start slightly above the ground and let the vehicle drop,
         # so wheels and legs do not start inside terrain meshes (e.g. the outdoor3 raceway).
-        z = SPAWN_CLEARANCE
+        z = ground_level(world) + SPAWN_CLEARANCE
     actions = [Node(
         package="ros_gz_sim", executable="create", output="log", name=f"spawn_{v.name}",
         arguments=["-world", world, "-file", str(paths.model_sdf(v.model)), "-name", v.name,

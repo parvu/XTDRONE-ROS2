@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='utf-8'?>
+<sdf version="1.9">
+  <actor name="actor">
+    <skin>
+      <filename>model://xtdrone_classic_media/models/walk.dae</filename>
+      <scale>1.0</scale>
+    </skin>
+    <pose>0 2 0 0 0 -1.57</pose>
+    <animation name="walking">
+      <filename>model://xtdrone_classic_media/models/walk.dae</filename>
+      <scale>1.000000</scale>
+      <interpolate_x>true</interpolate_x>
+    </animation>
+    <plugin filename="xtdrone_actor_motion" name="xtdrone::ActorMotion">
+      <walk_loop>0,0,2;2,0,-2;2.5,0,-2;7,0,2;7.5,0,2</walk_loop>
+    </plugin>
+  </actor>
+</sdf>

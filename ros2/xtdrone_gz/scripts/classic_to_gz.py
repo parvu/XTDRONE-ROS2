@@ -371,26 +371,6 @@ class Converter:
                     if len(v) == 6 and pose is not actor.find("pose") and float(v[2]) < 0.5:
                         v[2] = f"{float(v[2]) + 1.0:g}"
                         pose.text = " ".join(v)
-        # Script-trajectory actors (outdoor1, outdoor4) walked themselves through <script> in Classic.
-        # gz-sim would still play it and fight the ActorMotion system, so the <script> goes and its
-        # waypoints move into a <walk_loop> that the xtdrone_py actor_walker node replays through
-        # /<actor>/cmd_motion (once the drone is up and the YOLO nodes run). The actor pose becomes the
-        # first waypoint (z after the walk.dae fix above): ActorMotion keeps only its z as the base
-        # height and starts the trajectory at x, y, yaw.
-        for actor in root.iter("actor"):
-            traj = actor.find("script/trajectory")
-            if traj is None:
-                continue
-            wps = [(float(wp.findtext("time")), [float(x) for x in (wp.findtext("pose") or "").split()] + [0.0] * 6)
-                   for wp in traj.findall("waypoint")]
-            actor.remove(actor.find("script"))
-            p0 = wps[0][1]
-            p = actor.find("pose")
-            if p is None:  # overwrite the source pose: SDF keeps the first of two <pose> elements
-                p = ET.SubElement(actor, "pose")
-            p.text = f"{p0[0]:g} {p0[1]:g} {p0[2]:g} 0 0 {p0[5]:g}"
-            pl = ET.SubElement(actor, "plugin", filename="xtdrone_actor_motion", name="xtdrone::ActorMotion")
-            ET.SubElement(pl, "walk_loop").text = ";".join(f"{t:g},{p[0]:g},{p[1]:g}" for t, p in wps)
         for mat in root.iter("material"):
             self.convert_material(mat, model_dir)
         for tag in ("uri", "filename", "diffuse", "normal", "albedo_map"):
@@ -581,24 +561,6 @@ class Converter:
                     lp = ET.SubElement(link, "pose")
                 lp.text = relative(mpose, sl.findtext("pose"))
 
-    # outdoor1 repeats a few static props dozens of times; keeping every second copy of each kind halves the
-    # render and physics load. Roads stay (the vehicles drive on them); the marker arrow floats over the start.
-    THIN_OUTDOOR1 = ("sidewalk", "rover_static", "house", "fire_hydrant", "stop_sign", "lamp_post")
-
-    @classmethod
-    def thin_outdoor1(cls, world):
-        seen = {}
-        for m in list(world.findall("model")):
-            n = m.get("name")
-            if n == "arrow_red":
-                world.remove(m)
-                continue
-            kind = re.sub(r"(_\d+|_clone)+$", "", n)
-            if kind in cls.THIN_OUTDOOR1:
-                seen[kind] = seen.get(kind, 0) + 1
-                if seen[kind] % 2 == 0:
-                    world.remove(m)
-
     def convert_world(self, src, name=None):
         tree = ET.parse(src)
         root = tree.getroot()
@@ -621,8 +583,6 @@ class Converter:
         self.convert_roads(world)
         self.convert_tree(world)
         self.convert_ceilings(world)
-        if name == "outdoor1":
-            self.thin_outdoor1(world)
 
         # Drop scene sub-elements that gz handles differently.
         scene = world.find("scene")

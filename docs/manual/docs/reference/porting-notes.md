@@ -37,7 +37,7 @@ For readers who know the original XTDrone, and for porting your own XTDrone code
 | ground truth | `/<type>_<id>/ground_truth/odom` instead of `/gazebo/model_states` |
 | moving models | gz `set_pose(_vector)` service instead of `/gazebo/set_model_states` |
 | contact topic | `ros_gz_interfaces/Contacts` instead of `gazebo_msgs/ContactsState` |
-| world physics | DART, 4 ms step; all worlds converted automatically |
+| world physics | DART, 4 ms step; all worlds converted automatically, except `outdoor1` to `outdoor4` (committed as they are, with their models in `world_models/`) |
 | world fixes by the converter | SDF 1.9 / DART reject things Classic accepted, so `classic_to_gz.py` fixes them and prints a warning: zero-size shapes become 1 mm; duplicate sibling names get a `_N` suffix; collision meshes with COLLADA line primitives (SketchUp edges) use a `*_collision.dae` copy without lines; Classic-only `frame=""` attributes and stray `<friction>`/`<contact>` under `<collision>` are dropped; the unpublished `actor_walk` meshes are replaced by Classic's `walk.dae` |
 | materials | OGRE scripts → PBR materials (textures look different) |
 | actors | lidars see actors without the collision plugin; ROS-controlled actors not ported yet |

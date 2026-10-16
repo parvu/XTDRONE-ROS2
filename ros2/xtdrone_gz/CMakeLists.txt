@@ -7,6 +7,10 @@ install(DIRECTORY models worlds px4 scripts
   DESTINATION share/${PROJECT_NAME}
   USE_SOURCE_PERMISSIONS)
 
+# The worlds outdoor1 to outdoor4 (worlds/) were converted from Gazebo Classic once and are committed
+# with their models (world_models/); build_xtdrone_ros2.sh does not convert them again.
+install(DIRECTORY world_models/ DESTINATION share/${PROJECT_NAME}/world_models)
+
 # Worlds and models converted from Gazebo Classic by scripts/build_xtdrone_ros2.sh
 # (classic_to_gz.py). They are generated, not committed.
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/generated/worlds")

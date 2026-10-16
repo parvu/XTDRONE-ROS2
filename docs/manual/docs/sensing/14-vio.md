@@ -57,8 +57,11 @@ ros2 run rqt_image_view rqt_image_view /image_track   # the tracked features wit
     - The world is `outdoor1` instead of `indoor1`. After the conversion the walls of `indoor1` are plain, and VINS
       loses its features and diverges after a few metres. The city of `outdoor1` has enough texture.
 
-    - `outdoor1` has half of its repeated static props (sidewalks, parked cars, houses, hydrants, signs, lamp posts)
-      and no floating `arrow_red`, set in `classic_to_gz.py`, to lighten the render load.
+    - `outdoor1` is a final, committed world (`ros2/xtdrone_gz/worlds/outdoor1.sdf`, its models in
+      `world_models/`), not converted by `classic_to_gz.py` any more. Compared with the Classic world it has half
+      of the parked cars, houses, hydrants, signs and lamp posts, no `arrow_red`, `cessna_c172`, shelves, boxes,
+      pallet, sandy path or user lights, and its terrain is raised from z = -5 to -0.1 m, above the ocean (-2 m)
+      and below the roads and sidewalks. Edit the SDF directly to change it.
     - The camera-to-IMU extrinsics changed with the x500 frame: the stereo link is at (0.12, 0, 0.03) m in
       `base_link`, the cameras at ±0.06 m, and the IMU at the `base_link` origin.
     - `vins_node` and `loop_fusion_node` accept exactly one argument, the config file, so the launch file starts them

@@ -66,8 +66,11 @@ The SLAM frame starts at the vehicle with its x axis along the vehicle's heading
 frame is this frame.
 
 !!! note "Changes from the ROS 1 version"
-    - `outdoor1` has half of its repeated static props (sidewalks, parked cars, houses, hydrants, signs, lamp posts)
-      and no floating `arrow_red`, set in `classic_to_gz.py`, to lighten the render load.
+    - `outdoor1` is a final, committed world (`ros2/xtdrone_gz/worlds/outdoor1.sdf`, its models in
+      `world_models/`), not converted by `classic_to_gz.py` any more. Compared with the Classic world it has half
+      of the parked cars, houses, hydrants, signs and lamp posts, no `arrow_red`, `cessna_c172`, shelves, boxes,
+      pallet, sandy path or user lights, and its terrain is raised from z = -5 to -0.1 m, above the ocean (-2 m)
+      and below the roads and sidewalks. Edit the SDF directly to change it.
     - ORB-SLAM2 → ORB-SLAM3 v1.0 (XTDrone ships both; the ROS 1 chapter used ORB-SLAM2, ORB-SLAM3 works the same way).
     - The world is `outdoor1` instead of `indoor1`: after the conversion the walls of `indoor1` are plain, too few
       features to track.

@@ -1,3 +1,4 @@
+prepend-non-duplicate;GZ_SIM_RESOURCE_PATH;share/xtdrone_gz/world_models
 prepend-non-duplicate;GZ_SIM_RESOURCE_PATH;share/xtdrone_gz/worlds
 prepend-non-duplicate;GZ_SIM_RESOURCE_PATH;share/xtdrone_gz/classic_models
 prepend-non-duplicate;GZ_SIM_RESOURCE_PATH;share/xtdrone_gz/models

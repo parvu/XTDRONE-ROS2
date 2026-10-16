@@ -72,13 +72,13 @@ set +u
 source "/opt/ros/${ROS_DISTRO}/setup.bash"
 set -u
 python3 "${GZ_PKG}/scripts/generate_ugv_models.py" "${GZ_PKG}/models" >/dev/null
-# XTDRONE_SKIP_WORLDS="outdoor1 ...": keep the generated worlds of these (and everything else in generated/)
-# instead of converting from scratch
+# outdoor1 to outdoor4 are not converted: their final worlds and models are committed
+# (ros2/xtdrone_gz/worlds/ and world_models/)
 WORLDS=()
 for w in "${GZ_PKG}"/classic_assets/worlds/*.world; do
-  [[ " ${XTDRONE_SKIP_WORLDS:-} " == *" $(basename "${w}" .world) "* ]] || WORLDS+=("${w}")
+  case "$(basename "${w}" .world)" in outdoor1|outdoor2|outdoor3|outdoor4) ;; *) WORLDS+=("${w}") ;; esac
 done
-[[ -z "${XTDRONE_SKIP_WORLDS:-}" ]] && rm -rf "${GZ_PKG}/generated"
+rm -rf "${GZ_PKG}/generated"
 # shellcheck disable=SC2046
 python3 "${GZ_PKG}/scripts/classic_to_gz.py" \
   --worlds "${WORLDS[@]}" \
