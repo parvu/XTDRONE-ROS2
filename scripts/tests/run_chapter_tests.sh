@@ -41,6 +41,8 @@ cleanup_sim() {
     STRAYS+=("$(echo "${strays}" | tail -n +2 | wc -l) stray processes at a cleanup of ${CURRENT_CASE:-the first case}")
     "${ROOT_DIR}/scripts/tests/check_strays.sh" --kill >/dev/null || echo "WARNING: some processes survived kill -9"
   fi
+  # Fast DDS shared-memory files of the killed processes: hundreds of them made new ROS nodes hang at start
+  rm -f /dev/shm/fastrtps_* /dev/shm/sem.fastrtps_* 2>/dev/null
 }
 
 # run_case NAME "launch args" "test args" [extra command started after launch]

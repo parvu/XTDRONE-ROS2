@@ -215,6 +215,10 @@ Download the AppImage from the [QGroundControl site](https://docs.qgroundcontrol
   machine (about 8 minutes on the 6-core test host), `indoor5` about 2.5 minutes. The others load in seconds.
 - **Restart cleanly**: `Ctrl+C` in the launch terminal stops everything. If a Gazebo or PX4 process is left over,
   `pkill -f "gz sim"; pkill -x px4` cleans up. This replaces the original `killall gzserver gzclient`.
+- **New ROS nodes hang at start** (`ros2 topic echo`, the keyboard nodes, a vehicle that does not move): processes
+  killed with `kill -9` leave Fast DDS files in `/dev/shm`, and after many runs they stall the discovery of new
+  nodes. With no ROS or Gazebo process running, delete them:
+  `rm -f /dev/shm/fastrtps_* /dev/shm/sem.fastrtps_*`. The chapter tests do this after every case.
 - **Do not drag vehicles with the mouse**: moving a vehicle in the GUI corrupts PX4's state estimate. Chapter 43
   covers teleporting vehicles.
 - **Indoor worlds** have an invisible ceiling with collision, so vehicles cannot fly out.
