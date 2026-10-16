@@ -131,9 +131,8 @@ vol. 644. Springer, Singapore. doi: 10.1007/978-981-15-8155-7_423. Preprint:
 
 - Founders: Kun Xiao and Shaochang Tan
 - Adviser: Xiangke Wang
-- Developers: Kun Xiao, Shaochang Tan, An Zhuo, Guanzheng Wang, Lan Ma, Yuke Li, Qipeng Wang, Xinyu Hu, Xinning Wu,
-  Jiayi Zheng, Yufan Peng, Zijun Zheng, Jiarun Yan, Feng Yi, Ruoqiao Guan, Wenxin Hu, Yi Bao, Xudong Liu, Jie Min,
-  Chuanlu Liu, Ciyu Ruan, and Dehao Kong
+- Developers: Kun Xiao, Shaochang Tan, An Zhuo, Guanzheng Wang, Lan Ma, Yuke Li, Qipeng Wang, Xinyu Hu, Xinning Wu, Jiayi Zheng, Yufan Peng, Zijun Zheng, Jiarun Yan, Feng Yi, Ruoqiao Guan, Wenxin Hu, Yi Bao, Xudong Liu, Jie Min, Chuanlu Liu, Ciyu Ruan, and Dehao Kong.
+- Port for Ubuntu 24.04: Claude, Copilot and Valentin Parvu.
 
 ### Contributors
 
