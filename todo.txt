@@ -1,0 +1,34 @@
+CH06
+ - problem:
+ros2 param get /iris_0/mavros/param EKF2_EV_CTRL
+ros2 param set /iris_0/mavros/param EKF2_EV_DELAY 20
+Node not found
+Node not found
+ - solution:
+ros2 launch xtdrone_bringup xtdrone.launch.py scenario:=indoor1 ekf:=vision mavros_plugins:=all
+ros2 param set /iris_0/mavros/param EKF2_EV_DELAY 20.0
+
+CH13
+ -problem:
+ how to view the SLAM and image
+ - solution:
+ros2 launch xtdrone_orbslam3 stereo.launch.py viewer:=true
+ros2 run rqt_image_view rqt_image_view
+select /iris_0/stereo_camera/left/image_raw or /iris_0/stereo_camera/right/image_raw
+
+CH15
+ - problem:
+ why get_local_pose shows noting
+- solution:
+get_local_pose publishes poses on ROS topics; it doesn’t print each pose to the terminal. Keep it running, open another terminal, and run
+ros2 topic echo /iris_0/mavros/vision_pose/pose
+o see the values. That’s how the node is written in get_local_pose.py.
+
+CH19
+ - problem:
+[kiss_icp_node-2] [WARN] [1792056016.397450563] [kiss_icp_node]: Field 't', 'timestamp', or 'time'  does not exist. Disabling scan deskewing
+[laser_transfer-3] [INFO] [1792056018.066614423] [iris0_kiss_icp_laser_transfer]: waiting for TF odom_lidar -> base_link (LookupException)
+ - solution:
+Both warnings are expected here, and I verified the data is flowing:
+I confirmed /kiss/odometry is publishing and the forwarded /iris_0/mavros/vision_pose/pose has messages. You can inspect the SLAM pose with
+ros2 topic echo /kiss/odometry.
