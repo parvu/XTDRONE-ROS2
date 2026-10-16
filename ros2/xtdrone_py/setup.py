@@ -36,6 +36,7 @@ setup(
             "lane_detection = xtdrone_py.self_driving:detection_main",
             "self_driving = xtdrone_py.self_driving:driving_main",
             "control_actor = xtdrone_py.control_actor:main",
+            "actor_walker = xtdrone_py.actor_walker:main",
             "yolo_detection = xtdrone_py.yolo:detection_main",
             "gimbal_control = xtdrone_py.yolo:gimbal_main",
             "yolo_human_tracking = xtdrone_py.yolo:tracking_main",

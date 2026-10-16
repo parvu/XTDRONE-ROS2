@@ -23,8 +23,8 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 from xtdrone_bringup import fleet, px4
-from xtdrone_bringup.sim import (EKF_PRESETS, SimPaths, actor_bridges, fleet_bridge, mavlink_profile, px4_params, set_real_time_factor, vehicle_actions,
-                                 world_name)
+from xtdrone_bringup.sim import (EKF_PRESETS, SimPaths, actor_bridges, actor_walkers, fleet_bridge, mavlink_profile, px4_params, set_real_time_factor,
+                                 vehicle_actions, world_name)
 
 
 def _arg(context, name):
@@ -86,6 +86,11 @@ def launch_setup(context):
     actors = actor_bridges(world_file)
     if _bool(context, "bridge") and (vehicles or actors):
         actions.append(fleet_bridge(vehicles, world, paths, extra=actors))
+    # script actors (outdoor1, outdoor4) wait for the drone and the YOLO nodes before walking
+    for name, loop in actor_walkers(world_file):
+        if vehicles:
+            actions.append(Node(package="xtdrone_py", executable="actor_walker", output="screen",
+                                arguments=[name, vehicles[0].vtype, str(vehicles[0].id_in_type), "--loop", loop]))
     profile = mavlink_profile(_arg(context, "mavlink_profile"), len(vehicles))
     plugins = _arg(context, "mavros_plugins")
     if plugins == "auto":

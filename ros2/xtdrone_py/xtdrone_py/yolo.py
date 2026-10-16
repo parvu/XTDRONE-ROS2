@@ -1,6 +1,7 @@
 """Target detection and tracking with a gimbal camera (chapter 23).
 
-  ros2 run xtdrone_py gimbal_control typhoon_h480 0 [--pitch -60]   # sensing/gimbal/gimbal_control.py
+  ros2 run xtdrone_py gimbal_control typhoon_h480 0 [--pitch -60]   # sensing/gimbal/gimbal_control.py;
+      keeps the camera on the first "person" of /<v>/detections as the drone tilts and rolls
   ros2 run xtdrone_py yolo_detection typhoon_h480 0                  # darknet_ros (YOLO) -> vision_msgs
   ros2 run xtdrone_py yolo_human_tracking typhoon_h480 0             # control/yolo_human_tracking.py
 
@@ -119,19 +120,41 @@ class YoloDetection(Node):
                                      step=bgr.shape[1] * 3, data=bgr.tobytes()))
 
 
+def gimbal_focus(err, base, body_roll, kp=0.002):
+    """Gimbal joint targets (pitch, roll, yaw) that keep the person bbox centered.
+
+    err is the bbox center minus the image center (u - 320, v - 180), None when no person is in
+    view. The camera joint turns about -y (positive = up), the yaw joint about +z (positive = left)
+    and the roll joint about -x upstream of the pitch, so roll_cmd = body roll cancels the body
+    roll's disturbance on the view directly; the yaw/pitch P terms on the image error absorb the
+    body pitch and yaw as the drone tilts to follow."""
+    roll = max(-0.785, min(0.785, body_roll))
+    if err is None:
+        return base, roll, 0.0
+    u, v = err
+    yaw = max(-math.pi, min(math.pi, -kp * u))
+    pitch = max(-1.05, min(2.09, base - kp * v))
+    return pitch, roll, yaw
+
+
 class GimbalControl(Node):
-    """Holds the gimbal at a fixed pitch and publishes the camera orientation (/xtdrone/<v>/cam_pose).
+    """Keeps the gimbal camera on the detected person as the drone tilts and rolls to follow it,
+    and publishes the camera orientation (/xtdrone/<v>/cam_pose).
 
-    ROS 1 used MAVROS mount control and read the camera link from Gazebo; here the gimbal joints are
-    commanded directly (/<v>/gimbal/*_cmd) and the camera orientation is body attitude x gimbal pitch."""
+    Holds the --pitch angle while no person is in view; when one is, gimbal_focus() turns the
+    joints to keep its bbox centered. ROS 1 used MAVROS mount control and read the camera link
+    from Gazebo; here the gimbal joints are commanded directly (/<v>/gimbal/*_cmd) and the camera
+    orientation is body attitude x the live gimbal pitch."""
 
-    def __init__(self, vtype, vid, pitch_deg=-60.0):
+    def __init__(self, vtype, vid, pitch_deg=-60.0, kp=0.002):
         n = f"{vtype}_{vid}"
         super().__init__(f"gimbal_control_{n}")
-        # XTDrone's pitch -60 = 60 deg down. The cgo3 camera joint turns about -y, so a positive angle
-        # tilts the camera up and the joint takes minus the downward angle (limits -1.05 .. 2.09 rad)
-        self.down = math.radians(-pitch_deg)
-        self.joint = max(-1.05, min(2.09, -self.down))
+        # XTDrone's pitch -60 = 60 deg down. The cgo3 camera joint turns about -y, so a positive
+        # angle tilts the camera up and the joint takes minus the downward angle (limits -1.05 .. 2.09)
+        self.base = max(-1.05, min(2.09, math.radians(pitch_deg)))
+        self.kp = kp
+        self.pitch, self.roll, self.yaw = self.base, 0.0, 0.0
+        self.err, self.last_seen = None, None
         self.pitch_pub = self.create_publisher(Float64, f"/{n}/gimbal/pitch_cmd", 1)
         self.roll_pub = self.create_publisher(Float64, f"/{n}/gimbal/roll_cmd", 1)
         self.yaw_pub = self.create_publisher(Float64, f"/{n}/gimbal/yaw_cmd", 1)
@@ -139,17 +162,35 @@ class GimbalControl(Node):
         self.pose = None
         self.create_subscription(PoseStamped, f"/{n}/mavros/local_position/pose", lambda m: setattr(self, "pose", m),
                                  qos_profile_sensor_data)
+        self.create_subscription(Detection2DArray, f"/{n}/detections", self.detections, 1)
         self.create_timer(1.0 / 30.0, self.loop)
         print(f"{n}: Gimbal control", flush=True)
 
+    def detections(self, msg):
+        for d in msg.detections:
+            if d.results and d.results[0].hypothesis.class_id == "person":
+                self.err = (d.bbox.center.position.x - 320.0, d.bbox.center.position.y - 180.0)
+                self.last_seen = self.get_clock().now()
+                break
+
     def loop(self):
-        self.pitch_pub.publish(Float64(data=self.joint))
-        self.roll_pub.publish(Float64(data=0.0))
-        self.yaw_pub.publish(Float64(data=0.0))
+        body_roll = 0.0
+        if self.pose is not None:
+            o = self.pose.pose.orientation
+            body_roll = math.atan2(2 * (o.w * o.x + o.y * o.z), 1 - 2 * (o.x * o.x + o.y * o.y))
+        if self.last_seen is not None and (self.get_clock().now() - self.last_seen).nanoseconds < 1e9:
+            err = self.err
+        else:
+            err = None
+        self.pitch, self.roll, self.yaw = gimbal_focus(err, self.base, body_roll, self.kp)
+        self.pitch_pub.publish(Float64(data=self.pitch))
+        self.roll_pub.publish(Float64(data=self.roll))
+        self.yaw_pub.publish(Float64(data=self.yaw))
         if self.pose is None:
             return
         o = self.pose.pose.orientation
-        g = (0.0, math.sin(self.down / 2), 0.0, math.cos(self.down / 2))  # pitch down about +y (FLU)
+        d = -self.pitch  # pitch down about +y (FLU)
+        g = (0.0, math.sin(d / 2), 0.0, math.cos(d / 2))
         q = quat_mul((o.x, o.y, o.z, o.w), g)
         cam = PoseStamped()
         cam.header.stamp = self.get_clock().now().to_msg()
@@ -241,8 +282,10 @@ def detection_main():
 
 def gimbal_main():
     def make(argv):
-        a = _args(argv, "gimbal_control", lambda ap: ap.add_argument("--pitch", type=float, default=-60.0))
-        return GimbalControl(a.vehicle_type, a.vehicle_id, a.pitch)
+        a = _args(argv, "gimbal_control", lambda ap: (ap.add_argument("--pitch", type=float, default=-60.0),
+                                                      ap.add_argument("--kp", type=float, default=0.002,
+                                                                      help="rad of joint per px of image error")))
+        return GimbalControl(a.vehicle_type, a.vehicle_id, a.pitch, a.kp)
     run(make)
 
 

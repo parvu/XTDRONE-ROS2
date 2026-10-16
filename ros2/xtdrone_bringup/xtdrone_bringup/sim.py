@@ -184,6 +184,23 @@ def actor_bridges(world_file):
     return entries
 
 
+def actor_walkers(world_file):
+    """(actor name, walk_loop) for the actors whose xtdrone_actor_motion plugin carries a
+    <walk_loop>: the waypoints of the Classic script trajectory, kept by the converter for the
+    xtdrone_py actor_walker node (chapter 23)."""
+    out = []
+    try:
+        root = ET.parse(world_file).getroot()
+    except (ET.ParseError, OSError):
+        return out
+    for actor in root.iter("actor"):
+        for pl in actor.findall("plugin"):
+            loop = pl.findtext("walk_loop") if pl.get("filename") == "xtdrone_actor_motion" else None
+            if loop:
+                out.append((actor.get("name"), loop.strip()))
+    return out
+
+
 def fleet_bridge(vehicles, world, paths, tmp=None, name="xtdrone_gz_bridge", extra=()):
     """One ros_gz_bridge process for the sensors and ground truth of all given vehicles (lazy:
     a topic is converted only while somebody subscribes). One process instead of one per

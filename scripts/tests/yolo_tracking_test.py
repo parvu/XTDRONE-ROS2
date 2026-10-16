@@ -2,13 +2,16 @@
 """Chapter 23 check: YOLO finds the walking pedestrian of outdoor1 in the typhoon's gimbal camera, and
 the visual servo keeps following it.
 
-Requires: xtdrone.launch.py scenario:=outdoor1 communication:=basic, and
+Requires: xtdrone.launch.py scenario:=outdoor1 communication:=basic (its actor_walker node holds the
+pedestrian until the drone is above 2 m and both yolo nodes run), and
 `ros2 run xtdrone_py gimbal_control typhoon_h480 0` + `ros2 run xtdrone_py yolo_detection typhoon_h480 0`.
 
 1. take off to --altitude (5 m) and hover; the camera looks 60 deg down;
-2. wait until "person" is detected. The actor walks along y = 3 from x = 0 to 41 at sim time 0-40 s and again
-   from 240 s (its loop is 240 s; in between it is far away), so the test waits up to sim time 330 s;
-3. start yolo_human_tracking and check that the typhoon moves (follows) while detections continue.
+2. start yolo_human_tracking right away (it publishes zero velocity until it sees a person). The
+   walker gate opens and the actor walks along y = 3 into view; wait up to 150 s for >=3 person
+   detections and for the actor to advance > 5 m (its start point is already in view, so a walker
+   whose gate never opens must fail here, not pass on the stationary person);
+3. check that the typhoon moves (follows) while detections continue.
 """
 import math
 import os
@@ -18,10 +21,9 @@ import sys
 import time
 
 import rclpy
-from geometry_msgs.msg import Twist, Vector3
+from geometry_msgs.msg import Pose, Twist, Vector3
 from mavros_msgs.msg import HomePosition, State
 from nav_msgs.msg import Odometry
-from rosgraph_msgs.msg import Clock
 from rclpy.qos import qos_profile_sensor_data
 from std_msgs.msg import String
 from vision_msgs.msg import Detection2DArray
@@ -52,7 +54,7 @@ def main():
                           qos_profile_sensor_data)
     n.create_subscription(Odometry, f"/{V}/ground_truth/odom", lambda m: d.__setitem__("gt", m.pose.pose.position), 1)
     n.create_subscription(Detection2DArray, f"/{V}/detections", det, 10)
-    n.create_subscription(Clock, "/clock", lambda m: d.__setitem__("sim", m.clock.sec + m.clock.nanosec * 1e-9), 10)
+    n.create_subscription(Pose, "/actor/pose", lambda m: d.__setitem__("actor", m.position.x), 10)
     cmd = n.create_publisher(String, f"/xtdrone/{V}/cmd", 3)
     vel = n.create_publisher(Twist, f"/xtdrone/{V}/cmd_vel_flu", 1)
 
@@ -84,15 +86,18 @@ def main():
             return 1
         cmd.publish(String(data="HOVER"))
         wait(2, every=lambda: vel.publish(Twist()))
-        # until the actor's second pass along y = 3 (sim time 240-280 s) is over; a wall-time cap for slow runs
-        seen = wait(1200, lambda: d["persons"] >= 3 or d.get("sim", 0) > 330)
-        seen = d["persons"] >= 3
-        log(f"{'ok  ' if seen else 'FAIL'} YOLO: person in {d['persons']} of {d['frames']} processed frames")
+        tracker = subprocess.Popen(["ros2", "run", "xtdrone_py", "yolo_human_tracking", "typhoon_h480", "0"],
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        # the actor_walker gate (drone > 2 m, both yolo nodes) opens now and the actor walks along
+        # y = 3 into view; requiring it to advance catches a walker that never starts, since its
+        # start point (0, 3) is already in the camera view
+        x0 = d.get("actor", 0.0)
+        seen = wait(150, lambda: d["persons"] >= 3 and d.get("actor", 0.0) - x0 > 5.0)
+        log(f"{'ok  ' if seen else 'FAIL'} YOLO: person in {d['persons']} of {d['frames']} processed frames, "
+            f"actor advanced {d.get('actor', 0.0) - x0:.1f} m")
         ok &= seen
         if seen:
             start = (d["gt"].x, d["gt"].y)
-            tracker = subprocess.Popen(["ros2", "run", "xtdrone_py", "yolo_human_tracking", "typhoon_h480", "0"],
-                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
             p0 = d["persons"]
             wait(60)
             moved = math.dist(start, (d["gt"].x, d["gt"].y))
