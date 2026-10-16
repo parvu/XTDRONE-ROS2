@@ -43,3 +43,16 @@ feedback). The map comes from the SLAM (`/map`) and the robot pose from TF `map 
 Save the slam_toolbox map with its serialization service (`/slam_toolbox/serialize_map`), then start slam_toolbox in
 localization mode (`mode: localization`, `map_file_name`) instead of mapping, and run Nav2 the same way. Plain
 `map_server` + AMCL does not fit here: AMCL needs a moving odometry frame, and this setup has none.
+
+## Visualise
+
+`rviz:=true` opens RViz with the Nav2 view. Set goals with the "2D Goal Pose" tool.
+
+```bash
+ros2 topic list | grep -E "plan|costmap"            # the global path and the cost maps
+ros2 topic echo /xtdrone/iris_0/cmd_vel_flu         # the velocity commands Nav2 sends
+ros2 topic echo /iris_0/mavros/local_position/pose --field pose.position   # follow the vehicle towards the goal
+```
+
+In RViz add a `Path` display on the plan topic, `Map` displays on the cost maps and a `LaserScan` on
+`/iris_0/scan`. The drone is on its way when the path is drawn and the velocity command is not zero.

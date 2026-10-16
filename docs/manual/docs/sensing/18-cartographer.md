@@ -30,3 +30,15 @@ chapter 17.
 | `use_online_correlative_scan_matching` | true | robust initial guess without odometry |
 
 With these settings Cartographer follows the vehicle within a few centimetres, also through 2 m position steps.
+
+## Visualise
+
+`rviz:=true` shows the map, the scan and the TF tree, as in chapter 17.
+
+```bash
+ros2 topic echo /tracked_pose --once                       # the pose that laser_transfer forwards to PX4
+ros2 topic echo /iris_0/ground_truth/odom --once           # truth, to judge the error
+```
+
+For a comparison with chapter 17, fly the same square and plot `/tracked_pose` and the slam_toolbox
+`/iris_0/mavros/vision_pose/pose` against the ground truth in PlotJuggler.

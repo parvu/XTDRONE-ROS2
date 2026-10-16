@@ -5,7 +5,8 @@
 
 VINS-Fusion (submodule ros2/vins-fusion, ROS 2 Jazzy fork) with config/vins/xtdrone_stereo_imu.yaml
 (stereo camera + Gazebo IMU of iris_stereo_camera), and laser_transfer (vins) forwarding the VINS
-odometry to /<v>/mavros/vision_pose/pose (ROS 1: vins_transfer.py). loop:=true adds loop_fusion.
+odometry to /<v>/mavros/vision_pose/pose (ROS 1: vins_transfer.py). loop:=true adds loop_fusion,
+rviz:=true opens RViz with config/vio.rviz (path, feature points, camera, tracked-feature image).
 """
 from pathlib import Path
 
@@ -34,6 +35,10 @@ def nodes(context, *args, **kwargs):
     if arg("loop").lower() in ("1", "true", "yes"):
         out.append(ExecuteProcess(cmd=[str(Path(get_package_prefix("loop_fusion")) / "lib" / "loop_fusion" /
                                             "loop_fusion_node"), config], name="loop_fusion_node", output="screen"))
+    if arg("rviz").lower() in ("1", "true", "yes"):
+        out.append(Node(package="rviz2", executable="rviz2", output="log",
+                        arguments=["-d", str(Path(get_package_share_directory("xtdrone_slam")) / "config" / "vio.rviz")],
+                        parameters=[{"use_sim_time": True}]))
     return out
 
 
@@ -42,5 +47,6 @@ def generate_launch_description():
         DeclareLaunchArgument("vehicle", default_value="iris_0"),
         DeclareLaunchArgument("config", default_value="", description="default: config/vins/xtdrone_stereo_imu.yaml"),
         DeclareLaunchArgument("loop", default_value="false"),
+        DeclareLaunchArgument("rviz", default_value="false"),
         OpaqueFunction(function=nodes),
     ])

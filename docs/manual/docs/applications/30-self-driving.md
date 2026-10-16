@@ -38,3 +38,11 @@ ros2 run xtdrone_py self_driving rover 0        # -> /xtdrone/rover_0/cmd_vel_fl
 its camera sits low; you may need to retune the HSV range in `PROFILES` (`xtdrone_py/self_driving.py`).
 
 `/<v>/image_lane` shows the yellow mask with the fitted lines (`ros2 run rqt_image_view rqt_image_view`).
+
+## Visualise
+
+```bash
+ros2 run rqt_image_view rqt_image_view /ugv_0/image_lane      # the lane mask and fitted lines
+ros2 topic echo /ugv_0/lane_mid_error                         # lateral error to the lane centre, near 0 when centred
+ros2 topic echo /xtdrone/ugv_0/cmd_vel_flu                    # the speed and steering the controller sends
+```

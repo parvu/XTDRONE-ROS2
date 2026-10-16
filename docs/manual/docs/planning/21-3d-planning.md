@@ -58,3 +58,16 @@ the defaults of the first five are those of XTDrone's ROS 1 `advanced_param_xtdr
     EGO-Planner is made for cluttered spaces such as forests. In front of a wide flat wall the depth camera sees
     no way around it, unknown space counts as free, and the gradient-based optimisation can stall against the
     wall. A 2 m panel across the path stopped the vehicle in about half of the runs; the columns did not.
+
+## Visualise
+
+```bash
+ros2 topic echo /xtdrone/iris_0/planning/pos_cmd --once     # the next setpoint of the planned trajectory
+ros2 topic echo /iris_0/ego/odom --once                     # the odometry EGO plans from
+ros2 run rqt_image_view rqt_image_view /iris_0/realsense/depth_camera/depth/image_raw   # what the planner sees
+ros2 topic list | grep -i -E "grid_map|planning"            # EGO's map and trajectory topics, for RViz
+rviz2                                                       # Fixed Frame: world
+```
+
+In RViz add a `MarkerArray` or `Path` display on the EGO trajectory topics found by the last command, and a
+`PointCloud2` on its occupancy map. With `goal:=rviz`, the "2D Goal Pose" tool sets the goal.

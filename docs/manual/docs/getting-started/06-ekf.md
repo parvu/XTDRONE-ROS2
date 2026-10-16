@@ -62,3 +62,16 @@ ros2 param set /iris_0/mavros/param EKF2_EV_DELAY 20
 
 EKF2 fusion settings take effect after a PX4 restart. Use the launch argument for those. QGroundControl
 also works: *Vehicle Setup → Parameters*, with the vehicle selected at the top.
+
+## Visualise
+
+Check what PX4 actually uses, since a wrong source is not visible in Gazebo:
+
+```bash
+ros2 topic echo /iris_0/mavros/local_position/pose --once       # the EKF2 estimate
+ros2 topic hz /iris_0/mavros/vision_pose/pose                   # ekf:=vision: the pose you feed in (about 30 Hz)
+ros2 topic echo /iris_0/ground_truth/odom --once                # Gazebo truth, to compare with the estimate
+```
+
+The estimate and the ground truth should agree within a few centimetres. In PlotJuggler, plot the x, y and z of both
+topics together to see an offset or a drift.

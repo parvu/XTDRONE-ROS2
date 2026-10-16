@@ -39,3 +39,15 @@ heights 0.2–0.9 m (`iris_0`, y = 5), 0.7–1.4 m (`iris_1`, y = 1.2), 0.7–2.
     - MAVROS runs on simulation time, like PX4. With MAVROS on wall time, the four PX4 instances reset their time
       sync about 40 s after the planners started (the simulation slows down abruptly), dropped the vision pose
       and blind-landed; see the porting notes.
+
+## Visualise
+
+```bash
+ros2 topic echo /xtdrone/iris_0/planning/pos_cmd --once      # the trajectory setpoint of vehicle 0
+ros2 topic list | grep -i -E "planning|grid_map"             # trajectory and map topics of each vehicle
+rviz2                                                        # Fixed Frame: world
+```
+
+In RViz add `Path`/`MarkerArray` displays on the trajectory topics of every vehicle. Each vehicle plans its own
+trajectory, and the others' trajectories come in as obstacles: the paths should bend away from each other.
+`goal_mode:=rviz` sends each vehicle's goal from `/iris_<i>/goal_pose` (the "2D Goal Pose" tool publishes one).

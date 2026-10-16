@@ -21,6 +21,31 @@ ros2 launch xtdrone_slam vio.launch.py
 ros2 run xtdrone_py multirotor_keyboard_control iris 1 vel
 ```
 
+To watch the estimate, add `rviz:=true` to step 2 (the layout is `config/vio.rviz`; edit it in RViz and save over
+`ros2/xtdrone_slam/config/vio.rviz` to keep your changes):
+
+```bash
+ros2 launch xtdrone_slam vio.launch.py rviz:=true          # loop:=true rviz:=true for loop closure too
+```
+
+| RViz display | Topic | Shows |
+|---|---|---|
+| VINS path | `/path` | the estimated trajectory |
+| Feature points | `/point_cloud` | the 3D points of the sliding window |
+| Marginalised points | `/margin_cloud` | points leaving the window (off by default) |
+| Key poses | `/key_poses` | the keyframe positions |
+| Camera | `/camera_pose_visual` | the camera frustum |
+| Feature tracks | `/image_track` | the left image with the tracked features |
+
+The fixed frame is `world`. The path stays empty until "Initialization finish!": move the vehicle a little first.
+A thin or fading track image means VINS is losing features and will drift. The same topics work in your own RViz.
+
+```bash
+ros2 topic hz /odometry                       # VINS rate; none = not initialised or lost
+ros2 topic echo /odometry --once              # the current pose
+ros2 run rqt_image_view rqt_image_view /image_track   # the tracked features without RViz
+```
+
 `vio.launch.py` starts these:
 - **`vins_node`** with `config/vins/xtdrone_stereo_imu.yaml`: images from `/iris_0/stereo_camera/left|right/image_raw`
   (752 × 480, 90° field of view, pinhole without distortion: `cam0_pinhole.yaml`, `cam1_pinhole.yaml`), IMU from
@@ -32,6 +57,8 @@ ros2 run xtdrone_py multirotor_keyboard_control iris 1 vel
     - The world is `outdoor1` instead of `indoor1`. After the conversion the walls of `indoor1` are plain, and VINS
       loses its features and diverges after a few metres. The city of `outdoor1` has enough texture.
 
+    - `outdoor1` has half of its repeated static props (sidewalks, parked cars, houses, hydrants, signs, lamp posts)
+      and no floating `arrow_red`, set in `classic_to_gz.py`, to lighten the render load.
     - The camera-to-IMU extrinsics changed with the x500 frame: the stereo link is at (0.12, 0, 0.03) m in
       `base_link`, the cameras at ±0.06 m, and the IMU at the `base_link` origin.
     - `vins_node` and `loop_fusion_node` accept exactly one argument, the config file, so the launch file starts them

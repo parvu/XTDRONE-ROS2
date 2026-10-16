@@ -36,6 +36,23 @@ ros2 launch xtdrone_orbslam3 stereo.launch.py
 ros2 run xtdrone_py multirotor_keyboard_control iris 1 vel
 ```
 
+## Visualise
+
+```bash
+# ORB-SLAM3's own Pangolin window: tracked map points, keyframes, camera trajectory (needs a GL display, WSLg is enough)
+ros2 launch xtdrone_orbslam3 stereo.launch.py viewer:=true
+# RViz: the SLAM pose and the camera image (Fixed Frame: any name, e.g. map)
+rviz2
+# in RViz add: Pose on /orbslam3/vision_pose/pose, Image on /iris_0/stereo_camera/left/image_raw
+# numbers: the SLAM pose rate (about the camera rate; none = tracking lost), and the pose itself
+ros2 topic hz /orbslam3/vision_pose/pose
+ros2 topic echo /orbslam3/vision_pose/pose --once
+```
+
+The Pangolin viewer is the best check: many green points in the current frame mean good tracking. Compare the SLAM
+pose with the PX4 estimate `/iris_0/mavros/local_position/pose` in PlotJuggler to see the drift. The chapter test
+starts the launch without the viewer.
+
 `stereo.launch.py` starts these:
 - **`stereo_node`** with `ORBvoc.txt` and `config/xtdrone_stereo.yaml` (752 × 480, fx 376, baseline 0.12 m). It
   pairs the left and right images by exact time stamp, and publishes the camera pose as
@@ -47,6 +64,8 @@ The SLAM frame starts at the vehicle with its x axis along the vehicle's heading
 frame is this frame.
 
 !!! note "Changes from the ROS 1 version"
+    - `outdoor1` has half of its repeated static props (sidewalks, parked cars, houses, hydrants, signs, lamp posts)
+      and no floating `arrow_red`, set in `classic_to_gz.py`, to lighten the render load.
     - ORB-SLAM2 → ORB-SLAM3 v1.0 (XTDrone ships both; the ROS 1 chapter used ORB-SLAM2, ORB-SLAM3 works the same way).
     - The world is `outdoor1` instead of `indoor1`: after the conversion the walls of `indoor1` are plain, too few
       features to track.

@@ -48,3 +48,16 @@ compensate the SLAM delay.
       given every vision-mode EKF a perfect position.
     - `indoor3`: the invisible ceiling is now static at the top of the walls (2.75 m). In Classic it was a dynamic
       box that fell onto the walls, and in gz-sim that slowed the world to 5 % of real time.
+
+## Visualise
+
+`rviz:=true` shows the map being built (`/map`), the current scan (`/iris_0/scan`) and the TF tree.
+
+```bash
+ros2 topic echo /iris_0/mavros/vision_pose/pose --once     # the SLAM pose that PX4 receives
+ros2 topic hz /iris_0/mavros/vision_pose/pose              # 30 Hz; none = the SLAM lost the scan matching
+ros2 topic echo /iris_0/ground_truth/odom --once           # truth, to judge the SLAM error
+```
+
+The scan should lie on the walls of the map. If it slides off them, the vehicle tilts too much: fly slower. The
+saved map (`~/indoor3.pgm`) opens in any image viewer.

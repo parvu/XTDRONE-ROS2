@@ -94,3 +94,16 @@ and the matching `xtdrone_bridge.yaml` entry:
 
 Sensor topics are bridged *lazily*: Gazebo still renders the sensor, but the bridge converts messages only
 while a ROS 2 node subscribes. To save rendering time, use models without the sensors you do not need.
+
+## Visualise
+
+```bash
+ros2 topic list | grep iris_0                                          # what the model publishes
+ros2 run rqt_image_view rqt_image_view /iris_0/stereo_camera/left/image_raw   # any camera
+ros2 topic hz /iris_0/velodyne_points                                  # the rate should match the table above
+rviz2                                                                  # Fixed Frame: laser_3d / laser_2d / depth_camera_base
+```
+
+In RViz add a `LaserScan` on `/iris_0/scan` (Reliability: Best Effort), a `PointCloud2` on `/iris_0/velodyne_points`
+or `/iris_0/realsense/depth_camera/depth/points`, or an `Image` on a camera topic. A lidar that shows nothing is
+usually a wrong Fixed Frame or a QoS mismatch (set the display to Best Effort).

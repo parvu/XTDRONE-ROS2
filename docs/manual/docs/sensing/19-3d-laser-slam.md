@@ -34,3 +34,15 @@ z, intensity and ring. Gazebo Harmonic renders every lidar on the GPU (or on the
       (TF `camera_init → aft_mapped`, as A-LOAM publishes it) is kept for a community A-LOAM port.
     - The cloud has no per-point time, so KISS-ICP runs without deskewing (it says so at startup). At the speeds
       of this chapter that makes no visible difference.
+
+## Visualise
+
+`rviz:=true` opens KISS-ICP's RViz: the local map, the current scan and the trajectory in the frame `odom_lidar`.
+
+```bash
+ros2 topic echo /kiss/odometry --once                      # the lidar odometry
+ros2 topic hz /kiss/odometry                               # 15 Hz, the lidar rate; none = not running
+rviz2                                                      # own layout: Fixed Frame odom_lidar, PointCloud2 on /iris_0/velodyne_points
+```
+
+Plot `/kiss/odometry` against `/iris_0/ground_truth/odom` in PlotJuggler to see the drift (the test allows 0.45 m).

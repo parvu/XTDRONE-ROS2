@@ -72,10 +72,16 @@ set +u
 source "/opt/ros/${ROS_DISTRO}/setup.bash"
 set -u
 python3 "${GZ_PKG}/scripts/generate_ugv_models.py" "${GZ_PKG}/models" >/dev/null
-rm -rf "${GZ_PKG}/generated"
+# XTDRONE_SKIP_WORLDS="outdoor1 ...": keep the generated worlds of these (and everything else in generated/)
+# instead of converting from scratch
+WORLDS=()
+for w in "${GZ_PKG}"/classic_assets/worlds/*.world; do
+  [[ " ${XTDRONE_SKIP_WORLDS:-} " == *" $(basename "${w}" .world) "* ]] || WORLDS+=("${w}")
+done
+[[ -z "${XTDRONE_SKIP_WORLDS:-}" ]] && rm -rf "${GZ_PKG}/generated"
 # shellcheck disable=SC2046
 python3 "${GZ_PKG}/scripts/classic_to_gz.py" \
-  --worlds "${GZ_PKG}"/classic_assets/worlds/*.world \
+  --worlds "${WORLDS[@]}" \
   --model-path "${GZ_PKG}/classic_assets/models" "${CACHE_DIR}/gazebo_models" \
                "${PX4_DIR}/Tools/simulation/gazebo-classic/sitl_gazebo-classic/models" \
   --classic-media "${CACHE_DIR}/gazebo-classic/media" \

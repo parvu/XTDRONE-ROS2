@@ -57,3 +57,13 @@ with collision, built from the textures of the original XTDrone models. Add them
 objects:
   - {model: apriltag0-2, name: apriltag0_2, pose: [0, 0, 0.06, 0, 0, 0]}  # z 0.06: above the outdoor2 runway visual
 ```
+
+## Visualise
+
+```bash
+ros2 run rqt_image_view rqt_image_view /iris_0/camera/image_raw       # the downward camera: the tag must be in view
+ros2 topic echo /iris_0/mavros/local_position/pose --field pose.position   # x, y converge to the tag, z to 0
+ros2 topic echo /iris_0/ground_truth/odom --field pose.pose.position       # truth, to measure the landing error
+```
+
+The landing error is the distance between the ground-truth x, y at touchdown and the tag centre.

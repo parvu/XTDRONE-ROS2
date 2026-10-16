@@ -35,3 +35,14 @@ To make PX4 fuse them, select `ekf:=vision` (chapter 6).
 !!! warning "Only one source of vision pose"
     `get_local_pose` publishes `/mavros/vision_pose/pose`. If you use the ground truth to evaluate a SLAM system that
     also publishes `vision_pose`, do not run both. Subscribe to `/<type>_<id>/ground_truth/odom` directly instead.
+
+## Visualise
+
+```bash
+ros2 topic echo /iris_0/ground_truth/odom --once         # exact pose in the world frame
+ros2 topic hz /iris_0/ground_truth/odom                  # 50 Hz
+ros2 topic echo /iris_0/mavros/local_position/pose --once   # what PX4 estimates; with ekf:=vision it follows the ground truth
+```
+
+In PlotJuggler (`ros2 run plotjuggler plotjuggler`), plot the x, y and z of both topics against time. In RViz, a
+`Pose` display on `/iris_0/mavros/vision_pose/pose` shows the pose that PX4 receives.

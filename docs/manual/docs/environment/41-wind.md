@@ -45,3 +45,13 @@ ros2 topic pub --once /wind_xtdrone geometry_msgs/msg/Twist "{linear: {x: 3.0, y
 As in the original, the linear part of the `Twist` on `/wind_xtdrone` is the wind velocity, and the angular part is
 unused. The node publishes it as `gz.msgs.Wind` on `/world/<world>/wind`. Check it in Gazebo with
 `gz topic -e -t /world/<world>/wind`.
+
+## Visualise
+
+```bash
+gz topic -e -t /world/<world>/wind                   # the wind Gazebo applies (set it with wind_control)
+ros2 topic echo /iris_0/mavros/local_position/velocity_local --field twist.linear   # the drift of a hovering vehicle
+```
+
+Plot the vehicle's x and y position in PlotJuggler: a constant wind pushes a hovering vehicle until PX4's position
+controller balances it, so the position settles at an offset instead of drifting away.

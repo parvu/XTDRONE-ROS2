@@ -39,3 +39,12 @@ One contact position is [0.315, 2.666, -0.001]
 ```
 
 After takeoff the messages stop, until a vehicle touches an obstacle.
+
+## Visualise
+
+```bash
+ros2 topic echo /iris_0/benchmarker/collision       # a Contacts message appears on each collision (silent otherwise)
+```
+
+`contact_detect` prints a line when a vehicle touches something. To test it, fly a vehicle into the ground or a
+wall; Gazebo shows the contact points with View → Contacts.

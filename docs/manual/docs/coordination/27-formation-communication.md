@@ -65,3 +65,14 @@ Twenty PX4 instances with MAVROS are heavy. On the 6-core test machine without a
 time. More than six vehicles automatically use the `swarm` MAVLink profile and MAVROS plugin set (chapter 43).
 Also run `scripts/tune_network_for_swarms.sh` once. It reserves the PX4 MAVLink ports and enlarges the socket
 buffers that DDS discovery needs with many processes; without it, single vehicles can stay unreachable.
+
+## Visualise
+
+```bash
+ros2 topic echo /xtdrone_gcs/all_uav_data --once     # all vehicles' states as the communication model delivers them
+ros2 topic hz /xtdrone_gcs/all_uav_data              # none = the aggregator is not running
+```
+
+The formation itself is visible in Gazebo. The effect of the communication model is not: a vehicle whose data stops
+arriving (isolated) keeps its last setpoint, while the others follow the leader. Plot `/iris_<i>/mavros/local_position/pose`
+for the leader and two followers in PlotJuggler to see who follows.

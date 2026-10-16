@@ -33,3 +33,20 @@ turns.
 !!! note "Slow without a GPU"
     The RGB-D camera is rendered on the CPU. With RTAB-Map the simulation runs at about 0.2–0.3 of real time on the
     6-core test machine.
+
+## Visualise
+
+`rviz:=true` opens RViz; the results are:
+
+| RViz display | Topic | Shows |
+|---|---|---|
+| PointCloud2 | `/rtabmap/cloud_map` | the dense coloured cloud (the main result) |
+| Map | `/rtabmap/map` | the 2D occupancy grid |
+| PointCloud2 | `/iris_0/realsense/depth_camera/depth/points` | the current depth frame |
+
+```bash
+ros2 topic hz /rtabmap/cloud_map                       # updates as the map grows
+rtabmap-databaseViewer ~/.ros/rtabmap.db               # browse the 3D map, loop closures and graph afterwards
+```
+
+A cloud that does not grow while the vehicle moves means the odometry is not connected (see the `odom:=` table).
