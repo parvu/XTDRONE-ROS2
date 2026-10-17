@@ -84,10 +84,14 @@ class EgoPosCmd(Node):
         super().__init__(f"{n}_ego_pos_cmd")
         self.pub = self.create_publisher(Pose, f"/xtdrone/{n}/cmd_pose_enu", 10)
         self.create_subscription(PositionCommand, f"/xtdrone/{n}/planning/pos_cmd", self.callback, 10)
+        # EGO sees the floor only when the camera looks at it, so its trajectory can dip through it (z < 0 was
+        # measured) and the vehicle follows it to the ground, or into the furniture below flight height: never
+        # command a position lower than this (m, ENU; 1.2 is about 1 m above the floor, over the tables and chairs)
+        self.min_z = self.declare_parameter("min_z", 0.0).value
 
     def callback(self, msg):
         p = Pose()
-        p.position.x, p.position.y, p.position.z = msg.position.x, msg.position.y, msg.position.z
+        p.position.x, p.position.y, p.position.z = msg.position.x, msg.position.y, max(msg.position.z, self.min_z)
         p.orientation.z, p.orientation.w = math.sin(msg.yaw / 2), math.cos(msg.yaw / 2)
         self.pub.publish(p)
 

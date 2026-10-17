@@ -85,7 +85,8 @@ def nodes(context, *args, **kwargs):
         # sim time: the grid map pairs each depth image (stamped with simulation time) with the camera pose
         Node(package="xtdrone_planning", executable="ego_transfer", arguments=[vtype, vid], output="log",
              parameters=[{"use_sim_time": True}]),
-        Node(package="xtdrone_planning", executable="ego_pos_cmd", arguments=[vtype, vid], output="log"),
+        Node(package="xtdrone_planning", executable="ego_pos_cmd", arguments=[vtype, vid], output="log",
+             parameters=[{"min_z": f(arg("min_z"))}]),
     ]
 
 
@@ -103,7 +104,9 @@ def generate_launch_description():
         DeclareLaunchArgument("map_size_z", default_value="5"),
         DeclareLaunchArgument("ceiling", default_value="3.0", description="virtual ceiling of the planner (m)"),
         DeclareLaunchArgument("floor", default_value="-1.0", description="bottom of the planner's map (m)"),
-        DeclareLaunchArgument("inflation", default_value="0.2", description="obstacle inflation (m)"),
+        DeclareLaunchArgument("inflation", default_value="0.35", description="obstacle inflation (m)"),
+        DeclareLaunchArgument("min_z", default_value="1.2", description="lowest position command (m, ENU): keeps the "
+                              "vehicle over tables and chairs, and off the floor the depth camera does not always see"),
         DeclareLaunchArgument("max_vel", default_value="1.0"), DeclareLaunchArgument("max_acc", default_value="2.0"),
         OpaqueFunction(function=nodes),
     ])

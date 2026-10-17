@@ -24,7 +24,12 @@ ros2 launch xtdrone_planning ego_planner.launch.py target_x:=0 target_y:=-4 targ
 `goal:=rviz` instead plans to each 2D goal set in RViz (`/goal_pose`). `max_vel`, `max_acc`, `inflation`,
 `floor` (the bottom of the planner's map), `ceiling` (its virtual ceiling) and `map_size_x|y|z` are launch arguments;
 the defaults of the first five are those of XTDrone's ROS 1 `advanced_param_xtdrone.xml` and `run_in_xtdrone.launch`
-(1 m/s, 2 m/s², 0.2 m, −1 m, 3 m).
+(1 m/s, 2 m/s², −1 m, 3 m), except `inflation`, which is 0.35 m here instead of 0.2 m: with 0.2 m the planned path
+passed 0.2 m from the columns and the iris, whose arms are 0.25 m from its centre, touched them.
+
+`min_z` (default 1.2 m, ENU) is the lowest position the vehicle is commanded to. The planner sees the floor only
+when the depth camera looks at it, and its trajectories dipped through it (z < 0) or ran at 0.3 to 0.7 m, where the
+drone hit the tables and chairs of `indoor1`. Set `min_z:=0.0` to turn the limit off (the swarm of chapter 22 does).
 
 `ego_planner.launch.py` starts these:
 - **`ego_planner_node`** with the parameters of the port's `advanced_param.launch.py` and of XTDrone's
