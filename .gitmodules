@@ -15,3 +15,11 @@
 	path = ros2/ego-planner-swarm
 	url = https://github.com/ZJU-FAST-Lab/ego-planner-swarm.git
 	branch = ros2_version
+[submodule "ArduPilot"]
+	path = ArduPilot
+	url = https://github.com/ArduPilot/ardupilot.git
+	shallow = true
+[submodule "ardupilot_gazebo"]
+	path = ardupilot_gazebo
+	url = https://github.com/ArduPilot/ardupilot_gazebo.git
+	shallow = true
