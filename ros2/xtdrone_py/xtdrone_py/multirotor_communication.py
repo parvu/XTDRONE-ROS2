@@ -10,7 +10,7 @@ cmd_accel_flu, cmd_accel_enu} and streams /<type>_<id>/mavros/setpoint_raw/local
 import math
 
 from geometry_msgs.msg import Pose, PoseStamped, Twist
-from mavros_msgs.msg import PositionTarget
+from mavros_msgs.msg import PositionTarget, State
 from std_msgs.msg import String
 
 from xtdrone_py.common import (FRAME_BODY_NED, FRAME_BODY_OFFSET_NED, FRAME_LOCAL_NED, MAVROS_QOS,
@@ -31,8 +31,19 @@ class MultirotorCommunication(VehicleNode):
         self.flight_mode = None
         self.mission = None
         self.last_cmd = None
+        # ArduPilot GUIDED needs a takeoff command after arming: this node sends it (takeoff_height) when the
+        # vehicle is armed in GUIDED mode on the ground
+        self.takeoff_height = self.declare_parameter("takeoff_height", 1.0).value
+        self.armed = False
+        self.mode = ""
+        self.ground_z = None
+        self.takeoff_sent = 0.0
+        # no setpoints while the vehicle is on the ground or taking off: a setpoint cancels GUIDED's takeoff
+        self.streaming = False
+        self.target_set = False
 
         n, x = self.name, f"/xtdrone/{self.name}"
+        self.create_subscription(State, f"/{n}/mavros/state", self.state_callback, MAVROS_QOS)
         self.create_subscription(PoseStamped, f"/{n}/mavros/local_position/pose", self.local_pose_callback, MAVROS_QOS)
         self.create_subscription(String, f"{x}/cmd", self.cmd_callback, 3)
         self.create_subscription(Pose, f"{x}/cmd_pose_flu", self.cmd_pose_flu_callback, 1)
@@ -43,9 +54,37 @@ class MultirotorCommunication(VehicleNode):
         self.create_subscription(Twist, f"{x}/cmd_accel_enu", self.cmd_accel_enu_callback, 1)
         self.target_motion_pub = self.create_publisher(PositionTarget, f"/{n}/mavros/setpoint_raw/local", 1)
         self.create_timer(1.0 / 30.0, self.publish_target)
+        self.create_timer(0.5, self.check_takeoff)
         self.log("communication initialized")
 
+    def state_callback(self, msg):
+        if msg.armed and not self.armed and self.current_position is not None:
+            self.ground_z = self.current_position.z
+        self.armed, self.mode = msg.armed, msg.mode
+        if not msg.armed:
+            self.ground_z = None
+
+    def check_takeoff(self):
+        if not self.armed or self.current_position is None:
+            self.streaming = False
+            return
+        if self.ground_z is None:
+            self.ground_z = self.current_position.z
+        height = self.current_position.z - self.ground_z
+        if not self.streaming and height >= 0.8 * self.takeoff_height:
+            self.streaming = True
+            if not self.target_set:
+                self.hover()
+        if self.mode != "GUIDED":
+            return
+        on_ground = height < 0.3
+        if on_ground and self.get_clock().now().nanoseconds / 1e9 - self.takeoff_sent > 5.0:
+            self.takeoff_sent = self.get_clock().now().nanoseconds / 1e9
+            self.takeoff(self.takeoff_height)
+
     def publish_target(self):
+        if not self.streaming:
+            return
         self.target_motion.header.stamp = self.get_clock().now().to_msg()
         self.target_motion_pub.publish(self.target_motion)
 
@@ -55,6 +94,7 @@ class MultirotorCommunication(VehicleNode):
 
     def construct_target(self, x=0.0, y=0.0, z=0.0, vx=0.0, vy=0.0, vz=0.0,
                          afx=0.0, afy=0.0, afz=0.0, yaw=0.0, yaw_rate=0.0):
+        self.target_set = True
         t = PositionTarget()
         t.coordinate_frame = self.coordinate_frame
         t.position.x, t.position.y, t.position.z = float(x), float(y), float(z)

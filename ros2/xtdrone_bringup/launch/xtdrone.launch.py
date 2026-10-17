@@ -1,4 +1,4 @@
-"""XTDrone simulation on Gazebo Harmonic + PX4 v1.16.2 + MAVROS 2.
+"""XTDrone simulation on Gazebo Harmonic + ArduPilot 4.7.2 SITL + MAVROS 2.
 
 Replaces the ROS 1 launch files in XTDrone's sitl_config/launch (indoor1.launch,
 outdoor2.launch, multi_vehicle.launch, ...).
@@ -9,8 +9,8 @@ outdoor2.launch, multi_vehicle.launch, ...).
 
 Per vehicle <type>_<id> (e.g. iris_0) it starts:
   * the gz model, spawned with that name,
-  * PX4 SITL instance N attached to it (PX4_GZ_MODEL_NAME),
-  * MAVROS 2 in /<type>_<id>/mavros (fcu udp://:24540+N@127.0.0.1:34580+N),
+  * ArduPilot SITL instance N, linked to it by the ArduPilot Gazebo plugin (UDP port 9002 + 10 N),
+  * MAVROS 2 in /<type>_<id>/mavros (fcu udp://:14550+N@),
   * ros_gz_bridge for the vehicle sensors and ground truth.
 """
 from pathlib import Path
@@ -22,9 +22,9 @@ from launch.actions import (DeclareLaunchArgument, ExecuteProcess, OpaqueFunctio
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
-from xtdrone_bringup import fleet, px4
-from xtdrone_bringup.sim import (EKF_PRESETS, SimPaths, actor_bridges, actor_walkers, fleet_bridge, mavlink_profile, px4_params, set_real_time_factor,
-                                 vehicle_actions, world_name)
+from xtdrone_bringup import ardupilot, fleet
+from xtdrone_bringup.sim import (EKF_PRESETS, SWARM_THRESHOLD, SimPaths, actor_bridges, actor_walkers, autopilot_params,
+                                 fleet_bridge, set_real_time_factor, vehicle_actions, world_name)
 
 
 def _arg(context, name):
@@ -39,7 +39,7 @@ def _bool(context, name):
 
 
 def launch_setup(context):
-    paths = SimPaths.find(_arg(context, "px4_dir"))
+    paths = SimPaths.find(_arg(context, "ardupilot_dir"))
     scenario = _arg(context, "scenario")
     if scenario:
         sc_path = Path(scenario)
@@ -60,6 +60,7 @@ def launch_setup(context):
 
     actions = [
         SetEnvironmentVariable("GZ_SIM_RESOURCE_PATH", paths.resource_path()),
+        SetEnvironmentVariable("GZ_SIM_SYSTEM_PLUGIN_PATH", paths.plugin_path()),
         ExecuteProcess(cmd=["gz", "sim", "-r", "-s", "-v", verbose, str(world_file)],
                        output="screen", name="gz_server"),
         Node(package="ros_gz_bridge", executable="parameter_bridge", name="clock_bridge",
@@ -91,18 +92,16 @@ def launch_setup(context):
         if vehicles:
             actions.append(Node(package="xtdrone_py", executable="actor_walker", output="screen",
                                 arguments=[name, vehicles[0].vtype, str(vehicles[0].id_in_type), "--loop", loop]))
-    profile = mavlink_profile(_arg(context, "mavlink_profile"), len(vehicles))
     plugins = _arg(context, "mavros_plugins")
     if plugins == "auto":
-        plugins = "swarm" if profile == "swarm" else "xtdrone"
+        plugins = "swarm" if len(vehicles) > SWARM_THRESHOLD else "xtdrone"
     for k, v in enumerate(vehicles):
         # Stagger vehicles a little so gz is up and spawns do not pile up.
         actions.append(TimerAction(period=2.0 + 0.5 * k, actions=vehicle_actions(
             v, world, paths, _arg(context, "rootfs"), mavros=_bool(context, "mavros"),
             bridge=False, communication=communication,
-            params=px4_params(_arg(context, "ekf"), _arg(context, "px4_params")), speed_factor=speed_factor,
-            px4=_bool(context, "px4"), mavros_plugins=plugins, mavlink_profile=profile,
-            uxrce_dds=_bool(context, "uxrce_dds"))))
+            params=autopilot_params(_arg(context, "ekf"), _arg(context, "params")), speed_factor=speed_factor,
+            sitl=_bool(context, "sitl"), mavros_plugins=plugins)))
     return actions
 
 
@@ -112,7 +111,7 @@ def generate_launch_description():
                               description="Scenario name in xtdrone_bringup/config/scenarios or a YAML path. "
                                           "Overrides world and vehicles."),
         DeclareLaunchArgument("world", default_value="indoor1",
-                              description="World name (xtdrone_gz/worlds or PX4 gz worlds) or .sdf path."),
+                              description="World name (xtdrone_gz/worlds or ardupilot_gazebo worlds) or .sdf path."),
         DeclareLaunchArgument("vehicles", default_value="iris_stereo_camera",
                               description="Fleet spec, e.g. 'iris_stereo_camera*3,plane'."),
         DeclareLaunchArgument("gui", default_value="true", description="Start the Gazebo GUI."),
@@ -120,28 +119,23 @@ def generate_launch_description():
         DeclareLaunchArgument("bridge", default_value="true", description="Bridge sensors and ground truth."),
         DeclareLaunchArgument("communication", default_value="none",
                               description="Also start XTDrone communication nodes: none, basic or enhanced."),
-        DeclareLaunchArgument("uxrce_dds", default_value="false",
-                              description="Start PX4's uXRCE-DDS client (for px4_msgs / ROS 2 offboard "
-                                          "code next to MAVROS; needs MicroXRCEAgent udp4 -p 8888)."),
-        DeclareLaunchArgument("mavlink_profile", default_value="auto",
-                              description="PX4 MAVLink stream rates: full, light (unused streams off), swarm "
-                                          "(lower rates for many vehicles) or auto (swarm above 6 vehicles)."),
         DeclareLaunchArgument("mavros_plugins", default_value="auto",
                               description="MAVROS plugins: 'xtdrone' (those XTDrone uses), 'swarm' (the minimum "
-                                          "for the XTDrone nodes), 'all', or 'auto' (swarm with the swarm "
-                                          "MAVLink profile, else xtdrone)."),
-        DeclareLaunchArgument("px4", default_value="true",
-                              description="Start PX4 (and MAVROS) per vehicle; false spawns models only (chapter 43)."),
+                                          "for the XTDrone nodes), 'all', or 'auto' (swarm above 6 vehicles, "
+                                          "else xtdrone)."),
+        DeclareLaunchArgument("sitl", default_value="true",
+                              description="Start ArduPilot SITL (and MAVROS) per vehicle; false spawns models only "
+                                          "(chapter 43)."),
         DeclareLaunchArgument("speed_factor", default_value="1.0",
                               description="Target real-time factor (> 1 runs faster than real time if the CPU allows)."),
         DeclareLaunchArgument("ekf", default_value="gps",
-                              description=f"EKF2 fusion preset: {', '.join(EKF_PRESETS)}."),
-        DeclareLaunchArgument("px4_params", default_value="",
-                              description="Extra PX4 parameters, 'NAME=value NAME=value'."),
+                              description=f"EKF3 fusion preset: {', '.join(EKF_PRESETS)}."),
+        DeclareLaunchArgument("params", default_value="",
+                              description="Extra ArduPilot parameters, 'NAME=value NAME=value'."),
         DeclareLaunchArgument("gz_verbose", default_value="1", description="Gazebo verbosity 0-4."),
-        DeclareLaunchArgument("px4_dir", default_value=px4.default_px4_dir(),
-                              description="Pinned PX4-Autopilot v1.16.2 checkout."),
-        DeclareLaunchArgument("rootfs", default_value=str(Path.home() / ".ros" / "xtdrone_px4"),
-                              description="Working directories of the PX4 instances."),
+        DeclareLaunchArgument("ardupilot_dir", default_value=ardupilot.default_ardupilot_dir(),
+                              description="ArduPilot 4.7.2 checkout (built by scripts/build_ardupilot.sh)."),
+        DeclareLaunchArgument("rootfs", default_value=str(Path.home() / ".ros" / "xtdrone_sitl"),
+                              description="Working directories of the SITL instances."),
         OpaqueFunction(function=launch_setup),
     ])

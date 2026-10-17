@@ -22,6 +22,7 @@ setup(
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [
+            "ap_streams = xtdrone_py.ap_streams:main",
             "multirotor_communication = xtdrone_py.multirotor_communication:main",
             "multirotor_communication_enhanced = xtdrone_py.multirotor_communication:main_enhanced",
             "plane_communication = xtdrone_py.plane_communication:main",

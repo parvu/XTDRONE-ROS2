@@ -3,7 +3,7 @@ project(xtdrone_gz NONE)
 
 find_package(ament_cmake REQUIRED)
 
-install(DIRECTORY models worlds px4 scripts
+install(DIRECTORY models worlds ardupilot px4 scripts
   DESTINATION share/${PROJECT_NAME}
   USE_SOURCE_PERMISSIONS)
 

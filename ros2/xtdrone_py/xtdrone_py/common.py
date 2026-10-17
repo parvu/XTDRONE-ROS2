@@ -5,7 +5,7 @@ import sys
 import rclpy
 from geometry_msgs.msg import Quaternion
 from mavros_msgs.msg import PositionTarget
-from mavros_msgs.srv import CommandBool, SetMode
+from mavros_msgs.srv import CommandBool, CommandTOL, SetMode
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
@@ -30,6 +30,26 @@ MOTION_MASKS = {0: MASK_POSITION, 1: MASK_VELOCITY, 2: MASK_ACCEL, 3: MASK_VELOC
 FRAME_LOCAL_NED = PositionTarget.FRAME_LOCAL_NED          # 1 (MAVROS: ENU <-> NED handled)
 FRAME_BODY_NED = PositionTarget.FRAME_BODY_NED            # 8
 FRAME_BODY_OFFSET_NED = PositionTarget.FRAME_BODY_OFFSET_NED  # 9
+
+
+# XTDrone keeps PX4's mode names on its topics and keyboards; these are the ArduPilot (Copter) modes behind them.
+AP_MODES = {
+    "OFFBOARD": "GUIDED",
+    "AUTO.TAKEOFF": "GUIDED",   # the communication node sends the takeoff command after arming
+    "AUTO.LAND": "LAND",
+    "AUTO.RTL": "RTL",
+    "AUTO.LOITER": "LOITER",
+    "AUTO.MISSION": "AUTO",
+    "POSCTL": "LOITER",
+    "ALTCTL": "ALT_HOLD",
+    "STABILIZED": "STABILIZE",
+    "MANUAL": "STABILIZE",
+}
+
+
+def ap_mode(name):
+    """ArduPilot mode for an XTDrone (PX4-style) mode name; ArduPilot names pass through."""
+    return AP_MODES.get(name, name)
 
 
 def q2yaw(q):
@@ -65,6 +85,7 @@ class VehicleNode(Node):
         super().__init__(f"{self.name}_{node_suffix}")
         self.arm_client = self.create_client(CommandBool, f"/{self.name}/mavros/cmd/arming")
         self.mode_client = self.create_client(SetMode, f"/{self.name}/mavros/set_mode")
+        self.takeoff_client = self.create_client(CommandTOL, f"/{self.name}/mavros/cmd/takeoff")
 
     def log(self, text):
         print(f"{self.name}: {text}", flush=True)
@@ -95,8 +116,14 @@ class VehicleNode(Node):
 
     def set_mode(self, mode):
         req = SetMode.Request()
-        req.custom_mode = mode
+        req.custom_mode = ap_mode(mode)
         self.call(self.mode_client, req, mode, mode + " failed", check=lambda r: r.mode_sent)
+
+    def takeoff(self, altitude):
+        """ArduPilot GUIDED does not leave the ground on setpoints: it needs the takeoff command first."""
+        req = CommandTOL.Request()
+        req.altitude = float(altitude)
+        self.call(self.takeoff_client, req, f"takeoff to {altitude:g} m", "takeoff failed", check=lambda r: r.success)
 
 
 def run(node_factory, args=None):

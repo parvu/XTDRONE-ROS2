@@ -1,4 +1,4 @@
-"""XTDrone fleet description: vehicle types, PX4 airframes, ports and layout.
+"""XTDrone fleet description: vehicle types, ArduPilot SITL ports and layout.
 
 A fleet is a list of Vehicle entries. It comes from a scenario YAML
 (config/scenarios/<name>.yaml) or from a compact spec string such as
@@ -11,19 +11,19 @@ import re
 
 import yaml
 
-# XTDrone vehicle type -> PX4 v1.16 gz airframe (SYS_AUTOSTART) and family.
-# family selects the XTDrone communication script.
+# XTDrone vehicle type -> family. The family selects the XTDrone communication script and the ArduPilot SITL
+# binary (ardupilot.SITL); "sitl": False vehicles run no autopilot.
 VEHICLE_TYPES = {
-    "iris": {"airframe": 4001, "family": "multirotor"},
-    "solo": {"airframe": 4001, "family": "multirotor"},
-    "typhoon_h480": {"airframe": 4901, "family": "multirotor"},
-    "plane": {"airframe": 4003, "family": "plane"},
-    "standard_vtol": {"airframe": 4004, "family": "vtol"},
-    "rover": {"airframe": 4009, "family": "rover"},
-    "tailsitter": {"airframe": 4018, "family": "vtol"},   # PX4 quad tailsitter
-    "tiltrotor": {"airframe": 4020, "family": "vtol"},
-    # CAT Vehicle UGV (chapter 11): no PX4 / MAVROS, gz AckermannSteering
-    "ugv": {"airframe": None, "family": "ugv"},
+    "iris": {"sitl": True, "family": "multirotor"},
+    "solo": {"sitl": True, "family": "multirotor"},
+    "typhoon_h480": {"sitl": True, "family": "multirotor"},
+    "plane": {"sitl": True, "family": "plane"},
+    "standard_vtol": {"sitl": True, "family": "vtol"},
+    "rover": {"sitl": True, "family": "rover"},
+    "tailsitter": {"sitl": True, "family": "vtol"},
+    "tiltrotor": {"sitl": True, "family": "vtol"},
+    # CAT Vehicle UGV (chapter 11): no autopilot / MAVROS, gz AckermannSteering
+    "ugv": {"sitl": False, "family": "ugv"},
 }
 
 # Gazebo Classic XTDrone model names that map to a different Harmonic model.
@@ -37,10 +37,9 @@ MODEL_ALIASES = {
 # Classic XTDrone models without a Gazebo Harmonic equivalent yet.
 UNSUPPORTED = {}
 
-# MAVLink offboard ports, XTDrone scheme (see px4/init.d-posix/px4-rc.mavlink).
-OFFBOARD_REMOTE_BASE = 24540
-OFFBOARD_LOCAL_BASE = 34580
-GCS_LOCAL_BASE = 18570
+# MAVROS talks to SERIAL0 of the SITL instance N over UDP: MAVROS listens on 14550 + N, SITL (udpclient) sends there.
+# (TCP port 5760 left a bound port in TIME_WAIT after every run, and the next SITL could not bind it.)
+SITL_PORT_BASE = 14550
 
 
 @dataclass
@@ -48,7 +47,7 @@ class Vehicle:
     model: str            # gz model directory, e.g. iris_stereo_camera
     vtype: str            # XTDrone vehicle type, e.g. iris
     id_in_type: int       # the N in iris_N
-    instance: int = 0     # global PX4 instance (0..)
+    instance: int = 0     # global SITL instance (0..)
     pose: list = field(default_factory=lambda: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
     @property
@@ -56,21 +55,20 @@ class Vehicle:
         return f"{self.vtype}_{self.id_in_type}"
 
     @property
-    def airframe(self):
-        return VEHICLE_TYPES[self.vtype]["airframe"]
-
-    @property
     def family(self):
         return VEHICLE_TYPES[self.vtype]["family"]
 
     @property
-    def has_px4(self):
-        return VEHICLE_TYPES[self.vtype]["airframe"] is not None
+    def has_sitl(self):
+        return VEHICLE_TYPES[self.vtype]["sitl"]
 
     @property
     def fcu_url(self):
-        return (f"udp://:{OFFBOARD_REMOTE_BASE + self.instance}"
-                f"@127.0.0.1:{OFFBOARD_LOCAL_BASE + self.instance}")
+        return f"udp://:{self.mavlink_port}@"
+
+    @property
+    def mavlink_port(self):
+        return SITL_PORT_BASE + self.instance
 
     @property
     def mav_sys_id(self):
@@ -136,11 +134,11 @@ def load_scenario_objects(path):
 
 
 def _number(vehicles):
-    """PX4 instances 0, 1, ... for the vehicles with PX4 (UGVs have none and get -1)."""
+    """SITL instances 0, 1, ... for the vehicles with an autopilot (UGVs have none and get -1)."""
     names = set()
     i = 0
     for v in vehicles:
-        if v.has_px4:
+        if v.has_sitl:
             v.instance, i = i, i + 1
         else:
             v.instance = -1
