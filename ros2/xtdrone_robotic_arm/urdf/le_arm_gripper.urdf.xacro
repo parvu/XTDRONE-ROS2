@@ -168,8 +168,8 @@
             <axis
             xyz="0 0 -1" />
             <limit
-            lower="-1.57"
-            upper="1.57"
+            lower="-6.3"
+            upper="6.3"
             effort="1000"
             velocity="2.0" />
             <mimic joint="${prefix}left_knuckle_joint" multiplier="-1"/>
@@ -229,8 +229,8 @@
             <axis
             xyz="0 0 1" />
             <limit
-            lower="-1.57"
-            upper="1.57"
+            lower="-6.3"
+            upper="6.3"
             effort="1000"
             velocity="2.0" />
             <mimic joint="${prefix}left_knuckle_joint" multiplier="1"/>
@@ -290,8 +290,8 @@
             <axis
             xyz="0 0 1" />
             <limit
-            lower="-1.57"
-            upper="1.57"
+            lower="-6.3"
+            upper="6.3"
             effort="1000"
             velocity="2.0" />
             <mimic joint="${prefix}left_knuckle_joint" multiplier="-1"/>
@@ -351,8 +351,8 @@
             <axis
             xyz="0 0 1" />
             <limit
-            lower="-1.57"
-            upper="1.57"
+            lower="-6.3"
+            upper="6.3"
             effort="1000"
             velocity="2.0" />
             <mimic joint="${prefix}left_knuckle_joint" multiplier="-1"/>
@@ -412,8 +412,8 @@
             <axis
             xyz="0 0 -1" />
             <limit
-            lower="-1.57"
-            upper="1.57"
+            lower="-6.3"
+            upper="6.3"
             effort="1000"
             velocity="2.0" />
             <mimic joint="${prefix}left_knuckle_joint" multiplier="1"/>

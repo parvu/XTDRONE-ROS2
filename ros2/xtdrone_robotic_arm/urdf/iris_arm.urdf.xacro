@@ -48,7 +48,9 @@
     <xacro:position_joint name="wrist_1_joint" initial="-1.5"/>
     <xacro:position_joint name="wrist_2_joint"/>
     <xacro:position_joint name="left_knuckle_joint" initial="0.5"/>
-    <!-- the other gripper joints follow left_knuckle_joint (<mimic> in le_arm_gripper.urdf.xacro) -->
+    <!-- the other gripper joints follow left_knuckle_joint (<mimic> in le_arm_gripper.urdf.xacro). Their limits are
+         +-6.3 there, not +-1.57: gz_ros2_control sets them from outside, they sat at the limit (-1.57) instead of
+         +-0.5, and MoveIt then refused the start state ("outside bounds") on rounding noise. -->
     <xacro:macro name="mimic_joint" params="name">
       <joint name="${name}">
         <state_interface name="position"/>
