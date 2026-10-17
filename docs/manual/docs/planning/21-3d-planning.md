@@ -31,6 +31,11 @@ passed 0.2 m from the columns and the iris, whose arms are 0.25 m from its centr
 when the depth camera looks at it, and its trajectories dipped through it (z < 0) or ran at 0.3 to 0.7 m, where the
 drone hit the tables and chairs of `indoor1`. Set `min_z:=0.0` to turn the limit off (the swarm of chapter 22 does).
 
+`start_delay` (default 6 s, waypoint goals only) is how long the planner builds its map before it plans the first
+trajectory: the planner waits for `/traj_start_trigger` and the launch sends it after that time. Without the delay
+the map was still empty, the first path ran straight through the columns, and in about one run of ten the vehicle
+ended against one. `start_delay:=0` starts at once.
+
 `ego_planner.launch.py` starts these:
 - **`ego_planner_node`** with the parameters of the port's `advanced_param.launch.py` and of XTDrone's
   `run_in_xtdrone.launch`. The grid map projects the depth image of the RealSense camera

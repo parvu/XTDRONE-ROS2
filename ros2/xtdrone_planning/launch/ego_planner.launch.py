@@ -13,7 +13,7 @@ The planner and trajectory server run on simulation time; scripts/build_xtdrone_
 for it (xtdrone_planning/scripts/patch_ego_planner.py), as ROS 1 used ros::Time with use_sim_time.
 """
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, OpaqueFunction, TimerAction
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
@@ -26,6 +26,11 @@ def nodes(context, *args, **kwargs):
     v = f"{vtype}_{vid}"
     f = float
     max_vel, max_acc, horizon = f(arg("max_vel")), f(arg("max_acc")), 7.5
+    # The planner's map starts empty. With start_delay > 0 (waypoint goals) the planner waits for /traj_start_trigger
+    # (its "realworld_experiment" mode) and this launch sends it that many seconds later, so the depth images have
+    # built the map before the first trajectory; without it the first one ran straight through the columns in about
+    # one run of ten and the vehicle ended against them.
+    start_delay = f(arg("start_delay")) if arg("goal") == "waypoint" else 0.0
     waypoints = {"fsm/waypoint_num": 1, "fsm/waypoint0_x": f(arg("target_x")), "fsm/waypoint0_y": f(arg("target_y")),
                  "fsm/waypoint0_z": f(arg("target_z"))}
     for i in range(1, 5):
@@ -33,7 +38,7 @@ def nodes(context, *args, **kwargs):
     params = {
         "fsm/flight_type": 2 if arg("goal") == "waypoint" else 1, "fsm/thresh_replan_time": 1.0,
         "fsm/thresh_no_replan_meter": 1.0, "fsm/planning_horizon": horizon, "fsm/planning_horizen_time": 3.0,
-        "fsm/emergency_time": 1.0, "fsm/realworld_experiment": False, "fsm/fail_safe": True, **waypoints,
+        "fsm/emergency_time": 1.0, "fsm/realworld_experiment": start_delay > 0, "fsm/fail_safe": True, **waypoints,
         "fsm/sequential_start": arg("sequential_start").lower() in ("1", "true", "yes"),
         "grid_map/resolution": 0.1, "grid_map/map_size_x": f(arg("map_size_x")),
         "grid_map/map_size_y": f(arg("map_size_y")), "grid_map/map_size_z": f(arg("map_size_z")),
@@ -87,7 +92,9 @@ def nodes(context, *args, **kwargs):
              parameters=[{"use_sim_time": True}]),
         Node(package="xtdrone_planning", executable="ego_pos_cmd", arguments=[vtype, vid], output="log",
              parameters=[{"min_z": f(arg("min_z"))}]),
-    ]
+    ] + ([TimerAction(period=start_delay, actions=[ExecuteProcess(
+        cmd=["ros2", "topic", "pub", "--once", "/traj_start_trigger", "geometry_msgs/msg/PoseStamped", "{}"],
+        output="log", name=f"{v}_start_trigger")])] if start_delay > 0 else [])
 
 
 def generate_launch_description():
@@ -105,6 +112,8 @@ def generate_launch_description():
         DeclareLaunchArgument("ceiling", default_value="3.0", description="virtual ceiling of the planner (m)"),
         DeclareLaunchArgument("floor", default_value="-1.0", description="bottom of the planner's map (m)"),
         DeclareLaunchArgument("inflation", default_value="0.35", description="obstacle inflation (m)"),
+        DeclareLaunchArgument("start_delay", default_value="6.0", description="seconds the planner builds its map "
+                              "before the first trajectory (waypoint goals); 0 starts at once"),
         DeclareLaunchArgument("min_z", default_value="1.2", description="lowest position command (m, ENU): keeps the "
                               "vehicle over tables and chairs, and off the floor the depth camera does not always see"),
         DeclareLaunchArgument("max_vel", default_value="1.0"), DeclareLaunchArgument("max_acc", default_value="2.0"),

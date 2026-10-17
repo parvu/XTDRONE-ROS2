@@ -46,7 +46,7 @@ def nodes(context, *args, **kwargs):
             "target_x": str(x), "target_y": str(y), "target_z": str(z),
             "max_vel": arg("max_vel"), "max_acc": arg("max_acc"), "ceiling": arg("ceiling"),
             "floor": arg("floor"), "inflation": arg("inflation"),
-            "min_z": "0.0"}.items())]))
+            "min_z": "0.0", "start_delay": "0.0"}.items())]))
     return out
 
 
