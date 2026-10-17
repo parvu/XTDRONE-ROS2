@@ -43,7 +43,9 @@ the launch output, add the model directory to `--model-path` of `classic_to_gz.p
 
 ## Simulation slower than real time
 
-Camera and lidar sensors are expensive, more so without a GPU. Images are only converted while a node
+Camera and lidar sensors are expensive, more so without a GPU. On WSL2, check that Gazebo uses the Windows GPU:
+`source scripts/xtdrone_env.sh` sets `GALLIUM_DRIVER=d3d12`; if you start Gazebo without that script, Mesa renders on
+the CPU (`glxinfo -B | grep renderer` says `llvmpipe`) and a lidar or SLAM simulation runs at a few percent of real time. Images are only converted while a node
 subscribes, so close image viewers and `ros2 topic echo` on image topics you do not need. Use vehicles without the sensors you do not need,
 `gui:=false`, or fewer vehicles. Check the real time factor with `gz topic -e -t /stats`.
 

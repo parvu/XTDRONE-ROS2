@@ -110,6 +110,12 @@ This leaves any Python venv, removes a ROS 1 environment, sources `/opt/ros/jazz
 XTDrone workspace, and sets `XTDRONE_ROOT`. You can add the line to `~/.bashrc` if you do not use ROS 1 or
 other virtualenvs in the same shells.
 
+On WSL2 the script also sets `GALLIUM_DRIVER=d3d12` (when `/dev/dxg` exists and you have not set it), so that
+Gazebo renders its lidars and cameras on the Windows GPU. Without it Mesa uses the CPU renderer `llvmpipe`, and
+a simulation with a lidar or camera can drop to a few percent of real time. Check with
+`GALLIUM_DRIVER=d3d12 glxinfo -B | grep renderer`, which should name your GPU; plain `glxinfo -B` says `llvmpipe`
+when the GPU is not used.
+
 ## 5. Start the simulation
 
 The original `roslaunch px4 indoor1.launch` becomes:
@@ -216,8 +222,8 @@ Download the AppImage from the [QGroundControl site](https://docs.qgroundcontrol
 - **Restart cleanly**: `Ctrl+C` in the launch terminal stops everything. If a Gazebo or PX4 process is left over,
   `pkill -f "gz sim"; pkill -x px4` cleans up. This replaces the original `killall gzserver gzclient`.
 - **New ROS nodes hang at start** (`ros2 topic echo`, the keyboard nodes, a vehicle that does not move): processes
-  killed with `kill -9` leave Fast DDS files in `/dev/shm`, and after many runs they stall the discovery of new
-  nodes. With no ROS or Gazebo process running, delete them:
+  killed with `kill -9` leave Fast DDS files in `/dev/shm`. Hundreds of them were present when this was seen, and
+  clearing them fixed it. If it recurs, stop every ROS and Gazebo process and delete them:
   `rm -f /dev/shm/fastrtps_* /dev/shm/sem.fastrtps_*`. The chapter tests do this after every case.
 - **Do not drag vehicles with the mouse**: moving a vehicle in the GUI corrupts PX4's state estimate. Chapter 43
   covers teleporting vehicles.

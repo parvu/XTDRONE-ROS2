@@ -15,6 +15,13 @@ if [[ "${SNAP:-}" == /snap/* ]]; then
         GDK_PIXBUF_MODULEDIR GSETTINGS_SCHEMA_DIR SNAP SNAP_NAME SNAP_REVISION
 fi
 
+# WSL2: Mesa renders on the CPU (llvmpipe) unless told to use the Windows GPU through D3D12. Gazebo's lidars and
+# cameras are rendered on the GPU, so with llvmpipe the simulation falls to a few percent of real time.
+# Set GALLIUM_DRIVER yourself (e.g. llvmpipe) to override.
+if [[ -e /dev/dxg && -z "${GALLIUM_DRIVER:-}" ]]; then
+  export GALLIUM_DRIVER=d3d12
+fi
+
 if [[ -n "${VIRTUAL_ENV:-}" ]]; then
   if declare -F deactivate >/dev/null; then
     deactivate
