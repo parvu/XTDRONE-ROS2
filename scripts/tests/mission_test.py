@@ -63,7 +63,7 @@ def main():
         return cond()
 
     def call(client, req, timeout=20.0):
-        if not client.wait_for_service(timeout_sec=10.0):
+        if not client.wait_for_service(timeout_sec=90.0):  # the MAVROS plugins come up some 10-60 s after the link
             return None
         fut = client.call_async(req)
         end = time.time() + timeout
@@ -75,7 +75,7 @@ def main():
                                  for v in names)):
         log("FAIL: MAVROS, GPS or local position of a vehicle missing")
         return 1
-    wait(20, lambda: False)  # home position and EKF origin
+    wait(90, lambda: False)  # home position, EKF origin and MAVROS' first pull of parameters, missions and fences
 
     # 1. a different mission per vehicle
     target = {}
@@ -88,7 +88,10 @@ def main():
                         x_lat=fix.latitude, y_long=fix.longitude, z_alt=5.0),
                Waypoint(frame=FRAME_GLOBAL_REL_ALT, command=MAV_CMD_NAV_WAYPOINT, autocontinue=True,
                         param2=1.0, x_lat=lat, y_long=fix.longitude, z_alt=5.0)]
-        r = call(cli[v]["push"], WaypointPush.Request(start_index=0, waypoints=wps))
+        for _ in range(2):  # under load a push can go unanswered (MAVROS busy with its initial pull)
+            r = call(cli[v]["push"], WaypointPush.Request(start_index=0, waypoints=wps), timeout=60.0)
+            if r is not None:
+                break
         if r is None or not r.success:
             log(f"FAIL: mission upload to {v}: {r}")
             return 1
