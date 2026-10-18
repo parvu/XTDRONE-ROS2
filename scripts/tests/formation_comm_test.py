@@ -33,6 +33,10 @@ FOLLOWERS = range(1, 13)
 ISOLATED = 13
 
 
+# ArduPilot SITL with many vehicles runs at about a third of real time or less: wall-clock waits are scaled
+SLOW = float(os.environ.get("XTDRONE_TEST_SLOW", "4"))
+
+
 def log(m):
     print(f"[formation_comm_test] {m}", flush=True)
 
@@ -63,7 +67,7 @@ class Fleet(Node):
             self.seen.add(n)
 
     def wait(self, seconds, cond=None, every=None):
-        end = time.time() + seconds
+        end = time.time() + seconds * SLOW
         while time.time() < end:
             rclpy.spin_once(self, timeout_sec=0.05)
             if every:

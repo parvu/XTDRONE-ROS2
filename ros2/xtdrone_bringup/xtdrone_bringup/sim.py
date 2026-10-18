@@ -131,9 +131,9 @@ XTDRONE_MAVROS_PLUGINS = [
 # (state/set_mode, arming, local position, home, setpoint_raw, vision). Fewer plugins = fewer DDS
 # endpoints, which matters when 10-20 MAVROS processes discover each other on one machine.
 XTDRONE_SWARM_MAVROS_PLUGINS = [
-    "sys_status", "sys_time", "command", "local_position", "home_position", "setpoint_raw",
+    "sys_status", "sys_time", "command", "local_position", "global_position", "home_position", "setpoint_raw",
     "vision_pose",
-]
+]  # global_position: the EKF origin (set_gp_origin) of the vision presets goes through it
 
 
 SWARM_THRESHOLD = 6  # mavros_plugins:=auto picks "swarm" above this many vehicles

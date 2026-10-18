@@ -43,6 +43,10 @@ TAKEOFF_ALT = 8.0
 TOL = 0.8  # m, per-follower position tolerance
 
 
+# ArduPilot SITL with many vehicles runs at about a third of real time or less: wall-clock waits are scaled
+SLOW = float(os.environ.get("XTDRONE_TEST_SLOW", "4"))
+
+
 def log(m):
     print(f"[formation_test] {m}", flush=True)
 
@@ -67,7 +71,7 @@ class Fleet(Node):
                                      lambda m, n=n: self.gt.__setitem__(n, m.pose.pose.position), 1)
 
     def wait(self, seconds, cond=None, every=None):
-        end = time.time() + seconds
+        end = time.time() + seconds * SLOW
         while time.time() < end:
             rclpy.spin_once(self, timeout_sec=0.05)
             if every:
@@ -125,7 +129,7 @@ def main():
             return 1
         log(f"all {N} vehicles connected")
         up = lambda: [f.vel[n].publish(Twist(linear=Twist().linear.__class__(z=1.0))) for n in f.names]  # noqa
-        deadline = time.time() + 90
+        deadline = time.time() + 90 * SLOW
         while time.time() < deadline and not all(f.state[n].armed for n in f.names):
             for n in f.names:
                 if not f.state[n].armed:
