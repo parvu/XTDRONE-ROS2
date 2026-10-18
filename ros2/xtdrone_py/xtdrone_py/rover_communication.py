@@ -18,7 +18,7 @@ ROVER_MASK_VELOCITY = (PositionTarget.IGNORE_PX | PositionTarget.IGNORE_PY | Pos
 class RoverCommunication(VehicleNode):
 
     def __init__(self, vehicle_id):
-        super().__init__("communication", "rover", vehicle_id)
+        super().__init__("communication", "rover", vehicle_id, telemetry=True)
         self.local_pose = None
         self.mavros_state = None
         self.target_motion = PositionTarget()

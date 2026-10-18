@@ -3,9 +3,10 @@ import math
 import sys
 
 import rclpy
-from geometry_msgs.msg import Quaternion
-from mavros_msgs.msg import PositionTarget
-from mavros_msgs.srv import CommandBool, CommandTOL, SetMode
+from geographic_msgs.msg import GeoPointStamped
+from geometry_msgs.msg import PoseStamped, Quaternion
+from mavros_msgs.msg import PositionTarget, State
+from mavros_msgs.srv import CommandBool, CommandTOL, MessageInterval, SetMode
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
@@ -52,6 +53,23 @@ def ap_mode(name):
     return AP_MODES.get(name, name)
 
 
+# ArduPilot sends only the MAVLink messages it is asked for, and MAVROS does not ask. Message id -> rate (Hz).
+AP_MESSAGE_INTERVALS = {
+    1: 5,      # SYS_STATUS
+    24: 5,     # GPS_RAW_INT
+    27: 10,    # RAW_IMU
+    29: 5,     # SCALED_PRESSURE
+    30: 30,    # ATTITUDE
+    31: 30,    # ATTITUDE_QUATERNION
+    32: 30,    # LOCAL_POSITION_NED
+    33: 10,    # GLOBAL_POSITION_INT
+    74: 10,    # VFR_HUD
+    116: 10,   # SCALED_IMU2
+    65: 2,     # RC_CHANNELS
+    242: 0.5,  # HOME_POSITION
+}
+
+
 def q2yaw(q):
     """Yaw (rad) of a geometry_msgs Quaternion."""
     return math.atan2(2.0 * (q.w * q.z + q.x * q.y), 1.0 - 2.0 * (q.y * q.y + q.z * q.z))
@@ -78,7 +96,7 @@ def rpy2q(roll, pitch, yaw):
 class VehicleNode(Node):
     """Node bound to one XTDrone vehicle <type>_<id> with MAVROS arming/mode clients."""
 
-    def __init__(self, node_suffix, vehicle_type, vehicle_id):
+    def __init__(self, node_suffix, vehicle_type, vehicle_id, telemetry=False):
         self.vehicle_type = vehicle_type
         self.vehicle_id = str(vehicle_id)
         self.name = f"{vehicle_type}_{self.vehicle_id}"
@@ -86,6 +104,58 @@ class VehicleNode(Node):
         self.arm_client = self.create_client(CommandBool, f"/{self.name}/mavros/cmd/arming")
         self.mode_client = self.create_client(SetMode, f"/{self.name}/mavros/set_mode")
         self.takeoff_client = self.create_client(CommandTOL, f"/{self.name}/mavros/cmd/takeoff")
+        if telemetry:
+            self._start_telemetry()
+
+    def _start_telemetry(self):
+        """Ask the autopilot for the MAVLink streams (each time the vehicle connects, and again until the local
+        position arrives: a request is lost while the autopilot or MAVROS is still starting, e.g. with many vehicles
+        at once) and publish the EKF origin (global_position/set_gp_origin), which the vision EKF presets need before
+        the autopilot arms. With GPS the origin is already set and ArduPilot ignores it."""
+        self._tm_origin = GeoPointStamped()
+        p = self._tm_origin.position
+        p.latitude = self.declare_parameter("origin_lat", 47.397742).value
+        p.longitude = self.declare_parameter("origin_lon", 8.545594).value
+        p.altitude = self.declare_parameter("origin_alt", 488.0).value
+        n = self.name
+        self._tm_client = self.create_client(MessageInterval, f"/{n}/mavros/set_message_interval")
+        self._tm_origin_pub = self.create_publisher(GeoPointStamped, f"/{n}/mavros/global_position/set_gp_origin", 1)
+        self.create_subscription(State, f"/{n}/mavros/state", self._tm_state, MAVROS_QOS)
+        self.create_subscription(PoseStamped, f"/{n}/mavros/local_position/pose", self._tm_pose, MAVROS_QOS)
+        self._tm_connected = False
+        self._tm_pose_seen = False
+        self._tm_since = None
+        self._tm_pending = []
+        self._tm_origin_sent = 0
+        self.create_timer(0.25, self._tm_step)
+
+    def _tm_state(self, msg):
+        if msg.connected and not self._tm_connected:
+            self._tm_pending = list(AP_MESSAGE_INTERVALS.items())
+            self._tm_origin_sent = 0
+            self._tm_since = self.get_clock().now()
+            self.log("connected, requesting the MAVLink streams")
+        self._tm_connected = msg.connected
+
+    def _tm_pose(self, msg):
+        self._tm_pose_seen = True
+
+    def _tm_step(self):
+        if not self._tm_connected:
+            return
+        now = self.get_clock().now()
+        if not self._tm_pending and not self._tm_pose_seen and (now - self._tm_since).nanoseconds > 5e9:
+            self._tm_pending = list(AP_MESSAGE_INTERVALS.items())
+            self._tm_since = now
+        if self._tm_pending and self._tm_client.service_is_ready():
+            mid, hz = self._tm_pending.pop(0)
+            req = MessageInterval.Request()
+            req.message_id, req.message_rate = mid, float(hz)
+            self._tm_client.call_async(req)
+        if self._tm_origin_sent < 20:  # a few times: the EKF may not be up yet
+            self._tm_origin.header.stamp = now.to_msg()
+            self._tm_origin_pub.publish(self._tm_origin)
+            self._tm_origin_sent += 1
 
     def log(self, text):
         print(f"{self.name}: {text}", flush=True)

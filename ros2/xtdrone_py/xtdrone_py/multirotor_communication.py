@@ -20,7 +20,7 @@ from xtdrone_py.common import (FRAME_BODY_NED, FRAME_BODY_OFFSET_NED, FRAME_LOCA
 class MultirotorCommunication(VehicleNode):
 
     def __init__(self, vehicle_type, vehicle_id):
-        super().__init__("communication", vehicle_type, vehicle_id)
+        super().__init__("communication", vehicle_type, vehicle_id, telemetry=True)
         self.current_position = None
         self.current_yaw = 0.0
         self.hover_flag = 0

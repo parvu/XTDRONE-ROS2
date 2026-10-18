@@ -20,7 +20,7 @@ MC_STATE, FW_STATE = 3, 4  # MAV_VTOL_STATE_MC / _FW
 class VtolCommunication(VehicleNode):
 
     def __init__(self, vehicle_type, vehicle_id):
-        super().__init__("communication", vehicle_type, vehicle_id)
+        super().__init__("communication", vehicle_type, vehicle_id, telemetry=True)
         self.local_pose = None
         self.current_yaw = 0.0
         self.target_motion = PositionTarget()

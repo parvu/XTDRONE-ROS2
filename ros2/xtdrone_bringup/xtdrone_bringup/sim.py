@@ -175,7 +175,7 @@ def mavros_params(vehicle, plugins="xtdrone"):
     return params
 
 
-def communication_node(vehicle, enhanced):
+def communication_node(vehicle, enhanced, origin):
     """XTDrone communication node (xtdrone_py) matching the vehicle family."""
     if vehicle.family == "multirotor":
         exe = "multirotor_communication_enhanced" if enhanced else "multirotor_communication"
@@ -184,7 +184,8 @@ def communication_node(vehicle, enhanced):
         exe, args = "vtol_communication", [vehicle.vtype, str(vehicle.id_in_type)]
     else:
         exe, args = f"{vehicle.family}_communication", [str(vehicle.id_in_type)]
-    return Node(package="xtdrone_py", executable=exe, arguments=args, output="screen")
+    return Node(package="xtdrone_py", executable=exe, arguments=args, output="screen",
+                parameters=[{"origin_lat": origin[0], "origin_lon": origin[1], "origin_alt": origin[2]}])
 
 
 def actor_bridges(world_file):
@@ -282,16 +283,18 @@ def vehicle_actions(v, world, paths, rootfs, mavros=True, bridge=True, communica
         # Topics end up in /<name>/mavros/... .
         actions.append(Node(package="mavros", executable="mavros_node", namespace=v.name,
                             output="log", parameters=mavros_params(v, mavros_plugins)))
-        # ArduPilot streams only what is asked for: message intervals, EKF origin (vision presets)
-        actions.append(Node(package="xtdrone_py", executable="ap_streams", arguments=[v.vtype, str(v.id_in_type)],
-                            output="screen",
-                            parameters=[{"origin_lat": (home or DEFAULT_HOME)[0],
-                                         "origin_lon": (home or DEFAULT_HOME)[1],
-                                         "origin_alt": (home or DEFAULT_HOME)[2]}]))
+        if communication == "none":
+            # ArduPilot streams only what is asked for (message intervals, EKF origin for the vision presets): the
+            # communication nodes do that themselves, this node is the same thing alone
+            actions.append(Node(package="xtdrone_py", executable="ap_streams",
+                                arguments=[v.vtype, str(v.id_in_type)], output="screen",
+                                parameters=[{"origin_lat": (home or DEFAULT_HOME)[0],
+                                             "origin_lon": (home or DEFAULT_HOME)[1],
+                                             "origin_alt": (home or DEFAULT_HOME)[2]}]))
     if bridge:
         actions.append(fleet_bridge([v], world, paths, tmp, name=f"{v.name}_gz_bridge"))
     if communication != "none" and sitl:
-        actions.append(communication_node(v, communication == "enhanced"))
+        actions.append(communication_node(v, communication == "enhanced", home or DEFAULT_HOME))
     if v.family == "ugv":
         # XTDrone UGV command (speed, steering angle) -> AckermannSteering (speed, yaw rate);
         # replaces the catvehicle cmd_vel controller, so it always runs

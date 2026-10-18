@@ -16,7 +16,7 @@ PLANE_IDLE_MASK = 16384
 class PlaneCommunication(VehicleNode):
 
     def __init__(self, vehicle_id):
-        super().__init__("communication", "plane", vehicle_id)
+        super().__init__("communication", "plane", vehicle_id, telemetry=True)
         self.local_pose = None
         self.target_motion = PositionTarget()
         self.target_motion.coordinate_frame = FRAME_LOCAL_NED  # default 0 (GLOBAL) is rejected by PX4
