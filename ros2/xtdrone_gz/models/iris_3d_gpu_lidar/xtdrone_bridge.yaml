@@ -25,7 +25,7 @@ bridges:
   ros_topic: imu_gazebo
   ros_type: sensor_msgs/msg/Imu
   gz_type: gz.msgs.IMU
-- gz_topic: /world/{world}/model/{name}/link/bumper_link/sensor/bumper/contact
+- gz_topic: /world/{world}/model/{name}/link/base_link/sensor/bumper/contact
   ros_topic: benchmarker/collision
   ros_type: ros_gz_interfaces/msg/Contacts
   gz_type: gz.msgs.Contacts

@@ -23,6 +23,28 @@ def main():
     out = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parent.parent / "models"
     standoffs = ET.parse(SRC / "iris_with_standoffs/model.sdf").getroot().find("model")
     wrapper = ET.parse(SRC / "iris_with_ardupilot/model.sdf").getroot().find("model")
+    # One box for the whole frame, legs included (x -0.16..0.145, y -0.235..0.24, z -0.195..0.04), instead of the
+    # mesh body, four leg cylinders and four rotor discs of the ArduPilot model: gz-sim's contact solver cost grows
+    # with the number of collision shapes and nine vehicles on the ground ran at 0.4 of real time with them, 1.4 with
+    # the box. A contact sensor on it reports ground and obstacle contacts (XTDrone's benchmarker/collision, chapter 44).
+    body_collision = ET.fromstring("""
+      <collision name="base_collision">
+        <pose>-0.007 0.002 -0.075 0 0 0</pose>
+        <geometry><box><size>0.31 0.47 0.24</size></box></geometry>
+        <surface><contact><ode><max_vel>100.0</max_vel><min_depth>0.001</min_depth></ode></contact></surface>
+      </collision>""")
+    bumper = ET.fromstring("""
+      <sensor name="bumper" type="contact">
+        <always_on>1</always_on>
+        <update_rate>30</update_rate>
+        <contact><collision>base_collision</collision></contact>
+      </sensor>""")
+    for link in standoffs.findall("link"):
+        for col in link.findall("collision"):
+            link.remove(col)
+        if link.get("name") == "base_link":
+            link.insert(list(link).index(link.find("visual")), body_collision)
+            link.append(bumper)
     parts = []
     for el in standoffs:
         if el.tag in ("link", "joint"):

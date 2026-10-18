@@ -203,33 +203,12 @@ def kit_airspeed():
     return sdf, []
 
 
-def kit_bumper(size="0.65 0.65 0.275", z=-0.0575):
-    # Like XTDrone's bumper_sensor_iris: a light box around the frame whose
-    # contacts are reported (a gz contact sensor only sees its own link).
-    # For the Iris frame it spans from the leg bottoms (0.195 m below base_link)
-    # to above the body, so a landed vehicle reports a ground contact as before.
-    link = "bumper_link"
-    sdf = f"""
-    <link name="{link}">
-      <pose relative_to="base_link">0 0 {z} 0 0 0</pose>
-      <inertial><mass>0.01</mass>
-        <inertia><ixx>1e-5</ixx><iyy>1e-5</iyy><izz>1e-5</izz><ixy>0</ixy><ixz>0</ixz><iyz>0</iyz></inertia>
-      </inertial>
-      <collision name="bumper_collision">
-        <geometry><box><size>{size}</size></box></geometry>
-      </collision>
-      <sensor name="bumper" type="contact">
-        <always_on>1</always_on>
-        <update_rate>30</update_rate>
-        <contact><collision>bumper_collision</collision></contact>
-      </sensor>
-    </link>
-    <joint name="{link}_joint" type="fixed">
-      <parent>base_link</parent>
-      <child>{link}</child>
-    </joint>"""
-    scope = SCOPE.format(world="{world}", name="{name}", link=link, sensor="bumper")
-    return sdf, [(scope + "/contact", "benchmarker/collision", "ros_gz_interfaces/msg/Contacts", "gz.msgs.Contacts")]
+def kit_bumper():
+    # XTDrone's bumper_sensor_iris: ground and obstacle contacts of the frame. The contact sensor is part of the
+    # iris_ardupilot base (a gz contact sensor only sees the collisions of its own link, and a second box around the
+    # frame made the contact solver much slower); this kit only bridges it.
+    scope = SCOPE.format(world="{world}", name="{name}", link="base_link", sensor="bumper")
+    return "", [(scope + "/contact", "benchmarker/collision", "ros_gz_interfaces/msg/Contacts", "gz.msgs.Contacts")]
 
 
 KITS = {

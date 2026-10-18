@@ -34,7 +34,7 @@ ISOLATED = 13
 
 
 # ArduPilot SITL with many vehicles runs at about a third of real time or less: wall-clock waits are scaled
-SLOW = float(os.environ.get("XTDRONE_TEST_SLOW", "4"))
+SLOW = float(os.environ.get("XTDRONE_TEST_SLOW", "2"))
 
 
 def log(m):

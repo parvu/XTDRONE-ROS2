@@ -1,6 +1,7 @@
 """Launch building blocks shared by xtdrone.launch.py and spawn_vehicle.launch.py."""
 import functools
 import os
+import re
 import tempfile
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
@@ -253,10 +254,14 @@ def vehicle_actions(v, world, paths, rootfs, mavros=True, bridge=True, communica
         # terrain meshes (e.g. the outdoor3 raceway).
         z = ground_level(world) + SPAWN_CLEARANCE
     model_sdf = paths.model_sdf(v.model)
-    if sitl and "ArduPilotPlugin" in model_sdf.read_text():
-        # the SITL instance N talks to the plugin on UDP port 9002 + 10 N
-        text = model_sdf.read_text().replace("<fdm_port_in>9002</fdm_port_in>",
-                                             f"<fdm_port_in>{9002 + 10 * v.instance}</fdm_port_in>")
+    if "ArduPilotPlugin" in model_sdf.read_text():
+        text = model_sdf.read_text()
+        if sitl:
+            # the SITL instance N talks to the plugin on UDP port 9002 + 10 N
+            text = text.replace("<fdm_port_in>9002</fdm_port_in>", f"<fdm_port_in>{9002 + 10 * v.instance}</fdm_port_in>")
+        else:
+            # no SITL to answer: the plugin would wait for it at every step (lockstep)
+            text = re.sub(r'\s*<plugin name="ArduPilotPlugin".*?</plugin>', "", text, flags=re.S)
         model_sdf = Path(tmp) / f"{v.name}.sdf"
         model_sdf.write_text(text)
     actions = [Node(
