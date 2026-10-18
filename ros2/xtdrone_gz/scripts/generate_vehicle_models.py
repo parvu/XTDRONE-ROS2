@@ -174,8 +174,8 @@ def kit_3d_lidar():
 
 
 def kit_imu_gazebo():
-    # Reuse the PX4 airframe IMU on base_link (250 Hz) as XTDrone's imu_gazebo.
-    scope = SCOPE.format(world="{world}", name="{name}", link="base_link", sensor="imu_sensor")
+    # The IMU the ArduPilotPlugin reads (imu_link of the Iris base, the world step rate) is XTDrone's imu_gazebo.
+    scope = SCOPE.format(world="{world}", name="{name}", link="imu_link", sensor="imu_sensor")
     return "", [(scope + "/imu", "imu_gazebo", "sensor_msgs/msg/Imu", "gz.msgs.IMU")]
 
 
@@ -203,10 +203,10 @@ def kit_airspeed():
     return sdf, []
 
 
-def kit_bumper(size="0.65 0.65 0.31", z=-0.072):
+def kit_bumper(size="0.65 0.65 0.275", z=-0.0575):
     # Like XTDrone's bumper_sensor_iris: a light box around the frame whose
     # contacts are reported (a gz contact sensor only sees its own link).
-    # For the x500 frame it spans from the leg bottoms (0.227 m below base_link)
+    # For the Iris frame it spans from the leg bottoms (0.195 m below base_link)
     # to above the body, so a landed vehicle reports a ground contact as before.
     link = "bumper_link"
     sdf = f"""

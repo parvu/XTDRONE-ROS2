@@ -17,7 +17,7 @@ bridges:
   ros_topic: realsense/depth_camera/depth/points
   ros_type: sensor_msgs/msg/PointCloud2
   gz_type: gz.msgs.PointCloudPacked
-- gz_topic: /world/{world}/model/{name}/link/base_link/sensor/imu_sensor/imu
+- gz_topic: /world/{world}/model/{name}/link/imu_link/sensor/imu_sensor/imu
   ros_topic: imu_gazebo
   ros_type: sensor_msgs/msg/Imu
   gz_type: gz.msgs.IMU

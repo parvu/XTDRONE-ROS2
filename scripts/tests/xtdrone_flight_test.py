@@ -120,7 +120,7 @@ def arm(node, vehicles, mode, every=None, timeout=60):
 
 
 def multirotor(node, vehicles, altitude):
-    ok = node.wait(120, lambda: all(v.ready for v in vehicles))
+    ok = node.wait(240, lambda: all(v.ready for v in vehicles))
     if not ok:
         for v in vehicles:
             log(f"{v.name}: connected={bool(v.state and v.state.connected)} pose={v.pose is not None} "
@@ -233,7 +233,7 @@ def main():
     ap.add_argument("--topics", nargs="*", default=[])
     ap.add_argument("--exist-topics", nargs="*", default=[],
                     help="topics that must exist (e.g. contact sensors only publish on contact)")
-    ap.add_argument("--topic-timeout", type=float, default=60.0)
+    ap.add_argument("--topic-timeout", type=float, default=180.0)
     args = ap.parse_args()
     rclpy.init()
     node = FlightTest()

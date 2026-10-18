@@ -3,7 +3,7 @@
 
 Requires a running simulation with iris_0 (e.g. scenario:=indoor1). Starts
 `ros2 run xtdrone_py attitude_control_demo iris <mode> [hover]`, presses
-'t' (arm + offboard position takeoff to 2 m), then 'b' (attitude control towards
+'t' (arm + GUIDED takeoff to 2 m), then 'b' (attitude control towards
 the target (1, 0, 2)), and checks that the vehicle reaches and holds the target;
 then presses 'l' (land) and 'q'.
 
@@ -82,7 +82,7 @@ class Watch(Node):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--mode", choices=["angular_speed", "angle"], default="angular_speed")
-    ap.add_argument("--hover", default="0.73")
+    ap.add_argument("--hover", default="0.5")
     a = ap.parse_args()
     rclpy.init()
     w = Watch()

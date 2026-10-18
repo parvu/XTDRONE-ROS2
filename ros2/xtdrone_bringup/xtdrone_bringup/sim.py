@@ -285,7 +285,7 @@ def vehicle_actions(v, world, paths, rootfs, mavros=True, bridge=True, communica
         # ArduPilot streams only what is asked for: message intervals, EKF origin (vision presets)
         actions.append(Node(package="xtdrone_py", executable="ap_streams", arguments=[v.vtype, str(v.id_in_type)],
                             output="screen",
-                            parameters=[{"use_sim_time": True, "origin_lat": (home or DEFAULT_HOME)[0],
+                            parameters=[{"origin_lat": (home or DEFAULT_HOME)[0],
                                          "origin_lon": (home or DEFAULT_HOME)[1],
                                          "origin_alt": (home or DEFAULT_HOME)[2]}]))
     if bridge:

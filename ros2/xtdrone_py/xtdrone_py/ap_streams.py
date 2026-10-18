@@ -8,6 +8,7 @@ connects, and publishes the EKF origin (global_position/set_gp_origin), which th
 the autopilot arms (with GPS it is already set and ArduPilot ignores it).
 """
 from geographic_msgs.msg import GeoPointStamped
+from geometry_msgs.msg import PoseStamped
 from mavros_msgs.msg import State
 from mavros_msgs.srv import MessageInterval
 
@@ -43,21 +44,34 @@ class APStreams(VehicleNode):
         self.interval_client = self.create_client(MessageInterval, f"/{n}/mavros/set_message_interval")
         self.origin_pub = self.create_publisher(GeoPointStamped, f"/{n}/mavros/global_position/set_gp_origin", 1)
         self.create_subscription(State, f"/{n}/mavros/state", self.state_callback, MAVROS_QOS)
+        self.create_subscription(PoseStamped, f"/{n}/mavros/local_position/pose", self.pose_callback, MAVROS_QOS)
         self.connected = False
+        self.last_pose = None
+        self.connected_at = None
         self.pending = list(INTERVALS.items())
         self.create_timer(0.25, self.step)
         self.origin_sent = 0
+
+    def pose_callback(self, msg):
+        self.last_pose = self.get_clock().now()
 
     def state_callback(self, msg):
         if msg.connected and not self.connected:
             self.pending = list(INTERVALS.items())
             self.origin_sent = 0
+            self.connected_at = self.get_clock().now()
             self.log("connected, requesting the MAVLink streams")
         self.connected = msg.connected
 
     def step(self):
         if not self.connected:
             return
+        # a request can be lost while the autopilot or MAVROS is still starting (many vehicles at once): ask again
+        # every 5 s until the local position streams
+        now = self.get_clock().now()
+        if not self.pending and self.last_pose is None and (now - self.connected_at).nanoseconds > 5e9:
+            self.pending = list(INTERVALS.items())
+            self.connected_at = now
         if self.pending and self.interval_client.service_is_ready():
             mid, hz = self.pending.pop(0)
             req = MessageInterval.Request()

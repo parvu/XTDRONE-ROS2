@@ -5,9 +5,10 @@
 
 Controls <type>_0 through /<type>_0/mavros/setpoint_raw/attitude with a PID
 (position -> attitude -> body rate / thrust) with a hover-throttle feedforward.
-The ROS 1 version used 0.55 (Classic iris). The x500 airframe used on Gazebo
-Harmonic hovers at 0.73 (measured), the default here; pass another value as the
-third argument for other vehicles. Set XTDRONE_DEBUG=1 to print the controller state.
+ArduPilot's GUIDED mode reads the thrust of a SET_ATTITUDE_TARGET as a climb rate by default: 0.5 holds the
+altitude, 1.0 climbs at WPNAV_SPEED_UP and 0.0 descends at WPNAV_SPEED_DN. The hover value is therefore 0.5
+(the ROS 1 version used 0.55 on the Classic iris) and the altitude gains are scaled to climb rates. Pass another
+hover value as the third argument. Set XTDRONE_DEBUG=1 to print the controller state.
 """
 import math
 import os
@@ -20,7 +21,7 @@ from geometry_msgs.msg import PoseStamped, TwistStamped
 from mavros_msgs.msg import AttitudeTarget, PositionTarget, State
 from nav_msgs.msg import Odometry
 
-from xtdrone_py.common import MASK_POSITION, MAVROS_QOS, VehicleNode, q2rpy, rpy2q
+from xtdrone_py.common import MASK_POSITION, MAVROS_QOS, VehicleNode, ap_mode, q2rpy, rpy2q
 from xtdrone_py.keyboard_control import Terminal
 
 HELP = """
@@ -51,6 +52,7 @@ class AttitudeDemo(VehicleNode):
         self.roll = self.pitch = self.yaw = 0.0
         self.roll_rate = self.pitch_rate = self.yaw_rate = 0.0
         self.mode = ""
+        self.takeoff_at = 0.0
         n = self.name
         self.create_subscription(PoseStamped, f"/{n}/mavros/local_position/pose", self.local_pose_callback, MAVROS_QOS)
         self.create_subscription(TwistStamped, f"/{n}/mavros/local_position/velocity_body",
@@ -75,7 +77,7 @@ class AttitudeDemo(VehicleNode):
         self.mode = msg.mode
 
     def offboard(self):
-        if self.mode != "OFFBOARD":
+        if self.mode != ap_mode("OFFBOARD"):
             self.set_mode("OFFBOARD")
 
     def loop(self):
@@ -109,7 +111,9 @@ class AttitudeDemo(VehicleNode):
                     mission = "control"
                     print("begin attitude control")
                 elif key == "t":
+                    self.set_mode("OFFBOARD")
                     self.arm(True)
+                    self.takeoff_at = time.time()
                     mission = "takeoff"
                     print("takeoff to", takeoff[:3])
                 elif key == "l":
@@ -120,7 +124,14 @@ class AttitudeDemo(VehicleNode):
                 elif key in ("q", "\x03"):
                     break
 
-                if mission in ("return", "takeoff"):
+                if mission == "takeoff":
+                    # a setpoint would cancel GUIDED's takeoff: command it (again) until the vehicle climbs
+                    if self.mode == ap_mode("OFFBOARD") and self.pz < 0.5 and time.time() - self.takeoff_at > 3.0:
+                        self.takeoff_at = time.time()
+                        self.takeoff(takeoff[2])
+                    elif self.pz >= 0.8 * takeoff[2]:
+                        mission = "hold"
+                if mission in ("return", "hold"):
                     t = PositionTarget()
                     t.coordinate_frame = PositionTarget.FRAME_LOCAL_NED
                     t.position.x, t.position.y, t.position.z = takeoff[:3]
@@ -141,8 +152,8 @@ class AttitudeDemo(VehicleNode):
             self._dbg_t = time.time()
             print(f"[debug] px={self.px:.2f} py={self.py:.2f} pz={self.pz:.2f} vx={self.vx:.2f} vy={self.vy:.2f} "
                   f"roll_r={roll_r:.3f} pitch_r={pitch_r:.3f} pitch={self.pitch:.3f}", file=sys.stderr, flush=True)
-        thrust = (-0.5 * (self.pz - cz) - 0.31774509 * self.vz
-                  + self.hover_thrust / math.cos(self.pitch) / math.cos(self.roll))
+        # thrust is a climb rate command around 0.5 (see above): the PX4 gains, scaled
+        thrust = self.hover_thrust + 0.25 * (-0.5 * (self.pz - cz) - 0.31774509 * self.vz)
         att = AttitudeTarget()
         att.header.stamp = self.get_clock().now().to_msg()
         att.thrust = float(max(0.0, min(1.0, thrust)))
@@ -162,7 +173,7 @@ def main():
     argv = rclpy.utilities.remove_ros_args(sys.argv)[1:]
     if len(argv) < 2 or argv[1] not in ("angular_speed", "angle"):
         raise SystemExit("usage: attitude_control_demo <uav_type> <angular_speed|angle> [hover_thrust]")
-    hover = float(argv[2]) if len(argv) > 2 else 0.73
+    hover = float(argv[2]) if len(argv) > 2 else 0.5
     rclpy.init()
     node = AttitudeDemo(argv[0], argv[1], hover)
     spinner = threading.Thread(target=rclpy.spin, args=(node,), daemon=True)

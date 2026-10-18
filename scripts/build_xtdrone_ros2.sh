@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # Build XTDrone for ROS 2 Jazzy + Gazebo Harmonic:
-#   1. PX4 v1.16.2 SITL (gz_bridge against Gazebo Harmonic)
-#   2. XTDrone PX4 airframes into the PX4 build
-#   3. Gazebo Classic worlds/models -> Harmonic (ros2/xtdrone_gz/generated)
-#   4. colcon workspace with the XTDrone ROS 2 packages
+#   1. ArduPilot 4.7.2 SITL (Copter, Plane, Rover) and the ArduPilot Gazebo plugin (scripts/build_ardupilot.sh)
+#   2. Gazebo Classic worlds/models -> Harmonic (ros2/xtdrone_gz/generated)
+#   3. colcon workspace with the XTDrone ROS 2 packages
 # Re-running is safe. Set XTDRONE_WS to change the workspace (default ~/xtdrone_ros2_ws),
 # XTDRONE_NO_VRX=1 to leave out VRX (chapter 32, the longest part of the build).
 set -euo pipefail
@@ -34,21 +33,8 @@ if [[ ! -f /opt/ros/${ROS_DISTRO}/setup.bash ]]; then
 fi
 command -v gz >/dev/null || { echo "Gazebo (gz) is missing. Run scripts/setup_ubuntu_24_04.sh first." >&2; exit 1; }
 
-if [[ ! -f "${PX4_DIR}/Makefile" ]]; then
-  git -C "${ROOT_DIR}" submodule update --init --recursive PX4-Autopilot
-fi
-
-echo "== Building PX4 SITL (px4_sitl_default)"
-# PX4 must not see the ROS environment while configuring (it would pick up ROS' Python).
-env -u PYTHONPATH -u AMENT_PREFIX_PATH -u CMAKE_PREFIX_PATH \
-  make -C "${PX4_DIR}" px4_sitl_default -j"${JOBS}"
-if [[ ! -d "${PX4_DIR}/build/px4_sitl_default/src/modules/simulation/gz_bridge" ]]; then
-  echo "error: PX4 was built without gz_bridge; is gz-harmonic (gz-transport13) installed?" >&2
-  exit 1
-fi
-
-echo "== Installing XTDrone airframes into the PX4 build"
-cp "${GZ_PKG}"/px4/init.d-posix/airframes/* "${PX4_DIR}/build/px4_sitl_default/etc/init.d-posix/airframes/" 2>/dev/null || true
+echo "== Building ArduPilot SITL and the Gazebo plugin"
+"${ROOT_DIR}/scripts/build_ardupilot.sh" -j "${JOBS}"
 
 echo "== Fetching Gazebo Classic model sources"
 mkdir -p "${CACHE_DIR}"
@@ -61,7 +47,9 @@ if [[ ! -d "${CACHE_DIR}/gazebo-classic/.git" ]]; then
   git -C "${CACHE_DIR}/gazebo-classic" sparse-checkout set media/materials media/models
 fi
 
-# Some XTDrone worlds use models from PX4's Gazebo Classic models (big_box*, europallet, rover).
+# Some XTDrone worlds use models from PX4's Gazebo Classic models (big_box*, europallet, rover); only the model
+# sources are used, PX4 itself is not built.
+[[ -f "${PX4_DIR}/Makefile" ]] || git -C "${ROOT_DIR}" submodule update --init PX4-Autopilot
 git -C "${PX4_DIR}" submodule update --init Tools/simulation/gazebo-classic/sitl_gazebo-classic
 
 echo "== Converting XTDrone worlds and models to Gazebo Harmonic"
