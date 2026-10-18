@@ -34,6 +34,12 @@ class MultirotorCommunication(VehicleNode):
         # ArduPilot GUIDED needs a takeoff command after arming: this node sends it (takeoff_height) when the
         # vehicle is armed in GUIDED mode on the ground
         self.takeoff_height = self.declare_parameter("takeoff_height", 1.0).value
+        # ArduPilot reports a position and a home as soon as the EKF has an origin, before the estimator has settled;
+        # arming then gave wandering headings and bouncing altitudes. ARM waits until the local position has been
+        # streaming for arm_settle seconds.
+        self.arm_settle = self.declare_parameter("arm_settle", 15.0).value
+        self.first_pose = None
+        self.arm_pending = False
         self.armed = False
         self.mode = ""
         self.ground_z = None
@@ -60,11 +66,27 @@ class MultirotorCommunication(VehicleNode):
     def state_callback(self, msg):
         if msg.armed and not self.armed and self.current_position is not None:
             self.ground_z = self.current_position.z
+        if (msg.armed, msg.mode) != (self.armed, self.mode):
+            self.log(f"state: armed={msg.armed} mode={msg.mode}")
         self.armed, self.mode = msg.armed, msg.mode
         if not msg.armed:
             self.ground_z = None
 
+    def settled(self):
+        return (self.first_pose is not None
+                and (self.get_clock().now() - self.first_pose).nanoseconds > self.arm_settle * 1e9)
+
+    def request_arm(self):
+        if self.settled():
+            self.arm(True)
+        else:
+            self.arm_pending = True
+            self.log("waiting for the estimator to settle before arming")
+
     def check_takeoff(self):
+        if self.arm_pending and self.settled():
+            self.arm_pending = False
+            self.arm(True)
         if not self.armed or self.current_position is None:
             self.streaming = False
             return
@@ -89,6 +111,8 @@ class MultirotorCommunication(VehicleNode):
         self.target_motion_pub.publish(self.target_motion)
 
     def local_pose_callback(self, msg):
+        if self.first_pose is None:
+            self.first_pose = self.get_clock().now()
         self.current_position = msg.pose.position
         self.current_yaw = q2yaw(msg.pose.orientation)
 
@@ -162,8 +186,9 @@ class MultirotorCommunication(VehicleNode):
     def cmd_callback(self, msg):
         if msg.data in (self.last_cmd, "", "stop controlling"):
             return
+        self.log(f"cmd: {msg.data}")
         if msg.data == "ARM":
-            self.arm(True)
+            self.request_arm()
         elif msg.data == "DISARM":
             self.arm(False)
         elif msg.data[:-1] == "mission" and msg.data != self.mission:

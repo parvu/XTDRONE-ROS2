@@ -190,7 +190,14 @@ class VehicleNode(Node):
         """ArduPilot GUIDED does not leave the ground on setpoints: it needs the takeoff command first."""
         req = CommandTOL.Request()
         req.altitude = float(altitude)
-        self.call(self.takeoff_client, req, f"takeoff to {altitude:g} m", "takeoff failed", check=lambda r: r.success)
+        if not self.takeoff_client.wait_for_service(timeout_sec=1.0):
+            self.log("takeoff failed (service not available)")
+            return
+
+        def done(future):
+            r = future.result()
+            self.log(f"takeoff to {altitude:g} m" if r.success else f"takeoff failed (result {r.result})")
+        self.takeoff_client.call_async(req).add_done_callback(done)
 
 
 def run(node_factory, args=None):

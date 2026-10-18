@@ -143,7 +143,7 @@ def multirotor(node, vehicles, altitude):
     hover = lambda: [v.twist() for v in vehicles]  # noqa: E731
     for v in vehicles:
         v.send("HOVER")
-    node.wait(1.0, every=hover)
+    node.wait(3.0, every=hover)  # ArduPilot brakes from the climb in about 2 s: measure the hold after that
     held = {v.name: v.z for v in vehicles}
     node.wait(5.0, every=hover)
     drift = max(abs(v.z - held[v.name]) for v in vehicles)

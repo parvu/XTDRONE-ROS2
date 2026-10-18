@@ -128,6 +128,9 @@ def main():
             log("FAIL: not all vehicles connected with home position")
             return 1
         log(f"all {N} vehicles connected")
+        # ArduPilot reports a home position as soon as the EKF has an origin; arming then, before the estimator has
+        # settled, gave wandering headings and bouncing altitudes. Let it settle first.
+        f.wait(20)
         up = lambda: [f.vel[n].publish(Twist(linear=Twist().linear.__class__(z=1.0))) for n in f.names]  # noqa
         deadline = time.time() + 90 * SLOW
         while time.time() < deadline and not all(f.state[n].armed for n in f.names):

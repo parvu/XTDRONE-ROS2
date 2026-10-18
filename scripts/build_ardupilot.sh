@@ -17,6 +17,17 @@ JOBS="$(nproc)"
 echo "== ArduPilot sources"
 git -C "${ROOT_DIR}" submodule update --init --depth 1 --recursive ArduPilot ardupilot_gazebo
 
+echo "== XTDrone patches to ArduPilot"
+# SIM_JSON adds the whole physics time of the first frame to its clock: a vehicle added to a running world started
+# ArduPilot with a time jump of that many seconds, and spun and bounced on the ground. (Not in the submodule.)
+PATCH="${ROOT_DIR}/ros2/xtdrone_gz/ardupilot/sim_json_first_frame.patch"
+if git -C "${ROOT_DIR}/ArduPilot" apply --reverse --check "${PATCH}" 2>/dev/null; then
+  echo "already applied: $(basename "${PATCH}")"
+else
+  git -C "${ROOT_DIR}/ArduPilot" apply "${PATCH}"
+  echo "applied: $(basename "${PATCH}")"
+fi
+
 echo "== Python environment for waf (${VENV})"
 if [[ ! -x "${VENV}/bin/python" ]]; then
   mkdir -p "${CACHE_DIR}"
