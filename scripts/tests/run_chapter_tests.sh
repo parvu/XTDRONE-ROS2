@@ -18,10 +18,10 @@ cleanup_sim() {
   pkill -INT -f "ros2 launch xtdrone_" 2>/dev/null
   sleep 3
   pkill -KILL -f "ros2 launch xtdrone_" 2>/dev/null
-  pkill -KILL -x px4 2>/dev/null
-  # PX4's startup script runs in its own shell; if px4 dies while rcS still waits for Gazebo, the
-  # orphaned rcS would later send its commands to the next px4 with the same instance number.
-  pkill -KILL -f "etc/init.d-posix/rc[S]" 2>/dev/null
+  pkill -KILL -f "xtdrone_bringup.sitl_ru[n]" 2>/dev/null
+  pkill -KILL -x arducopter 2>/dev/null
+  pkill -KILL -x arduplane 2>/dev/null
+  pkill -KILL -x ardurover 2>/dev/null
   pkill -KILL -f "gz sim" 2>/dev/null
   pkill -KILL -f "mavros_node" 2>/dev/null
   pkill -KILL -f "parameter_bridge" 2>/dev/null
@@ -120,7 +120,7 @@ gz_case() {
   cleanup_sim
   local share; share="$(ros2 pkg prefix xtdrone_gz)/share/xtdrone_gz"
   echo "=== ${name}: gz sim ${world}"
-  GZ_SIM_RESOURCE_PATH="${share}/models:${share}/classic_models:${share}/worlds:${ROOT_DIR}/PX4-Autopilot/Tools/simulation/gz/models:${GZ_SIM_RESOURCE_PATH:-}" \
+  GZ_SIM_RESOURCE_PATH="${share}/models:${share}/classic_models:${share}/worlds:${ROOT_DIR}/ardupilot_gazebo/models:${GZ_SIM_RESOURCE_PATH:-}" \
     gz sim -s -r -v 1 "${share}/worlds/${world}.sdf" >"${log}" 2>&1 &
   sleep 15
   if GZ_SIM_RESOURCE_PATH="${GZ_SIM_RESOURCE_PATH:-}:${share}/worlds" bash -c "${cmds}" 2>&1 | tee -a "${log}" | grep -q '^PASS'; then
@@ -165,27 +165,27 @@ for c in "${CASES[@]}"; do
       run_script ch16_rtabmap "world:=indoor1 vehicles:=iris_realsense_camera communication:=basic" \
         "${ROOT_DIR}/scripts/tests/rtabmap_test.py" "sleep 25; ros2 launch xtdrone_slam rtabmap_rgbd.launch.py" ;;
     ch17)  # 2D laser SLAM with slam_toolbox (HectorSLAM in ROS 1): fly on the SLAM pose only
-      run_script ch17_slam_toolbox "scenario:=indoor3 ekf:=laser2d communication:=basic px4_params:=MPC_XY_VEL_MAX=1,MPC_ACC_HOR=1" \
+      run_script ch17_slam_toolbox "scenario:=indoor3 ekf:=laser2d communication:=basic params:=WPNAV_SPEED=100,WPNAV_ACCEL=100" \
         "${ROOT_DIR}/scripts/tests/laser_slam_test.py --slam slam_toolbox --size 1" \
         "sleep 20; ros2 launch xtdrone_slam laser_slam_2d.launch.py slam:=slam_toolbox" ;;
     ch18)  # 2D laser SLAM with Cartographer
-      run_script ch18_cartographer "scenario:=indoor3 ekf:=laser2d communication:=basic px4_params:=MPC_XY_VEL_MAX=1,MPC_ACC_HOR=1" \
+      run_script ch18_cartographer "scenario:=indoor3 ekf:=laser2d communication:=basic params:=WPNAV_SPEED=100,WPNAV_ACCEL=100" \
         "${ROOT_DIR}/scripts/tests/laser_slam_test.py --slam cartographer --size 1" \
         "sleep 20; ros2 launch xtdrone_slam laser_slam_2d.launch.py slam:=cartographer" ;;
     ch13)  # stereo visual SLAM (ORB-SLAM3; scripts/build_orbslam3.sh first): fly on the SLAM pose only
-      run_script ch13_orbslam3 "scenario:=outdoor1_stereo ekf:=vision communication:=basic px4_params:=MPC_XY_VEL_MAX=1,MPC_ACC_HOR=1" \
+      run_script ch13_orbslam3 "scenario:=outdoor1_stereo ekf:=vision communication:=basic params:=WPNAV_SPEED=100,WPNAV_ACCEL=100" \
         "${ROOT_DIR}/scripts/tests/laser_slam_test.py --slam orbslam3" \
         "sleep 20; ros2 launch xtdrone_orbslam3 stereo.launch.py" ;;
     ch14)  # stereo visual-inertial odometry (VINS-Fusion): fly on the VIO pose only
-      run_script ch14_vins "scenario:=outdoor1_stereo ekf:=vision communication:=basic px4_params:=MPC_XY_VEL_MAX=1,MPC_ACC_HOR=1" \
+      run_script ch14_vins "scenario:=outdoor1_stereo ekf:=vision communication:=basic params:=WPNAV_SPEED=100,WPNAV_ACCEL=100" \
         "${ROOT_DIR}/scripts/tests/laser_slam_test.py --slam vins --tolerance 0.6" \
         "sleep 20; ros2 launch xtdrone_slam vio.launch.py" ;;
     ch19)  # 3D laser odometry (KISS-ICP; A-LOAM in ROS 1): fly on the lidar odometry only
-      run_script ch19_kiss_icp "scenario:=outdoor1_3d_lidar ekf:=vision communication:=basic px4_params:=MPC_XY_VEL_MAX=1,MPC_ACC_HOR=1" \
+      run_script ch19_kiss_icp "scenario:=outdoor1_3d_lidar ekf:=vision communication:=basic params:=WPNAV_SPEED=100,WPNAV_ACCEL=100" \
         "${ROOT_DIR}/scripts/tests/laser_slam_test.py --slam kiss_icp" \
         "sleep 20; ros2 launch xtdrone_slam laser_slam_3d.launch.py" ;;
     ch20)  # Nav2 2D planning on slam_toolbox
-      run_script ch20_nav2 "scenario:=indoor3 ekf:=laser2d communication:=enhanced px4_params:=MPC_XY_VEL_MAX=1,MPC_ACC_HOR=1" \
+      run_script ch20_nav2 "scenario:=indoor3 ekf:=laser2d communication:=enhanced params:=WPNAV_SPEED=100,WPNAV_ACCEL=100" \
         "${ROOT_DIR}/scripts/tests/nav2_test.py" \
         "sleep 20; ros2 launch xtdrone_slam laser_slam_2d.launch.py slam:=slam_toolbox & sleep 15; ros2 launch xtdrone_planning nav2_2d.launch.py" ;;
     ch30)  # lane keeping of the CAT Vehicle on the outdoor3 track
@@ -269,12 +269,12 @@ for c in "${CASES[@]}"; do
         x=\$(gz_x rover_static); echo rover_static x=\$x
         awk -v x=\$x 'BEGIN{exit !(x > 70.5)}' && echo PASS || echo FAIL" ;;
     ch38)  # ROS-controlled actors (xtdrone_gz_plugins ActorMotion) in robocup
-      run_script ch38_actors "world:=robocup vehicles:=iris px4:=false" "${ROOT_DIR}/scripts/tests/actor_test.py" ;;
+      run_script ch38_actors "world:=robocup vehicles:=iris sitl:=false" "${ROOT_DIR}/scripts/tests/actor_test.py" ;;
     ch41)  # wind from ROS 2 acts on a hovering iris
       run_script ch41_wind "world:=empty vehicles:=iris communication:=basic" \
         "${ROOT_DIR}/scripts/tests/wind_test.py --wind 5" "sleep 10; ros2 run xtdrone_py wind_control" ;;
     ch43)  # vehicles without PX4 in zero gravity, teleported; speed factor 2
-      run_case ch43_no_px4 "world:=empty_zero_g vehicles:=iris*4 px4:=false" "--topics /iris_3/ground_truth/odom" ;
+      run_case ch43_no_px4 "world:=empty_zero_g vehicles:=iris*4 sitl:=false" "--topics /iris_3/ground_truth/odom" ;
       run_script ch43_speed_factor "world:=empty vehicles:=iris speed_factor:=2.0" \
         "${ROOT_DIR}/scripts/tests/rtf_check.py --expect 2.0" ;;
     *) echo "unknown case ${c}" >&2 ;;

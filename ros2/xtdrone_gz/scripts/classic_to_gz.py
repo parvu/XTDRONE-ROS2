@@ -593,8 +593,8 @@ class Converter:
 
         insert_at = 0
         physics = ET.fromstring(
-            '<physics name="4ms" type="ode"><max_step_size>0.004</max_step_size>'
-            "<real_time_factor>1.0</real_time_factor><real_time_update_rate>250</real_time_update_rate></physics>")
+            '<physics name="4ms" type="ode"><max_step_size>0.002</max_step_size>'
+            "<real_time_factor>1.0</real_time_factor><real_time_update_rate>500</real_time_update_rate></physics>")
         world.insert(insert_at, physics)
         for i, (pname, fname, inner) in enumerate(WORLD_SYSTEMS, start=1):
             world.insert(insert_at + i, ET.fromstring(f'<plugin name="{pname}" filename="{fname}">{inner}</plugin>'))
