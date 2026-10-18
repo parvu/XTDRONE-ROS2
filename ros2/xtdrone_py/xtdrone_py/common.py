@@ -55,17 +55,14 @@ def ap_mode(name):
 
 # ArduPilot sends only the MAVLink messages it is asked for, and MAVROS does not ask. Message id -> rate (Hz).
 AP_MESSAGE_INTERVALS = {
-    1: 5,      # SYS_STATUS
-    24: 5,     # GPS_RAW_INT
-    27: 10,    # RAW_IMU
-    29: 5,     # SCALED_PRESSURE
-    30: 30,    # ATTITUDE
-    31: 30,    # ATTITUDE_QUATERNION
-    32: 30,    # LOCAL_POSITION_NED
-    33: 10,    # GLOBAL_POSITION_INT
-    74: 10,    # VFR_HUD
-    116: 10,   # SCALED_IMU2
-    65: 2,     # RC_CHANNELS
+    1: 2,      # SYS_STATUS
+    24: 2,     # GPS_RAW_INT
+    27: 5,     # RAW_IMU
+    29: 2,     # SCALED_PRESSURE
+    31: 20,    # ATTITUDE_QUATERNION
+    32: 20,    # LOCAL_POSITION_NED
+    33: 5,     # GLOBAL_POSITION_INT
+    74: 5,     # VFR_HUD
     242: 0.5,  # HOME_POSITION
 }
 
@@ -126,13 +123,12 @@ class VehicleNode(Node):
         self._tm_pose_seen = False
         self._tm_since = None
         self._tm_pending = []
-        self._tm_origin_sent = 0
+        self._tm_origin_at = self.get_clock().now()
         self.create_timer(0.25, self._tm_step)
 
     def _tm_state(self, msg):
         if msg.connected and not self._tm_connected:
             self._tm_pending = list(AP_MESSAGE_INTERVALS.items())
-            self._tm_origin_sent = 0
             self._tm_since = self.get_clock().now()
             self.log("connected, requesting the MAVLink streams")
         self._tm_connected = msg.connected
@@ -152,10 +148,11 @@ class VehicleNode(Node):
             req = MessageInterval.Request()
             req.message_id, req.message_rate = mid, float(hz)
             self._tm_client.call_async(req)
-        if self._tm_origin_sent < 20:  # a few times: the EKF may not be up yet
+        # the EKF origin, once a second until the local position streams (the EKF may need a while to start)
+        if not self._tm_pose_seen and (now - self._tm_origin_at).nanoseconds > 1e9:
             self._tm_origin.header.stamp = now.to_msg()
             self._tm_origin_pub.publish(self._tm_origin)
-            self._tm_origin_sent += 1
+            self._tm_origin_at = now
 
     def log(self, text):
         print(f"{self.name}: {text}", flush=True)

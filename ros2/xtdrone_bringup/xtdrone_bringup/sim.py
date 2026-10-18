@@ -82,7 +82,10 @@ EKF_PRESETS = {
 # Applied to every vehicle before the EKF preset and the params argument (which can override them).
 # XTDrone vehicles are flown by companion programs through MAVROS, usually without a ground station or RC:
 # no GCS/RC failsafes (FS_GCS_ENABLE, FS_THR_ENABLE), and arming checks that need hardware are the SITL defaults.
-XTDRONE_DEFAULT_PARAMS = "FS_GCS_ENABLE=0 FS_THR_ENABLE=0 SIM_RC_FAIL=1"
+# ARMING_SKIPCHK 20: skip the compass (4) and INS (16) checks: the simulated compasses and gyros disagree by more
+# than the limits ("Check mag field", "Gyros inconsistent") when the simulation runs slower than real time, and
+# refused to arm.
+XTDRONE_DEFAULT_PARAMS = "FS_GCS_ENABLE=0 FS_THR_ENABLE=0 SIM_RC_FAIL=1 ARMING_SKIPCHK=20"
 
 
 def autopilot_params(ekf, extra=""):
