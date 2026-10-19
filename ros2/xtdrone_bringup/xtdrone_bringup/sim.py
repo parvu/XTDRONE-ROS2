@@ -74,7 +74,7 @@ EKF_PRESETS = {
            "EK3_SRC1_YAW=1 VISO_TYPE=0 COMPASS_USE2=0 COMPASS_USE3=0",
     # vision: position (and velocity) from the vision pose, yaw from the first compass. Yaw from the vision pose too
     # started the EKF with a wrong heading: the vehicles turned on the ground until the fusion caught up
-    "vision": "AHRS_EKF_TYPE=3 EK3_ENABLE=1 VISO_TYPE=1 GPS1_TYPE=0 EK3_SRC1_POSXY=6 EK3_SRC1_VELXY=6 "
+    "vision": "AHRS_EKF_TYPE=3 EK3_ENABLE=1 VISO_TYPE=1 GPS1_TYPE=0 EK3_SRC1_POSXY=6 EK3_SRC1_VELXY=0 "
               "EK3_SRC1_POSZ=6 EK3_SRC1_VELZ=6 EK3_SRC1_YAW=1 COMPASS_USE2=0 COMPASS_USE3=0",
     # 2D laser SLAM (chapters 17, 18, 20): position and yaw from the SLAM pose, whose height is the
     # downward range finder (laser_transfer, as in ROS 1); the barometer is fused as well

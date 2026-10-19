@@ -11,6 +11,7 @@ Requires: xtdrone.launch.py scenario:=indoor3 ekf:=laser2d communication:=basic 
 """
 import argparse
 import math
+import os
 import sys
 import time
 
@@ -102,6 +103,7 @@ def main():
             return 1
         z = t.pose.position.z
         worst = 0.0
+        trace = open(os.environ["XTDRONE_SLAM_TRACE"], "w") if os.environ.get("XTDRONE_SLAM_TRACE") else None
         q = a.size
         corners = [(q, 0), (q, q), (0, q), (0, 0)]
         for cx, cy in corners:
@@ -119,6 +121,8 @@ def main():
                     ds = (t.pose.position.x - s0[0], t.pose.position.y - s0[1])
                     dg = gt_rel()
                     worst = max(worst, math.dist(ds, dg))
+                    if trace:
+                        trace.write(f"{time.time():.2f},{cx},{cy},{ds[0]:.3f},{ds[1]:.3f},{dg[0]:.3f},{dg[1]:.3f}\n")
             reached = t.wait(30, lambda: math.dist((t.pose.position.x, t.pose.position.y),
                                                    (goal.position.x, goal.position.y)) < 0.25, every=track)
             dg = gt_rel()
