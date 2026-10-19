@@ -125,6 +125,10 @@
         <always_on>1</always_on>
         <update_rate>30</update_rate>
         <contact><collision>base_collision</collision></contact>
+      </sensor><sensor name="imu_flu" type="imu">
+        <always_on>1</always_on>
+        <update_rate>250</update_rate>
+        <gz_frame_id>base_link</gz_frame_id>
       </sensor></link>
     <link name="imu_link">
       <inertial>

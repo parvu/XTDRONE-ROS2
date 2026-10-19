@@ -174,8 +174,8 @@ def kit_3d_lidar():
 
 
 def kit_imu_gazebo():
-    # The IMU the ArduPilotPlugin reads (imu_link of the Iris base, the world step rate) is XTDrone's imu_gazebo.
-    scope = SCOPE.format(world="{world}", name="{name}", link="imu_link", sensor="imu_sensor")
+    # A FLU IMU on base_link (iris_ardupilot base): the one the ArduPilotPlugin reads is turned for the FRD frame.
+    scope = SCOPE.format(world="{world}", name="{name}", link="base_link", sensor="imu_flu")
     return "", [(scope + "/imu", "imu_gazebo", "sensor_msgs/msg/Imu", "gz.msgs.IMU")]
 
 

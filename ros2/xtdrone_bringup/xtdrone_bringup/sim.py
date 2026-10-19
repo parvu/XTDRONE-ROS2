@@ -279,7 +279,7 @@ def vehicle_actions(v, world, paths, rootfs, mavros=True, bridge=True, communica
         defaults = paths.ardupilot_dir / "Tools" / "autotest" / "default_params"
         files = [str(defaults / f) for f in spec["defaults"]]
         files.append(str(paths.gz_share / "ardupilot" / spec["overlay"]))
-        files.append(parm_file(f"SYSID_THISMAV={v.mav_sys_id} {params}", Path(tmp) / f"{v.name}.parm"))
+        files.append(parm_file(f"MAV_SYSID={v.mav_sys_id} {params}", Path(tmp) / f"{v.name}.parm"))
         lat, lon, alt, hdg = home or DEFAULT_HOME
         actions.append(ExecuteProcess(
             cmd=["python3", "-m", "xtdrone_bringup.sitl_run", str(ardupilot.binary(paths.ardupilot_dir, v.family)),

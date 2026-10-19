@@ -39,12 +39,21 @@ def main():
         <update_rate>30</update_rate>
         <contact><collision>base_collision</collision></contact>
       </sensor>""")
+    # The ArduPilot IMU (imu_link) is turned 180 degrees about x for the FRD frame; XTDrone's imu_gazebo (VINS-Fusion,
+    # Cartographer, the attitude demo) wants a FLU IMU, like PX4's x500 had on base_link.
+    imu_flu = ET.fromstring("""
+      <sensor name="imu_flu" type="imu">
+        <always_on>1</always_on>
+        <update_rate>250</update_rate>
+        <gz_frame_id>base_link</gz_frame_id>
+      </sensor>""")
     for link in standoffs.findall("link"):
         for col in link.findall("collision"):
             link.remove(col)
         if link.get("name") == "base_link":
             link.insert(list(link).index(link.find("visual")), body_collision)
             link.append(bumper)
+            link.append(imu_flu)
     parts = []
     for el in standoffs:
         if el.tag in ("link", "joint"):

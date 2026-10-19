@@ -1,5 +1,5 @@
 # XTDrone defaults for the multirotors, on top of ArduPilot's copter.parm and gazebo-iris.parm.
-# The per-vehicle parameters (SYSID_THISMAV, EKF source set, the params launch argument) come from the launch file.
+# The per-vehicle parameters (MAV_SYSID, EKF source set, the params launch argument) come from the launch file.
 LOG_DISARMED 0
 # 100 Hz main loop: the simulation steps at 4 ms (250 Hz) and ArduPilot wants a gyro rate of 1.8 x the loop rate;
 # a 2 ms step (500 Hz) allows 250 Hz but cost lockstep round trips: 6 vehicles ran at 0.18 of real time instead of 0.33

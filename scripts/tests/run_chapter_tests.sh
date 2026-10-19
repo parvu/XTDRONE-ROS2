@@ -165,27 +165,27 @@ for c in "${CASES[@]}"; do
       run_script ch16_rtabmap "world:=indoor1 vehicles:=iris_realsense_camera communication:=basic" \
         "${ROOT_DIR}/scripts/tests/rtabmap_test.py" "sleep 25; ros2 launch xtdrone_slam rtabmap_rgbd.launch.py" ;;
     ch17)  # 2D laser SLAM with slam_toolbox (HectorSLAM in ROS 1): fly on the SLAM pose only
-      run_script ch17_slam_toolbox "scenario:=indoor3 ekf:=laser2d communication:=basic params:=WPNAV_SPEED=100,WPNAV_ACCEL=100" \
+      run_script ch17_slam_toolbox "scenario:=indoor3 ekf:=laser2d communication:=basic params:=WP_SPD=1,WP_ACC=1" \
         "${ROOT_DIR}/scripts/tests/laser_slam_test.py --slam slam_toolbox --size 1" \
         "sleep 20; ros2 launch xtdrone_slam laser_slam_2d.launch.py slam:=slam_toolbox" ;;
     ch18)  # 2D laser SLAM with Cartographer
-      run_script ch18_cartographer "scenario:=indoor3 ekf:=laser2d communication:=basic params:=WPNAV_SPEED=100,WPNAV_ACCEL=100" \
+      run_script ch18_cartographer "scenario:=indoor3 ekf:=laser2d communication:=basic params:=WP_SPD=1,WP_ACC=1" \
         "${ROOT_DIR}/scripts/tests/laser_slam_test.py --slam cartographer --size 1" \
         "sleep 20; ros2 launch xtdrone_slam laser_slam_2d.launch.py slam:=cartographer" ;;
     ch13)  # stereo visual SLAM (ORB-SLAM3; scripts/build_orbslam3.sh first): fly on the SLAM pose only
-      run_script ch13_orbslam3 "scenario:=outdoor1_stereo ekf:=vision communication:=basic params:=WPNAV_SPEED=100,WPNAV_ACCEL=100" \
+      run_script ch13_orbslam3 "scenario:=outdoor1_stereo ekf:=vision communication:=basic params:=WP_SPD=1,WP_ACC=1" \
         "${ROOT_DIR}/scripts/tests/laser_slam_test.py --slam orbslam3" \
         "sleep 20; ros2 launch xtdrone_orbslam3 stereo.launch.py" ;;
     ch14)  # stereo visual-inertial odometry (VINS-Fusion): fly on the VIO pose only
-      run_script ch14_vins "scenario:=outdoor1_stereo ekf:=vision communication:=basic params:=WPNAV_SPEED=100,WPNAV_ACCEL=100" \
+      run_script ch14_vins "scenario:=outdoor1_stereo ekf:=vision communication:=basic params:=WP_SPD=1,WP_ACC=1" \
         "${ROOT_DIR}/scripts/tests/laser_slam_test.py --slam vins --tolerance 0.6" \
         "sleep 20; ros2 launch xtdrone_slam vio.launch.py" ;;
     ch19)  # 3D laser odometry (KISS-ICP; A-LOAM in ROS 1): fly on the lidar odometry only
-      run_script ch19_kiss_icp "scenario:=outdoor1_3d_lidar ekf:=vision communication:=basic params:=WPNAV_SPEED=100,WPNAV_ACCEL=100" \
+      run_script ch19_kiss_icp "scenario:=outdoor1_3d_lidar ekf:=vision communication:=basic params:=WP_SPD=1,WP_ACC=1" \
         "${ROOT_DIR}/scripts/tests/laser_slam_test.py --slam kiss_icp" \
         "sleep 20; ros2 launch xtdrone_slam laser_slam_3d.launch.py" ;;
     ch20)  # Nav2 2D planning on slam_toolbox
-      run_script ch20_nav2 "scenario:=indoor3 ekf:=laser2d communication:=enhanced params:=WPNAV_SPEED=100,WPNAV_ACCEL=100" \
+      run_script ch20_nav2 "scenario:=indoor3 ekf:=laser2d communication:=enhanced params:=WP_SPD=1,WP_ACC=1" \
         "${ROOT_DIR}/scripts/tests/nav2_test.py" \
         "sleep 20; ros2 launch xtdrone_slam laser_slam_2d.launch.py slam:=slam_toolbox & sleep 15; ros2 launch xtdrone_planning nav2_2d.launch.py" ;;
     ch30)  # lane keeping of the CAT Vehicle on the outdoor3 track
