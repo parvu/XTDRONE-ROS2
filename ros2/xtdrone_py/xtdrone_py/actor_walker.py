@@ -1,6 +1,6 @@
 """Walk a converted world's script actor once the YOLO chapter is up (chapter 23).
 
-  ros2 run xtdrone_py actor_walker actor typhoon_h480 0 --loop "0,3;40,41,3;..." [--z 2.0]
+  ros2 run xtdrone_py actor_walker actor iris_gimbal 0 --loop "0,3;40,41,3;..." [--z 2.0]
 
 xtdrone.launch.py starts one per actor whose xtdrone_gz_plugins ActorMotion plugin carries a
 <walk_loop> (classic_to_gz.py moved the waypoints of the Classic <script> there; gz-sim would

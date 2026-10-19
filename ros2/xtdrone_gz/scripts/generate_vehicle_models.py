@@ -211,7 +211,55 @@ def kit_bumper():
     return "", [(scope + "/contact", "benchmarker/collision", "ros_gz_interfaces/msg/Contacts", "gz.msgs.Contacts")]
 
 
+def kit_gimbal():
+    """3-axis camera gimbal under the nose (replaces the Typhoon H480's CGO3 of chapter 23): joints driven by
+    JointPositionControllers from /<v>/gimbal/{yaw,roll,pitch}_cmd. Axes as the CGO3's: yaw +z, roll -x, pitch -y,
+    camera 640 x 360 with a 115 degree field of view looking along +x of cgo3_camera_link."""
+    def link(name, pose, visual=""):
+        return f"""
+    <link name="{name}">
+      <pose relative_to="base_link">{pose}</pose>
+      <inertial><mass>0.02</mass>
+        <inertia><ixx>1e-5</ixx><iyy>1e-5</iyy><izz>1e-5</izz><ixy>0</ixy><ixz>0</ixz><iyz>0</iyz></inertia>
+      </inertial>{visual}
+    </link>"""
+
+    def joint(name, parent, child, axis):
+        return f"""
+    <joint name="{name}" type="revolute">
+      <parent>{parent}</parent>
+      <child>{child}</child>
+      <axis><xyz>{axis}</xyz><limit><lower>-3.1416</lower><upper>3.1416</upper></limit>
+        <dynamics><damping>0.01</damping></dynamics></axis>
+    </joint>
+    <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
+      <joint_name>{name}</joint_name>
+      <use_velocity_commands>true</use_velocity_commands>
+      <p_gain>5</p_gain>
+      <cmd_max>3</cmd_max>
+      <cmd_min>-3</cmd_min>
+    </plugin>"""
+
+    ball = """
+      <visual name="visual"><geometry><sphere><radius>0.035</radius></sphere></geometry>
+        <material><ambient>0.1 0.1 0.1 1</ambient><diffuse>0.1 0.1 0.1 1</diffuse></material></visual>"""
+    cam = camera_sensor("camera", "0.03 0 0 0 0 0", 640, 360, 2.0, 30, "cgo3_camera_link", near=0.1, far=500)
+    pose = "0.1 0 -0.12 0 0 0"
+    sdf = (link("cgo3_vertical_arm_link", pose) + link("cgo3_horizontal_arm_link", pose)
+           + link("cgo3_camera_link", pose, ball + cam)
+           + joint("cgo3_vertical_arm_joint", "base_link", "cgo3_vertical_arm_link", "0 0 1")
+           + joint("cgo3_horizontal_arm_joint", "cgo3_vertical_arm_link", "cgo3_horizontal_arm_link", "-1 0 0")
+           + joint("cgo3_camera_joint", "cgo3_horizontal_arm_link", "cgo3_camera_link", "0 -1 0"))
+    bridges = image_bridge("cgo3_camera_link", "camera", "cgo3_camera")
+    for j, topic in (("cgo3_vertical_arm_joint", "yaw"), ("cgo3_horizontal_arm_joint", "roll"),
+                     ("cgo3_camera_joint", "pitch")):
+        bridges.append((f"/model/{{name}}/joint/{j}/0/cmd_pos", f"gimbal/{topic}_cmd", "std_msgs/msg/Float64",
+                        "gz.msgs.Double", "ROS_TO_GZ"))
+    return sdf, bridges
+
+
 KITS = {
+    "gimbal": kit_gimbal,
     "stereo_camera": kit_stereo_camera,
     "realsense_camera": kit_realsense_camera,
     "downward_camera": kit_downward_camera,
@@ -238,6 +286,7 @@ VEHICLES = {
     "iris_2d_lidar": (QUAD, ["2d_lidar", "imu_gazebo", "bumper"]),
     "iris_3d_lidar": (QUAD, ["3d_lidar", "stereo_camera", "imu_gazebo", "bumper"]),
     "iris_3d_gpu_lidar": (QUAD, ["3d_lidar", "stereo_camera", "imu_gazebo", "bumper"]),
+    "iris_gimbal": (QUAD, ["gimbal", "imu_gazebo", "bumper"]),  # replaces typhoon_h480
     "solo": (QUAD, ["imu_gazebo", "bumper"]),
     "solo_stereo_camera": (QUAD, ["stereo_camera", "imu_gazebo", "bumper"]),
     "plane": (PLANE, []),
@@ -540,8 +589,9 @@ def main():
         spec = {
             "base_model": base,
             "bridges": [
-                {"gz_topic": gz, "ros_topic": ros, "ros_type": rt, "gz_type": gt}
-                for gz, ros, rt, gt in bridges
+                {"gz_topic": b[0], "ros_topic": b[1], "ros_type": b[2], "gz_type": b[3],
+                 **({"direction": b[4]} if len(b) > 4 else {})}
+                for b in bridges
             ],
         }
         (d / "xtdrone_bridge.yaml").write_text(

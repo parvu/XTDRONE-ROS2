@@ -16,7 +16,7 @@ import yaml
 VEHICLE_TYPES = {
     "iris": {"sitl": True, "family": "multirotor"},
     "solo": {"sitl": True, "family": "multirotor"},
-    "typhoon_h480": {"sitl": True, "family": "multirotor"},
+    "iris_gimbal": {"sitl": True, "family": "multirotor"},  # replaces the Typhoon H480 (gimbal camera, chapter 23)
     "plane": {"sitl": True, "family": "plane"},
     "standard_vtol": {"sitl": True, "family": "vtol"},
     "rover": {"sitl": True, "family": "rover"},
@@ -29,6 +29,7 @@ VEHICLE_TYPES = {
 # Gazebo Classic XTDrone model names that map to a different Harmonic model.
 MODEL_ALIASES = {
     "plane_gimbal": "plane",
+    "typhoon_h480": "iris_gimbal",
     # XTDrone wrappers of PX4 models with the same name
     "standard_vtol": "standard_vtol_xtd",
     "tiltrotor": "tiltrotor_xtd",

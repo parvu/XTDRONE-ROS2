@@ -1,9 +1,9 @@
 # From XTDrone's ROS 1 robocup.launch
 world: robocup
 vehicles:
-  - {model: typhoon_h480, type: typhoon_h480, id: 0, pose: [0, -3, 0, 0, 0, 0]}
-  - {model: typhoon_h480, type: typhoon_h480, id: 1, pose: [3, -3, 0, 0, 0, 0]}
-  - {model: typhoon_h480, type: typhoon_h480, id: 2, pose: [0, 0, 0, 0, 0, 0]}
-  - {model: typhoon_h480, type: typhoon_h480, id: 3, pose: [3, 0, 0, 0, 0, 0]}
-  - {model: typhoon_h480, type: typhoon_h480, id: 4, pose: [0, 3, 0, 0, 0, 0]}
-  - {model: typhoon_h480, type: typhoon_h480, id: 5, pose: [3, 3, 0, 0, 0, 0]}
+  - {model: iris_gimbal, type: iris_gimbal, id: 0, pose: [0, -3, 0, 0, 0, 0]}
+  - {model: iris_gimbal, type: iris_gimbal, id: 1, pose: [3, -3, 0, 0, 0, 0]}
+  - {model: iris_gimbal, type: iris_gimbal, id: 2, pose: [0, 0, 0, 0, 0, 0]}
+  - {model: iris_gimbal, type: iris_gimbal, id: 3, pose: [3, 0, 0, 0, 0, 0]}
+  - {model: iris_gimbal, type: iris_gimbal, id: 4, pose: [0, 3, 0, 0, 0, 0]}
+  - {model: iris_gimbal, type: iris_gimbal, id: 5, pose: [3, 3, 0, 0, 0, 0]}

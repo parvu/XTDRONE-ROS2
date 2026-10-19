@@ -2,14 +2,14 @@
 (replaces communication/multi_vehicle_communication.sh).
 
   ros2 launch xtdrone_py multi_vehicle_communication.launch.py iris_num:=3
-  ros2 launch xtdrone_py multi_vehicle_communication.launch.py typhoon_h480_num:=6 enhanced:=true
+  ros2 launch xtdrone_py multi_vehicle_communication.launch.py iris_gimbal_num:=6 enhanced:=true
 """
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
-MULTIROTORS = ("iris", "typhoon_h480", "solo")
+MULTIROTORS = ("iris", "iris_gimbal", "solo")
 VTOLS = ("standard_vtol",)
 
 

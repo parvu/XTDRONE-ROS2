@@ -1,4 +1,4 @@
 # From XTDrone's ROS 1 outdoor1.launch
 world: outdoor1
 vehicles:
-  - {model: typhoon_h480, type: typhoon_h480, id: 0, pose: [0, 0, 0, 0, 0, 0]}
+  - {model: iris_gimbal, type: iris_gimbal, id: 0, pose: [0, 0, 0, 0, 0, 0]}

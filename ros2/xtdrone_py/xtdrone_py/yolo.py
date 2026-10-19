@@ -1,9 +1,9 @@
 """Target detection and tracking with a gimbal camera (chapter 23).
 
-  ros2 run xtdrone_py gimbal_control typhoon_h480 0 [--pitch -60]   # sensing/gimbal/gimbal_control.py;
+  ros2 run xtdrone_py gimbal_control iris_gimbal 0 [--pitch -60]   # sensing/gimbal/gimbal_control.py;
       keeps the camera on the first "person" of /<v>/detections as the drone tilts and rolls
-  ros2 run xtdrone_py yolo_detection typhoon_h480 0                  # darknet_ros (YOLO) -> vision_msgs
-  ros2 run xtdrone_py yolo_human_tracking typhoon_h480 0             # control/yolo_human_tracking.py
+  ros2 run xtdrone_py yolo_detection iris_gimbal 0                  # darknet_ros (YOLO) -> vision_msgs
+  ros2 run xtdrone_py yolo_human_tracking iris_gimbal 0             # control/yolo_human_tracking.py
 
 yolo_detection runs YOLOv4-tiny (COCO, the Darknet network family of darknet_ros) with OpenCV's DNN
 module on the CPU: no darknet build, no GPU. Weights: ~/.cache/xtdrone/yolo (downloaded on first use,
@@ -36,7 +36,7 @@ YOLO_FILES = {
     "yolov4-tiny.cfg": "https://raw.githubusercontent.com/AlexeyAB/darknet/master/cfg/yolov4-tiny.cfg",
     "coco.names": "https://raw.githubusercontent.com/AlexeyAB/darknet/master/data/coco.names",
 }
-CAMERA = {"typhoon_h480": "cgo3_camera/image_raw", "iris": "camera/image_raw"}
+CAMERA = {"iris_gimbal": "cgo3_camera/image_raw", "iris": "camera/image_raw"}
 
 
 def yolo_files():
@@ -67,7 +67,7 @@ class Yolo:
     def __init__(self, cfg, weights, names, conf=0.4, nms=0.4, size=(960, 544)):
         self.net = cv2.dnn.readNetFromDarknet(cfg, weights)
         self.model = cv2.dnn_DetectionModel(self.net)
-        # Network input. The typhoon's gimbal camera is 640 x 360 with a 115 deg field of view: a pedestrian
+        # Network input. The gimbal drone's gimbal camera is 640 x 360 with a 115 deg field of view: a pedestrian
         # 10 m away is about 45 px tall, too small for YOLOv4-tiny at the usual 416 x 416 (no detection);
         # 960 x 544 (16:9, multiples of 32) finds it with score 0.95 in about 70 ms on the CPU.
         self.model.setInputParams(size=tuple(size), scale=1 / 255.0, swapRB=True)

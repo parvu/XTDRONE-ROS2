@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""Chapter 23 check: YOLO finds the walking pedestrian of outdoor1 in the typhoon's gimbal camera, and
+"""Chapter 23 check: YOLO finds the walking pedestrian of outdoor1 in the gimbal drone's gimbal camera, and
 the visual servo keeps following it.
 
 Requires: xtdrone.launch.py scenario:=outdoor1 communication:=basic (its actor_walker node holds the
 pedestrian until the drone is above 2 m and both yolo nodes run), and
-`ros2 run xtdrone_py gimbal_control typhoon_h480 0` + `ros2 run xtdrone_py yolo_detection typhoon_h480 0`.
+`ros2 run xtdrone_py gimbal_control iris_gimbal 0` + `ros2 run xtdrone_py yolo_detection iris_gimbal 0`.
 
 1. take off to --altitude (5 m) and hover; the camera looks 60 deg down;
 2. start yolo_human_tracking right away (it publishes zero velocity until it sees a person). The
    walker gate opens and the actor walks along y = 3 into view; wait up to 150 s for >=3 person
    detections and for the actor to advance > 5 m (its start point is already in view, so a walker
    whose gate never opens must fail here, not pass on the stationary person);
-3. check that the typhoon moves (follows) while detections continue.
+3. check that the gimbal drone moves (follows) while detections continue.
 """
 import math
 import os
@@ -28,7 +28,7 @@ from rclpy.qos import qos_profile_sensor_data
 from std_msgs.msg import String
 from vision_msgs.msg import Detection2DArray
 
-V = "typhoon_h480_0"
+V = "iris_gimbal_0"
 
 
 def log(m):
@@ -72,7 +72,7 @@ def main():
     tracker = None
     try:
         if not wait(240, lambda: d.get("st") and d["st"].connected and "home" in d and "gt" in d):
-            log("FAIL: typhoon not ready")
+            log("FAIL: gimbal drone not ready")
             return 1
         up = lambda: vel.publish(Twist(linear=Vector3(z=1.0)))  # noqa: E731
         deadline = time.time() + 90
@@ -86,7 +86,7 @@ def main():
             return 1
         cmd.publish(String(data="HOVER"))
         wait(2, every=lambda: vel.publish(Twist()))
-        tracker = subprocess.Popen(["ros2", "run", "xtdrone_py", "yolo_human_tracking", "typhoon_h480", "0"],
+        tracker = subprocess.Popen(["ros2", "run", "xtdrone_py", "yolo_human_tracking", "iris_gimbal", "0"],
                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
         # the actor_walker gate (drone > 2 m, both yolo nodes) opens now and the actor walks along
         # y = 3 into view; requiring it to advance catches a walker that never starts, since its
@@ -102,7 +102,7 @@ def main():
             wait(60)
             moved = math.dist(start, (d["gt"].x, d["gt"].y))
             follow = moved > 1.0 and d["persons"] > p0
-            log(f"{'ok  ' if follow else 'FAIL'} tracking: typhoon moved {moved:.1f} m, person seen in "
+            log(f"{'ok  ' if follow else 'FAIL'} tracking: drone moved {moved:.1f} m, person seen in "
                 f"{d['persons'] - p0} more frames")
             ok &= follow
     finally:

@@ -5,7 +5,7 @@ from xtdrone_bringup import fleet
 
 def test_vehicle_type_rules():
     assert fleet.vehicle_type_of("iris_stereo_camera") == "iris"
-    assert fleet.vehicle_type_of("typhoon_h480") == "typhoon_h480"
+    assert fleet.vehicle_type_of("iris_gimbal") == "iris_gimbal"
     assert fleet.vehicle_type_of("standard_vtol") == "standard_vtol"
     assert fleet.vehicle_type_of("rover_with_lidar_stereo") == "rover"
     assert fleet.vehicle_type_of("tailsitter") == "tailsitter"
@@ -53,15 +53,15 @@ def test_bridge_config(tmp_path):
 
 
 def test_bridge_direction(tmp_path):
-    d = tmp_path / "typhoon_h480"
+    d = tmp_path / "iris_gimbal"
     d.mkdir()
     (d / "xtdrone_bridge.yaml").write_text(
         "bridges:\n"
         "- gz_topic: /model/{name}/joint/cgo3_camera_joint/0/cmd_pos\n"
         "  ros_topic: gimbal/pitch_cmd\n  ros_type: std_msgs/msg/Float64\n  gz_type: gz.msgs.Double\n"
         "  direction: ROS_TO_GZ\n")
-    v = fleet.Vehicle("typhoon_h480", "typhoon_h480", 2)
+    v = fleet.Vehicle("iris_gimbal", "iris_gimbal", 2)
     e = fleet.bridge_config(tmp_path, "robocup", v)[0]
     assert e["direction"] == "ROS_TO_GZ" and "lazy" not in e
-    assert e["gz_topic_name"] == "/model/typhoon_h480_2/joint/cgo3_camera_joint/0/cmd_pos"
+    assert e["gz_topic_name"] == "/model/iris_gimbal_2/joint/cgo3_camera_joint/0/cmd_pos"
     assert v.airframe == 4901
