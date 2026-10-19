@@ -33,10 +33,10 @@ FRAME_BODY_NED = PositionTarget.FRAME_BODY_NED            # 8
 FRAME_BODY_OFFSET_NED = PositionTarget.FRAME_BODY_OFFSET_NED  # 9
 
 
-# XTDrone keeps PX4's mode names on its topics and keyboards; these are the ArduPilot (Copter) modes behind them.
+# XTDrone keeps PX4's mode names on its topics and keyboards; these are the ArduPilot modes behind them.
 AP_MODES = {
     "OFFBOARD": "GUIDED",
-    "AUTO.TAKEOFF": "GUIDED",   # the communication node sends the takeoff command after arming
+    "AUTO.TAKEOFF": "GUIDED",   # copter: the communication node sends the takeoff command after arming
     "AUTO.LAND": "LAND",
     "AUTO.RTL": "RTL",
     "AUTO.LOITER": "LOITER",
@@ -46,11 +46,17 @@ AP_MODES = {
     "STABILIZED": "STABILIZE",
     "MANUAL": "STABILIZE",
 }
+# ArduPlane: MAVROS 2 has no names for TAKEOFF (13), LOITER (12) or RTL (11); it takes the mode number as a string
+AP_MODES_PLANE = {**AP_MODES, "AUTO.TAKEOFF": "13", "AUTO.LAND": "11", "AUTO.RTL": "11", "AUTO.LOITER": "12",
+                  "POSCTL": "FBWA", "ALTCTL": "FBWB", "STABILIZED": "FBWA", "MANUAL": "MANUAL"}
+AP_MODES_ROVER = {**AP_MODES, "AUTO.TAKEOFF": "GUIDED", "AUTO.LAND": "HOLD", "AUTO.LOITER": "HOLD",
+                  "POSCTL": "HOLD", "ALTCTL": "HOLD", "STABILIZED": "MANUAL", "MANUAL": "MANUAL"}
 
 
-def ap_mode(name):
+def ap_mode(name, vehicle_type="iris"):
     """ArduPilot mode for an XTDrone (PX4-style) mode name; ArduPilot names pass through."""
-    return AP_MODES.get(name, name)
+    modes = AP_MODES_PLANE if vehicle_type == "plane" else AP_MODES_ROVER if vehicle_type == "rover" else AP_MODES
+    return modes.get(name, name)
 
 
 # ArduPilot sends only the MAVLink messages it is asked for, and MAVROS does not ask. Message id -> rate (Hz).
@@ -183,7 +189,7 @@ class VehicleNode(Node):
 
     def set_mode(self, mode):
         req = SetMode.Request()
-        req.custom_mode = ap_mode(mode)
+        req.custom_mode = ap_mode(mode, self.vehicle_type)
         self.call(self.mode_client, req, mode, mode + " failed", check=lambda r: r.mode_sent)
 
     def takeoff(self, altitude):

@@ -3,7 +3,7 @@
 <sdf version="1.9">
   <model name="rover_with_lidar_stereo">
     <include merge="true">
-      <uri>model://r1_rover</uri>
+      <uri>model://rover_ardupilot</uri>
     </include>
     <link name="front_cam">
       <pose relative_to="base_link">0.25 0 0.3 0 0.3 0</pose>
@@ -70,6 +70,87 @@
       <parent>base_link</parent>
       <child>laser_3d</child>
     </joint>
+    <plugin name="ArduPilotPlugin" filename="ArduPilotPlugin">
+      <fdm_addr>127.0.0.1</fdm_addr>
+      <fdm_port_in>9002</fdm_port_in>        
+      <connectionTimeoutMaxCount>5</connectionTimeoutMaxCount>
+      <lock_step>1</lock_step>
+      <gazeboXYZToNED degrees="true">0 0 0 180 0 90</gazeboXYZToNED>
+      <modelXYZToAirplaneXForwardZDown degrees="true">0 0 0 180 0 0</modelXYZToAirplaneXForwardZDown>
+      <imuName>base_link::imu_sensor</imuName>
+
+      
+      <control channel="0">
+        <jointName>motor_0</jointName>
+        <useForce>1</useForce>
+        <multiplier>46.3</multiplier>
+        <offset>-0.5</offset>
+        <servo_min>1000</servo_min>
+        <servo_max>2000</servo_max>
+        <type>VELOCITY</type>
+        <p_gain>0.2</p_gain>
+        <i_gain>0.06</i_gain>
+        <d_gain>0.0001</d_gain>
+        <i_max>1</i_max>
+        <i_min>-1</i_min>
+        <cmd_max>-1.0</cmd_max>
+        <cmd_min>0.0</cmd_min>
+      </control>
+
+      
+      <control channel="0">
+        <jointName>motor_1</jointName>
+        <useForce>1</useForce>
+        <multiplier>46.3</multiplier>
+        <offset>-0.5</offset>
+        <servo_min>1000</servo_min>
+        <servo_max>2000</servo_max>
+        <type>VELOCITY</type>
+        <p_gain>0.2</p_gain>
+        <i_gain>0.06</i_gain>
+        <d_gain>0.0001</d_gain>
+        <i_max>1</i_max>
+        <i_min>-1</i_min>
+        <cmd_max>-1.0</cmd_max>
+        <cmd_min>0.0</cmd_min>
+      </control>
+
+      
+      <control channel="2">
+        <jointName>motor_2</jointName>
+        <useForce>1</useForce>
+        <multiplier>-46.3</multiplier>
+        <offset>-0.5</offset>
+        <servo_min>1000</servo_min>
+        <servo_max>2000</servo_max>
+        <type>VELOCITY</type>
+        <p_gain>0.2</p_gain>
+        <i_gain>0.06</i_gain>
+        <d_gain>0.0001</d_gain>
+        <i_max>1</i_max>
+        <i_min>-1</i_min>
+        <cmd_max>-1.0</cmd_max>
+        <cmd_min>0.0</cmd_min>
+      </control>
+
+      
+      <control channel="2">
+        <jointName>motor_3</jointName>
+        <useForce>1</useForce>
+        <multiplier>-46.3</multiplier>
+        <offset>-0.5</offset>
+        <servo_min>1000</servo_min>
+        <servo_max>2000</servo_max>
+        <type>VELOCITY</type>
+        <p_gain>0.2</p_gain>
+        <i_gain>0.06</i_gain>
+        <d_gain>0.0001</d_gain>
+        <i_max>1</i_max>
+        <i_min>-1</i_min>
+        <cmd_max>-1.0</cmd_max>
+        <cmd_min>0.0</cmd_min>
+      </control>
+    </plugin>
     <plugin filename="gz-sim-odometry-publisher-system" name="gz::sim::systems::OdometryPublisher">
       <dimensions>3</dimensions>
       <odom_publish_frequency>50</odom_publish_frequency>

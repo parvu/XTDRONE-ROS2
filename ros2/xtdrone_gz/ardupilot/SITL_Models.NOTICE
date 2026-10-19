@@ -1,0 +1,2 @@
+models/r1_rover and ardupilot/r1_rover.param are copied from the Gazebo models of ArduPilot/SITL_Models
+(https://github.com/ArduPilot/SITL_Models, Gazebo/models/r1_rover and Gazebo/config/r1_rover.param).

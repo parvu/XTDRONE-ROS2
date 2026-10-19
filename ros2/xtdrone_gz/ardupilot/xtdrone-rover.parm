@@ -1,0 +1,2 @@
+# XTDrone defaults for the rovers, after ArduPilot's rover.parm and SITL_Models' r1_rover.param.
+LOG_DISARMED 0

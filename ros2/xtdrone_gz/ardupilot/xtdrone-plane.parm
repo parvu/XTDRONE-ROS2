@@ -1,0 +1,8 @@
+# XTDrone defaults for the planes, on top of ArduPilot's plane.parm and gazebo-zephyr.parm.
+LOG_DISARMED 0
+# takeoff climbs to 30 m (the default is 100 m)
+TKOFF_ALT 30
+# no RC receiver in the simulation: no throttle failsafe (ARMING_SKIPCHK, set by the launch, skips the RC check)
+THR_FAILSAFE 0
+TKOFF_ROTATE_SPD 8
+TKOFF_GND_PITCH 10

@@ -1,5 +1,6 @@
 """Launch building blocks shared by xtdrone.launch.py and spawn_vehicle.launch.py."""
 import functools
+import math
 import os
 import re
 import tempfile
@@ -85,10 +86,10 @@ EKF_PRESETS = {
 # Applied to every vehicle before the EKF preset and the params argument (which can override them).
 # XTDrone vehicles are flown by companion programs through MAVROS, usually without a ground station or RC:
 # no GCS/RC failsafes (FS_GCS_ENABLE, FS_THR_ENABLE), and arming checks that need hardware are the SITL defaults.
-# ARMING_SKIPCHK 20: skip the compass (4) and INS (16) checks: the simulated compasses and gyros disagree by more
+# ARMING_SKIPCHK 84: skip the compass (4), INS (16) and RC (64) checks (planes wait for an RC receiver): the simulated compasses and gyros disagree by more
 # than the limits ("Check mag field", "Gyros inconsistent") when the simulation runs slower than real time, and
 # refused to arm.
-XTDRONE_DEFAULT_PARAMS = "FS_GCS_ENABLE=0 FS_THR_ENABLE=0 SIM_RC_FAIL=1 ARMING_SKIPCHK=20"
+XTDRONE_DEFAULT_PARAMS = "FS_GCS_ENABLE=0 FS_THR_ENABLE=0 SIM_RC_FAIL=1 ARMING_SKIPCHK=84"
 
 
 def autopilot_params(ekf, extra=""):
@@ -251,6 +252,9 @@ def vehicle_actions(v, world, paths, rootfs, mavros=True, bridge=True, communica
     tmp = tmp or tempfile.mkdtemp(prefix="xtdrone_launch_")
     params = autopilot_params("gps") if params is None else params
     x, y, z, roll, pitch, yaw = v.pose
+    if v.model == "plane":
+        # the zephyr's nose points to -y (the ArduPilotPlugin transform assumes it): turn it to the requested heading
+        yaw += math.pi / 2
     if z <= 0.0:
         # Start slightly above the ground and let the vehicle drop, so wheels and legs do not start inside
         # terrain meshes (e.g. the outdoor3 raceway).
@@ -276,9 +280,9 @@ def vehicle_actions(v, world, paths, rootfs, mavros=True, bridge=True, communica
         workdir.mkdir(parents=True, exist_ok=True)
         # Fresh parameters every launch: ArduPilot saves its parameters in eeprom.bin of the working directory
         (workdir / "eeprom.bin").unlink(missing_ok=True)
-        defaults = paths.ardupilot_dir / "Tools" / "autotest" / "default_params"
-        files = [str(defaults / f) for f in spec["defaults"]]
-        files.append(str(paths.gz_share / "ardupilot" / spec["overlay"]))
+        autotest = paths.ardupilot_dir / "Tools" / "autotest"
+        files = [str(autotest / f) for f in spec["defaults"]]
+        files += [str(paths.gz_share / "ardupilot" / f) for f in spec["overlay"]]
         files.append(parm_file(f"MAV_SYSID={v.mav_sys_id} {params}", Path(tmp) / f"{v.name}.parm"))
         lat, lon, alt, hdg = home or DEFAULT_HOME
         actions.append(ExecuteProcess(

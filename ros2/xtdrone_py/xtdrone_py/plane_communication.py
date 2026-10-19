@@ -6,11 +6,10 @@ from geometry_msgs.msg import Pose, PoseStamped
 from mavros_msgs.msg import PositionTarget
 from std_msgs.msg import String
 
-from xtdrone_py.common import FRAME_LOCAL_NED, MAVROS_QOS, VehicleNode, run
+from xtdrone_py.common import FRAME_LOCAL_NED, MASK_POSITION, MAVROS_QOS, VehicleNode, run
 
-# PX4 position setpoint type bits carried in POSITION_TARGET type_mask.
-PLANE_MISSION_MASKS = {"takeoff": 4096, "land": 8192, "loiter": 12288}
-PLANE_IDLE_MASK = 16384
+# ROS 1 mission words -> the XTDrone mode names they stand for (ArduPlane: TAKEOFF, GUIDED loiter, RTL)
+MISSION_MODES = {"takeoff": "AUTO.TAKEOFF", "land": "AUTO.LAND", "loiter": "OFFBOARD"}
 
 
 class PlaneCommunication(VehicleNode):
@@ -22,6 +21,7 @@ class PlaneCommunication(VehicleNode):
         self.target_motion.coordinate_frame = FRAME_LOCAL_NED  # default 0 (GLOBAL) is rejected by PX4
         self.coordinate_frame = FRAME_LOCAL_NED
         self.mission = None
+        self.target_set = False  # a position setpoint sent before the first command would send the plane to the origin
         n, x = self.name, f"/xtdrone/{self.name}"
         self.create_subscription(PoseStamped, f"/{n}/mavros/local_position/pose", self.local_pose_callback, MAVROS_QOS)
         self.create_subscription(Pose, f"{x}/cmd_pose_flu", self.cmd_pose_flu_callback, 1)
@@ -32,6 +32,8 @@ class PlaneCommunication(VehicleNode):
         self.log("communication initialized")
 
     def publish_target(self):
+        if not self.target_set:
+            return
         self.target_motion.header.stamp = self.get_clock().now().to_msg()
         self.target_motion_pub.publish(self.target_motion)
 
@@ -46,7 +48,8 @@ class PlaneCommunication(VehicleNode):
         else:
             t.position.x, t.position.y = float(-y), float(x)
         t.position.z = float(z)
-        t.type_mask = PLANE_MISSION_MASKS.get(self.mission, PLANE_IDLE_MASK)
+        t.type_mask = MASK_POSITION
+        self.target_set = True
         return t
 
     def cmd_pose_flu_callback(self, msg):
@@ -67,12 +70,8 @@ class PlaneCommunication(VehicleNode):
         elif msg.data in ("takeoff", "land", "loiter", "idle"):
             self.mission = msg.data
             self.log(self.mission)
-            # Re-send the last setpoint with the new mission type.
-            p = self.target_motion.position
-            if self.coordinate_frame == FRAME_LOCAL_NED:
-                self.target_motion = self.construct_target(p.x, p.y, p.z)
-            else:
-                self.target_motion = self.construct_target(p.y, -p.x, p.z)
+            if msg.data in MISSION_MODES:
+                self.set_mode(MISSION_MODES[msg.data])
         else:
             self.set_mode(msg.data)
 

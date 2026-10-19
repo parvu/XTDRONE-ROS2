@@ -4,13 +4,16 @@ from pathlib import Path
 
 ARDUPILOT_VERSION = "4.7.2"
 
-# XTDrone vehicle family -> SITL binary, ArduPilot default parameter files (relative to
-# ArduPilot/Tools/autotest/default_params) and the XTDrone overlay (xtdrone_gz/ardupilot)
+# XTDrone vehicle family -> SITL binary, ArduPilot default parameter files (relative to ArduPilot/Tools/autotest)
+# and the XTDrone overlay (xtdrone_gz/ardupilot)
 SITL = {
-    "multirotor": {"binary": "arducopter", "defaults": ["copter.parm", "gazebo-iris.parm"],
-                   "overlay": "xtdrone.parm"},
-    "plane": {"binary": "arduplane", "defaults": ["plane.parm", "gazebo-zephyr.parm"], "overlay": "xtdrone-plane.parm"},
-    "rover": {"binary": "ardurover", "defaults": ["rover.parm"], "overlay": "xtdrone-rover.parm"},
+    "multirotor": {"binary": "arducopter", "defaults": ["default_params/copter.parm", "default_params/gazebo-iris.parm"],
+                   "overlay": ["xtdrone.parm"]},
+    "plane": {"binary": "arduplane", "defaults": ["models/plane.parm", "default_params/gazebo-zephyr.parm"],
+              "overlay": ["xtdrone-plane.parm"]},
+    # r1_rover.param: the tuned parameters of SITL_Models' R1 rover (skid steering), see ardupilot/SITL_Models.NOTICE
+    "rover": {"binary": "ardurover", "defaults": ["default_params/rover.parm"],
+              "overlay": ["r1_rover.param", "xtdrone-rover.parm"]},
 }
 
 
