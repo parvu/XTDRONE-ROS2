@@ -83,6 +83,9 @@ class EgoPosCmd(Node):
         n = f"{vtype}_{vid}"
         super().__init__(f"{n}_ego_pos_cmd")
         self.pub = self.create_publisher(Pose, f"/xtdrone/{n}/cmd_pose_enu", 10)
+        # position with velocity feed-forward (ArduPilot GUIDED lags a bare position by about a second)
+        self.posvel = self.declare_parameter("velocity_feedforward", True).value
+        self.posvel_pub = self.create_publisher(Odometry, f"/xtdrone/{n}/cmd_posvel_enu", 10)
         self.create_subscription(PositionCommand, f"/xtdrone/{n}/planning/pos_cmd", self.callback, 10)
         # EGO sees the floor only when the camera looks at it, so its trajectory can dip through it (z < 0 was
         # measured) and the vehicle follows it to the ground, or into the furniture below flight height: never
@@ -93,7 +96,14 @@ class EgoPosCmd(Node):
         p = Pose()
         p.position.x, p.position.y, p.position.z = msg.position.x, msg.position.y, max(msg.position.z, self.min_z)
         p.orientation.z, p.orientation.w = math.sin(msg.yaw / 2), math.cos(msg.yaw / 2)
-        self.pub.publish(p)
+        if not self.posvel:
+            self.pub.publish(p)
+            return
+        o = Odometry()
+        o.pose.pose = p
+        o.twist.twist.linear.x, o.twist.twist.linear.y, o.twist.twist.linear.z = (
+            msg.velocity.x, msg.velocity.y, msg.velocity.z if msg.position.z >= self.min_z else 0.0)
+        self.posvel_pub.publish(o)
 
 
 def transfer_main():

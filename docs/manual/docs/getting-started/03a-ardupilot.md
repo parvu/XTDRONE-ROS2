@@ -71,8 +71,13 @@ parameter files are in `ros2/xtdrone_gz/ardupilot/` (`xtdrone.parm`, `xtdrone-pl
 * Chapters 13, 14 and 20 (SLAM and Nav2 accuracy) have run-to-run variation; their test tolerances are 2.0 m,
   1.0 m and 0.7 m on this branch (0.45 m, 0.6 m and 0.5 m on the PX4 branch). A 2D-SLAM map frame has the heading of the
   estimator at the start, and a Nav2 run flew away once.
-* Chapter 22 (EGO-Planner-Swarm): two of the four vehicles stall at the start of the obstacle field (the planner
-  agents report time differences above its limit when the simulation runs at a real-time factor of about 0.5).
+* Chapters 21 and 22 (EGO-Planner) fly `iris_depth_camera`: an iris with a thin body plate on four legs and a
+  depth-only camera (the windows of `ego_swarm_4` are 0.7 m high and a tilting iris with the box collision of the other
+  models does not fit), the planner's position command carries the velocity (`cmd_posvel_enu`, ArduPilot GUIDED lags a
+  bare position by about a second), and the swarm planner runs at 0.6 m/s, inflation 0.12 m and never commands below
+  0.45 m. Chapter 22 still reaches its goals with only one or two of the four vehicles per run: the others hover at
+  the wall looking for their window (the simulation runs at a real-time factor of 0.25-0.5 and the planner agents
+  drop each other's trajectories when they are delayed by more than 0.25 s).
 * Chapter 27 (20 vehicles) is too heavy for the 4 ms world step.
 * `outdoor` worlds with SITL run at a real-time factor of about 0.5-1.2 depending on the number of vehicles.
 

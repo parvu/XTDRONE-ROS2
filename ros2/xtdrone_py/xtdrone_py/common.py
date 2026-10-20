@@ -26,7 +26,11 @@ MASK_ACCEL = (PositionTarget.IGNORE_PX | PositionTarget.IGNORE_PY | PositionTarg
 MASK_VELOCITY_YAW = (PositionTarget.IGNORE_PX | PositionTarget.IGNORE_PY | PositionTarget.IGNORE_PZ
                      | PositionTarget.IGNORE_AFX | PositionTarget.IGNORE_AFY | PositionTarget.IGNORE_AFZ
                      | PositionTarget.IGNORE_YAW_RATE)
-MOTION_MASKS = {0: MASK_POSITION, 1: MASK_VELOCITY, 2: MASK_ACCEL, 3: MASK_VELOCITY_YAW}
+# position with velocity feed-forward and a yaw (ArduPilot GUIDED: tracks a moving target without the lag of a position)
+MASK_POSITION_VELOCITY_YAW = (PositionTarget.IGNORE_AFX | PositionTarget.IGNORE_AFY | PositionTarget.IGNORE_AFZ
+                              | PositionTarget.IGNORE_YAW_RATE)
+MOTION_MASKS = {0: MASK_POSITION, 1: MASK_VELOCITY, 2: MASK_ACCEL, 3: MASK_VELOCITY_YAW,
+                4: MASK_POSITION_VELOCITY_YAW}
 
 FRAME_LOCAL_NED = PositionTarget.FRAME_LOCAL_NED          # 1 (MAVROS: ENU <-> NED handled)
 FRAME_BODY_NED = PositionTarget.FRAME_BODY_NED            # 8

@@ -1,7 +1,7 @@
 # From XTDrone's ROS 1 ego_swarm.launch
 world: ego_swarm_4
 vehicles:
-  - {model: iris_realsense_camera, type: iris, id: 0, pose: [-7, 5, 1, 0, 0, 0]}
-  - {model: iris_realsense_camera, type: iris, id: 1, pose: [-7, 1.2, 1, 0, 0, 0]}
-  - {model: iris_realsense_camera, type: iris, id: 2, pose: [-7, -1.2, 1, 0, 0, 0]}
-  - {model: iris_realsense_camera, type: iris, id: 3, pose: [-7, -4, 1, 0, 0, 0]}
+  - {model: iris_depth_camera, type: iris, id: 0, pose: [-7, 5, 1, 0, 0, 0]}
+  - {model: iris_depth_camera, type: iris, id: 1, pose: [-7, 1.2, 1, 0, 0, 0]}
+  - {model: iris_depth_camera, type: iris, id: 2, pose: [-7, -1.2, 1, 0, 0, 0]}
+  - {model: iris_depth_camera, type: iris, id: 3, pose: [-7, -4, 1, 0, 0, 0]}

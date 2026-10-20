@@ -46,7 +46,7 @@ def nodes(context, *args, **kwargs):
             "target_x": str(x), "target_y": str(y), "target_z": str(z),
             "max_vel": arg("max_vel"), "max_acc": arg("max_acc"), "ceiling": arg("ceiling"),
             "floor": arg("floor"), "inflation": arg("inflation"),
-            "min_z": "0.0", "start_delay": "0.0"}.items())]))
+            "min_z": arg("min_z"), "start_delay": "0.0"}.items())]))
     return out
 
 
@@ -56,9 +56,11 @@ def generate_launch_description():
         DeclareLaunchArgument("count", default_value="4", description="4 (ego_swarm) or 8 (ego_swarm_8)"),
         DeclareLaunchArgument("goals", default_value="", description="x,y,z;x,y,z;... (default: XTDrone's)"),
         DeclareLaunchArgument("goal_mode", default_value="waypoint", description="waypoint or rviz"),
-        DeclareLaunchArgument("max_vel", default_value="1.0"), DeclareLaunchArgument("max_acc", default_value="2.0"),
+        DeclareLaunchArgument("max_vel", default_value="0.6"), DeclareLaunchArgument("max_acc", default_value="0.8"),
         DeclareLaunchArgument("ceiling", default_value="3.0"), DeclareLaunchArgument("floor", default_value="-1.0"),
-        DeclareLaunchArgument("inflation", default_value="0.2"),
+        DeclareLaunchArgument("inflation", default_value="0.12"),
+        DeclareLaunchArgument("min_z", default_value="0.45", description="lowest position command (m): the lowest window of "
+                              "ego_swarm_4 has its centre at 0.55 m; a plan that dips to the floor landed the vehicle"),
         DeclareLaunchArgument("stagger", default_value="4.0", description="seconds between planner starts"),
         DeclareLaunchArgument("sequential_start", default_value="false"),
         OpaqueFunction(function=nodes),

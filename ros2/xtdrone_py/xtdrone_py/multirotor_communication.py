@@ -10,6 +10,7 @@ cmd_accel_flu, cmd_accel_enu} and streams /<type>_<id>/mavros/setpoint_raw/local
 import math
 
 from geometry_msgs.msg import Pose, PoseStamped, Twist
+from nav_msgs.msg import Odometry
 from mavros_msgs.msg import PositionTarget, State
 from std_msgs.msg import String
 
@@ -54,6 +55,7 @@ class MultirotorCommunication(VehicleNode):
         self.create_subscription(String, f"{x}/cmd", self.cmd_callback, 3)
         self.create_subscription(Pose, f"{x}/cmd_pose_flu", self.cmd_pose_flu_callback, 1)
         self.create_subscription(Pose, f"{x}/cmd_pose_enu", self.cmd_pose_enu_callback, 1)
+        self.create_subscription(Odometry, f"{x}/cmd_posvel_enu", self.cmd_posvel_enu_callback, 1)
         self.create_subscription(Twist, f"{x}/cmd_vel_flu", self.cmd_vel_flu_callback, 1)
         self.create_subscription(Twist, f"{x}/cmd_vel_enu", self.cmd_vel_enu_callback, 1)
         self.create_subscription(Twist, f"{x}/cmd_accel_flu", self.cmd_accel_flu_callback, 1)
@@ -141,6 +143,14 @@ class MultirotorCommunication(VehicleNode):
         self.motion_type = 0
         self.target_motion = self.construct_target(x=msg.position.x, y=msg.position.y, z=msg.position.z,
                                                    yaw=q2yaw(msg.orientation))
+
+    def cmd_posvel_enu_callback(self, msg):
+        """A position with the velocity to move at (a planner's trajectory point): pose and twist of an Odometry."""
+        self.coordinate_frame = FRAME_LOCAL_NED
+        self.motion_type = 4
+        p, v = msg.pose.pose.position, msg.twist.twist.linear
+        self.target_motion = self.construct_target(x=p.x, y=p.y, z=p.z, vx=v.x, vy=v.y, vz=v.z,
+                                                   yaw=q2yaw(msg.pose.pose.orientation))
 
     def cmd_vel_flu_callback(self, msg):
         self.hover_state_transition(msg.linear.x, msg.linear.y, msg.linear.z, msg.angular.z)

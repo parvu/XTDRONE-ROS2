@@ -43,19 +43,19 @@
       </visual>
       <collision name="leg_0">
         <pose>-0.14 -0.2 -0.1 0 0 0</pose>
-        <geometry><box><size>0.02 0.02 0.19</size></box></geometry>
+        <geometry><box><size>0.05 0.05 0.19</size></box></geometry>
         <surface><contact><ode><max_vel>100.0</max_vel><min_depth>0.001</min_depth></ode></contact></surface>
       </collision><collision name="leg_1">
         <pose>-0.14 0.2 -0.1 0 0 0</pose>
-        <geometry><box><size>0.02 0.02 0.19</size></box></geometry>
+        <geometry><box><size>0.05 0.05 0.19</size></box></geometry>
         <surface><contact><ode><max_vel>100.0</max_vel><min_depth>0.001</min_depth></ode></contact></surface>
       </collision><collision name="leg_2">
         <pose>0.13 -0.2 -0.1 0 0 0</pose>
-        <geometry><box><size>0.02 0.02 0.19</size></box></geometry>
+        <geometry><box><size>0.05 0.05 0.19</size></box></geometry>
         <surface><contact><ode><max_vel>100.0</max_vel><min_depth>0.001</min_depth></ode></contact></surface>
       </collision><collision name="leg_3">
         <pose>0.13 0.2 -0.1 0 0 0</pose>
-        <geometry><box><size>0.02 0.02 0.19</size></box></geometry>
+        <geometry><box><size>0.05 0.05 0.19</size></box></geometry>
         <surface><contact><ode><max_vel>100.0</max_vel><min_depth>0.001</min_depth></ode></contact></surface>
       </collision><visual name="front_left_leg_visual">
         <pose>0.123 0.22 -0.11 0 0 0</pose>

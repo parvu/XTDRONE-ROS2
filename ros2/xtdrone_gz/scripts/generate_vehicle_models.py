@@ -102,7 +102,7 @@ def kit_realsense_camera():
     sensors = f"""
       <sensor name="depth_camera" type="rgbd_camera">
         <always_on>1</always_on>
-        <update_rate>20</update_rate>
+        <update_rate>10</update_rate>
         <gz_frame_id>depth_camera_base</gz_frame_id>
         <camera>
           <horizontal_fov>1.047198</horizontal_fov>
@@ -121,6 +121,31 @@ def kit_realsense_camera():
         (scope + "/points", prefix + "/depth/points", "sensor_msgs/msg/PointCloud2", "gz.msgs.PointCloudPacked"),
     ]
     return sdf, bridges
+
+
+def kit_depth_camera():
+    """The RealSense depth image only (chapters 21 and 22: EGO-Planner reads the depth image and the camera info): a
+    gz depth_camera renders no colour image and no point cloud, which cost more than the physics when four vehicles
+    fly on a CPU. Same ROS topics as the depth image of iris_realsense_camera."""
+    link = "realsense_link"
+    sensors = """
+      <sensor name="depth_camera" type="depth_camera">
+        <always_on>1</always_on>
+        <update_rate>10</update_rate>
+        <gz_frame_id>depth_camera_base</gz_frame_id>
+        <camera>
+          <horizontal_fov>1.047198</horizontal_fov>
+          <image><width>640</width><height>480</height><format>R_FLOAT32</format></image>
+          <clip><near>0.1</near><far>10</far></clip>
+        </camera>
+      </sensor>"""
+    sdf = sensor_link(link, "0.12 0 0.03 0 0 0", sensors)
+    scope = SCOPE.format(world="{world}", name="{name}", link=link, sensor="depth_camera")
+    prefix = "realsense/depth_camera"
+    return sdf, [
+        (scope + "/camera_info", prefix + "/depth/camera_info", "sensor_msgs/msg/CameraInfo", "gz.msgs.CameraInfo"),
+        (scope + "/depth_image", prefix + "/depth/image_raw", "sensor_msgs/msg/Image", "gz.msgs.Image"),
+    ]
 
 
 def kit_downward_camera():
@@ -262,6 +287,7 @@ KITS = {
     "gimbal": kit_gimbal,
     "stereo_camera": kit_stereo_camera,
     "realsense_camera": kit_realsense_camera,
+    "depth_camera": kit_depth_camera,
     "downward_camera": kit_downward_camera,
     "2d_lidar": kit_2d_lidar,
     "front_stereo": kit_front_stereo,
@@ -284,6 +310,8 @@ VEHICLES = {
     "iris": (QUAD, ["imu_gazebo", "bumper"]),
     "iris_stereo_camera": (QUAD, ["stereo_camera", "imu_gazebo", "bumper"]),
     "iris_realsense_camera": (QUAD, ["realsense_camera", "imu_gazebo", "bumper"]),
+    # chapters 21, 22: a thin body plate on four legs instead of the box (a tilted iris does not fit the 0.7 m windows)
+    "iris_depth_camera": ("iris_legs_ardupilot", ["depth_camera", "imu_gazebo", "bumper"]),
     "iris_downward_camera": (QUAD, ["downward_camera", "imu_gazebo", "bumper"]),
     "iris_2d_lidar": (QUAD, ["2d_lidar", "imu_gazebo", "bumper"]),
     "iris_3d_lidar": (QUAD, ["3d_lidar", "stereo_camera", "imu_gazebo", "bumper"]),
@@ -382,7 +410,7 @@ def model_sdf(name, base, kits):
         snippets.append(sdf)
         bridges += br
     body = "".join(snippets)
-    if base == QUAD:
+    if base in (QUAD, "iris_legs_ardupilot"):
         body += ardupilot_copter_plugin()
     elif base == PLANE:
         body += ardupilot_plane_plugin()
@@ -586,7 +614,7 @@ def main():
         if name == base:
             raise SystemExit(f"model '{name}' would include itself (model://{base}); give the wrapper another name")
     for name, (base, kits) in VEHICLES.items():
-        if base not in (QUAD, PLANE, ROVER, VTOL, TAILSITTER):  # VTOLs: ported in later steps of the ArduPilot branch
+        if base not in (QUAD, "iris_legs_ardupilot", PLANE, ROVER, VTOL, TAILSITTER):  # VTOLs: ported in later steps of the ArduPilot branch
             print(f"skipped {name} (base {base}, not ported to ArduPilot yet)")
             continue
         sdf, bridges = model_sdf(name, base, kits)

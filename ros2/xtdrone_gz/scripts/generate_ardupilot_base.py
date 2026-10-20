@@ -216,7 +216,7 @@ def main():
     legs = [plate] + [f"""
       <collision name="leg_{i}">
         <pose>{x} {y} -0.1 0 0 0</pose>
-        <geometry><box><size>0.02 0.02 0.19</size></box></geometry>
+        <geometry><box><size>0.05 0.05 0.19</size></box></geometry>
         {contact}
       </collision>""" for i, (x, y) in enumerate((x, y) for x in (-0.14, 0.13) for y in (-0.2, 0.2))]
     write_iris(out, "iris_ardupilot", SRC / "iris_with_standoffs/model.sdf", wrapper, [body_box], bumper, imu_flu)

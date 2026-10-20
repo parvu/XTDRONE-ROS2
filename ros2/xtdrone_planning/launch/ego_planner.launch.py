@@ -116,6 +116,6 @@ def generate_launch_description():
                               "before the first trajectory (waypoint goals); 0 starts at once"),
         DeclareLaunchArgument("min_z", default_value="1.2", description="lowest position command (m, ENU): keeps the "
                               "vehicle over tables and chairs, and off the floor the depth camera does not always see"),
-        DeclareLaunchArgument("max_vel", default_value="1.0"), DeclareLaunchArgument("max_acc", default_value="2.0"),
+        DeclareLaunchArgument("max_vel", default_value="1.0"), DeclareLaunchArgument("max_acc", default_value="1.0"),
         OpaqueFunction(function=nodes),
     ])
