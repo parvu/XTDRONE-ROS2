@@ -1,8 +1,9 @@
 // pack_fw_states (chapter 35), ROS 2 port of XTDrone's coordination/fixed_wing_formation_control
 // pack_fw_states: gathers the MAVROS topics of one fixed-wing vehicle into FwStates and sends the controller's
 // commands to PX4. Followers (plane_id > 0): attitude and throttle (setpoint_raw/attitude) from task_main's
-// FwCmd; the leader (plane_id 0): a loiter position setpoint over the UGV (setpoint_raw/local). Both switch
-// PX4 to the mode named in FwCmd.cmd_mode.
+// FwCmd; the leader (plane_id 0): a loiter point over the UGV. Both switch the autopilot to the mode named in
+// FwCmd.cmd_mode (the PX4 names; ArduPlane: OFFBOARD is GUIDED). ArduPlane ignores position setpoints
+// (setpoint_raw/local only changes the altitude): the leader's point goes to it as MAV_CMD_DO_REPOSITION.
 //   ros2 run xtdrone_fixed_wing_formation pack_fw_states --ros-args -p plane_id:=1
 // The ROS 1 version had one executable per plane (pack_leader_states, pack_fw1_states, ...).
 #include <cmath>
@@ -19,6 +20,7 @@
 #include <mavros_msgs/msg/position_target.hpp>
 #include <mavros_msgs/msg/state.hpp>
 #include <mavros_msgs/msg/vfr_hud.hpp>
+#include <mavros_msgs/srv/command_int.hpp>
 #include <mavros_msgs/srv/set_mode.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -46,6 +48,8 @@ public:
     // hence "+ 1500"; here at -600, see the scenario outdoor2_fw_formation), at loiter_altitude.
     spawn_x_ = declare_parameter<double>("spawn_x", -600.0);
     spawn_y_ = declare_parameter<double>("spawn_y", 0.0);
+    origin_lat_ = declare_parameter<double>("origin_lat", 47.397742);  // SITL home = the world origin
+    origin_lon_ = declare_parameter<double>("origin_lon", 8.545594);
     loiter_altitude_ = declare_parameter<double>("loiter_altitude", 50.0);
     orbit_radius_ = declare_parameter<double>("orbit_radius", 150.0);  // 0: the UGV position itself, as ROS 1
     lead_angle_ = declare_parameter<double>("orbit_lead_angle", 0.6);   // rad
@@ -82,6 +86,7 @@ public:
     att_sp_pub_ = create_publisher<mavros_msgs::msg::AttitudeTarget>(ns_ + "mavros/setpoint_raw/attitude", 10);
     states_pub_ = create_publisher<FwStates>(ns_ + "fixed_wing_formation_control/fw_states", 10);
     set_mode_client_ = create_client<mavros_msgs::srv::SetMode>(ns_ + "mavros/set_mode");
+    reposition_client_ = create_client<mavros_msgs::srv::CommandInt>(ns_ + "mavros/cmd/command_int");
 
     timer_ = create_timer(std::chrono::milliseconds(20), [this]() { step(); });  // 50 Hz (ROS time), as ROS 1
     RCLCPP_INFO(get_logger(), "plane %d (%s): %s", plane_id_, ns_.c_str(), plane_id_ == 0 ? "leader" : "follower");
@@ -196,12 +201,34 @@ private:
                    PT::IGNORE_AFZ | PT::IGNORE_YAW | PT::IGNORE_YAW_RATE;
     sp.coordinate_frame = mavros_msgs::msg::PositionTarget::FRAME_LOCAL_NED;  // MAVROS converts from ENU
     local_pos_sp_pub_->publish(sp);
+    reposition(sp.position.x, sp.position.y, sp.position.z);
+  }
+
+  // ArduPlane GUIDED: fly to / loiter around a point (2 Hz)
+  void reposition(double x, double y, double height) {
+    if (state_.mode != "GUIDED" || !reposition_client_->service_is_ready() ||
+        (now() - last_reposition_).seconds() < 0.5) {
+      return;
+    }
+    last_reposition_ = now();
+    auto req = std::make_shared<mavros_msgs::srv::CommandInt::Request>();
+    req->frame = 3;  // MAV_FRAME_GLOBAL_RELATIVE_ALT
+    req->command = 192;  // MAV_CMD_DO_REPOSITION
+    req->param1 = -1.0F;
+    req->param2 = 1.0F;  // change mode to GUIDED
+    // x, y: local frame (origin at the spawn point, the EKF origin of ArduPilot); the GPS positions are world
+    // coordinates around the SITL home
+    const double wx = x + spawn_x_, wy = y + spawn_y_;
+    req->x = static_cast<int32_t>((origin_lat_ + wy / 111320.0) * 1e7);
+    req->y = static_cast<int32_t>((origin_lon_ + wx / (111320.0 * std::cos(origin_lat_ * M_PI / 180.0))) * 1e7);
+    req->z = static_cast<float>(height);
+    reposition_client_->async_send_request(req);
   }
 
   // PX4 mode requested by the controller. ROS 1 called the (blocking) service in every 50 Hz cycle; here only
   // when the mode differs, at most once a second.
   void srv_to_mavros() {
-    const std::string &mode = cmd_.cmd_mode;
+    const std::string mode = cmd_.cmd_mode == "OFFBOARD" ? "GUIDED" : cmd_.cmd_mode;
     if (mode.empty() || mode == state_.mode || !set_mode_client_->service_is_ready()) {
       return;
     }
@@ -217,9 +244,9 @@ private:
 
   int plane_id_;
   std::string ns_;
-  double spawn_x_, spawn_y_, loiter_altitude_, orbit_radius_, lead_angle_;
+  double spawn_x_, spawn_y_, loiter_altitude_, orbit_radius_, lead_angle_, origin_lat_, origin_lon_;
   float att_angle_euler_[3] = {0, 0, 0};
-  rclcpp::Time last_mode_request_{0, 0, RCL_ROS_TIME};
+  rclcpp::Time last_mode_request_{0, 0, RCL_ROS_TIME}, last_reposition_{0, 0, RCL_ROS_TIME};
 
   mavros_msgs::msg::State state_;
   sensor_msgs::msg::Imu imu_;
@@ -243,6 +270,7 @@ private:
   rclcpp::Publisher<mavros_msgs::msg::AttitudeTarget>::SharedPtr att_sp_pub_;
   rclcpp::Publisher<FwStates>::SharedPtr states_pub_;
   rclcpp::Client<mavros_msgs::srv::SetMode>::SharedPtr set_mode_client_;
+  rclcpp::Client<mavros_msgs::srv::CommandInt>::SharedPtr reposition_client_;
   rclcpp::TimerBase::SharedPtr timer_;
 };
 

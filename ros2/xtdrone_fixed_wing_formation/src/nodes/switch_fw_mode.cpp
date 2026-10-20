@@ -23,7 +23,7 @@ public:
     const std::string ns = "/" + prefix + std::to_string(plane_id) + "/";
     cmd_mode_.plane_id = plane_id;
     if (mode == 1) {
-      px4_mode_ = "OFFBOARD";
+      px4_mode_ = "GUIDED";  // OFFBOARD of PX4: ArduPlane flies the formation in GUIDED (attitude targets)
       cmd_mode_.need_formation = true;
       cmd_mode_.formation_type = declare_parameter<int>("formation_type", 1);
     } else {

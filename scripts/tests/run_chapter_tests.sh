@@ -200,7 +200,7 @@ for c in "${CASES[@]}"; do
     ch33)  # le_arm under the iris: MoveIt 2 + gz_ros2_control grasp, then take off with the cube
       run_script ch33_robotic_arm "scenario:=grasping_arm" "${ROOT_DIR}/scripts/tests/arm_grasp_test.py" ;;
     ch35)  # three VTOLs in formation, the leader loitering over the UGV (outdoor2)
-      run_script ch35_fw_formation "scenario:=outdoor2_fw_formation mavlink_profile:=light px4_params:=MIS_TAKEOFF_ALT=40,VT_TRANS_TIMEOUT=30,VT_F_TRANS_THR=0.75,ASPD_DO_CHECKS=0,SDLOG_MODE=-1,CBRK_BUZZER=782097" \
+      run_script ch35_fw_formation "scenario:=outdoor2_fw_formation communication:=basic" \
         "${ROOT_DIR}/scripts/tests/fw_formation_test.py" ;;
     ch32)  # UAVs + VRX WAM-V in sandisland
       run_script ch32_usv "scenario:=sandisland communication:=basic" "${ROOT_DIR}/scripts/tests/usv_test.py" \

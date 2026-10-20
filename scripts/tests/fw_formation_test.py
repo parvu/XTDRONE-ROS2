@@ -5,9 +5,9 @@ Requires: xtdrone.launch.py scenario:=outdoor2_fw_formation (ugv_0 at the origin
 leader standard_vtol_0 at (-600, 0), the followers at (-615, -15) and (-615, 15)); the test starts
 `ros2 launch xtdrone_fixed_wing_formation fixed_wing_formation.launch.py`.
 
-1. AUTO.TAKEOFF and arm all three (MIS_TAKEOFF_ALT from the launch), wait for the take-off (AUTO.LOITER);
-2. one at a time: transition to fixed-wing (MAV_CMD_DO_VTOL_TRANSITION), then start the formation with switch_fw_mode
-   (OFFBOARD; formation_type 2, the triangle: follower 1 30 m north and 30 m west of the leader, follower 2
+1. QLOITER and arm all three, climb on the throttle stick (vtol_communication: velocity commands are RC overrides);
+2. one at a time: transition to fixed-wing (GUIDED, ArduPlane starts the forward transition), then start the formation
+   with switch_fw_mode (GUIDED; formation_type 2, the triangle: follower 1 30 m north and 30 m west of the leader, follower 2
    30 m south and 30 m west);
 3. check that the leader reaches the UGV and loiters over it, and that over the last part of the run the
    followers hold their slots and nobody comes down.
@@ -21,7 +21,8 @@ import sys
 import time
 
 import rclpy
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, Twist
+from std_msgs.msg import String
 from mavros_msgs.msg import ExtendedState, State, SysStatus
 from mavros_msgs.srv import CommandBool, CommandLong, SetMode
 from nav_msgs.msg import Odometry
@@ -65,6 +66,8 @@ def main():
                               lambda m, i=i: d[i].__setitem__("fws", m), 10)
     n.create_subscription(Odometry, "/ugv_0/ground_truth/odom", lambda m: d.__setitem__("ugv", m.pose.pose.position),
                           qos_profile_sensor_data)
+    cmds = {i: n.create_publisher(String, f"/xtdrone/{PREFIX}{i}/cmd", 3) for i in SPAWN}
+    vels = {i: n.create_publisher(Twist, f"/xtdrone/{PREFIX}{i}/cmd_vel_enu", 1) for i in SPAWN}
     cli = {i: {"mode": n.create_client(SetMode, f"/{PREFIX}{i}/mavros/set_mode"),
                "arm": n.create_client(CommandBool, f"/{PREFIX}{i}/mavros/cmd/arming"),
                "cmd": n.create_client(CommandLong, f"/{PREFIX}{i}/mavros/cmd/command")} for i in SPAWN}
@@ -112,73 +115,53 @@ def main():
                     and d["ugv"] is not None):
             log("FAIL: MAVROS of the VTOLs or the UGV ground truth not up")
             return 1
-        # PX4 needs a home position (GPS fix) before it arms
+        # ArduPilot needs the estimator to settle (the communication nodes wait before arming)
         spin(20)
-        # ... and the airspeed sensor: PX4's airspeed selector counts its sensors only while disarmed, so a VTOL armed
-        # before its airspeed topic appeared flew without airspeed and its transition timed out (quad-chute)
-        aspd = 0x10  # MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE
-        if not wait(120, lambda: all(d[i].get("sys") and d[i]["sys"].sensors_present & aspd and d[i]["sys"].sensors_health & aspd
-                                     for i in SPAWN)):
-            log("FAIL: airspeed not healthy: " + ", ".join(
-                f"{i}: {(d[i]['sys'].sensors_health & aspd) if d[i].get('sys') else 'no sys_status'}" for i in SPAWN))
-            return 1
-        log("ok   airspeed sensors healthy")
-
-        def aspd_ok(i):
-            st = d[i].get("sys")
-            return bool(st and st.sensors_health & aspd)
-
-        # Arm on the ground and check the airspeed for a few seconds before the take-off: in some runs a PX4
-        # instance's timer-driven modules (airspeed selector, battery simulation) stopped when it was armed, and
-        # without airspeed its transition later timed out. Such a vehicle is disarmed and armed again.
         for i in SPAWN:
-            for attempt in range(4):
-                if not wait(30, lambda: mode(i) == "AUTO.LOITER" and d[i]["state"].armed, every=lambda: (
-                        call(cli[i]["mode"], SetMode.Request(custom_mode="AUTO.LOITER")) if mode(i) != "AUTO.LOITER"
-                        else call(cli[i]["arm"], CommandBool.Request(value=True)))):
-                    # after a lost airspeed PX4 refuses to arm: the instance's timers stay stopped (exit 3: the
-                    # runner starts a fresh simulation)
-                    log(f"FAIL: {i} not armed: {mode(i)}" + (" (PX4 instance stalled)" if attempt else ""))
-                    return 3 if attempt else 1
-                wait(5, lambda: False)
-                if aspd_ok(i):
-                    break
-                log(f"     {i}: airspeed lost when armed (attempt {attempt + 1}): disarm and try again")
-                call(cli[i]["arm"], CommandBool.Request(value=False))
-                wait(30, lambda: not d[i]["state"].armed and aspd_ok(i))
-            else:
-                log(f"FAIL: {i}: no airspeed when armed (PX4 instance stalled)")
-                return 3
-            if not wait(20, lambda: mode(i) == "AUTO.TAKEOFF", every=lambda: call(
-                    cli[i]["mode"], SetMode.Request(custom_mode="AUTO.TAKEOFF"))):
-                log(f"FAIL: {i} not in AUTO.TAKEOFF: {mode(i)}")
-                return 1
-        log("ok   armed in AUTO.TAKEOFF")
-        # transition only after the take-off: commanded during the climb, the VTOLs quad-chuted (back to
-        # multicopter) and returned
-        if not wait(240, lambda: all(world(i)[2] > 35 and mode(i) == "AUTO.LOITER" for i in SPAWN)):
+            cmds[i].publish(String(data="OFFBOARD"))  # QLOITER
+        spin(2)
+        for i in SPAWN:
+            cmds[i].publish(String(data="ARM"))
+        if not wait(120, lambda: all(d[i]["state"].armed for i in SPAWN)):
+            log("FAIL: not armed: " + ", ".join(f"{i}: {mode(i)}" for i in SPAWN))
+            return 1
+        log("ok   armed in " + mode(0))
+        # climb on the throttle stick (vtol_communication: velocity command = RC override)
+        up = Twist()
+        up.linear.z = 2.0
+
+        def climb():
+            for i in SPAWN:
+                if world(i)[2] < 40:
+                    vels[i].publish(up)
+                else:
+                    vels[i].publish(Twist())
+        if not wait(240, lambda: all(world(i)[2] > 40 for i in SPAWN), every=climb):
             log("FAIL: climb: " + ", ".join(f"{world(i)[2]:.1f} m {mode(i)}" for i in SPAWN))
             return 1
         log("ok   climbed: " + ", ".join(f"{world(i)[2]:.1f} m" for i in SPAWN))
-
-        # one at a time, each straight into the formation (OFFBOARD) after its transition. All three transitioning
-        # together, one VTOL's airspeed sometimes dropped out and PX4 quad-chuted it back to multicopter for good;
-        # transitioned VTOLs left loitering (80 m circles at the same altitude) flew into the ones still to go.
         for i in SPAWN:
-            if not wait(60, lambda: d[i]["ext"].vtol_state == ExtendedState.VTOL_STATE_FW,
-                        every=lambda: d[i]["ext"].vtol_state == ExtendedState.VTOL_STATE_MC and call(
-                            cli[i]["cmd"], CommandLong.Request(command=3000, param1=float(ExtendedState.VTOL_STATE_FW)))):
-                log(f"FAIL: transition of {i}: vtol_state {d[i]['ext'].vtol_state}")
+            vels[i].publish(Twist())
+
+        # one at a time, each straight into the formation (GUIDED) after its forward transition
+        for i in SPAWN:
+            cmds[i].publish(String(data="plane"))  # QLOITER -> GUIDED: the transition to fixed-wing flight starts
+            prev = [world(i)]
+
+            def flying():
+                spin(2.0)
+                p0, p1 = prev[0], world(i)
+                prev[0] = p1
+                return mode(i) == "GUIDED" and math.hypot(p1[0] - p0[0], p1[1] - p0[1]) / 2.0 > 8.0
+            if not wait(90, flying):
+                log(f"FAIL: transition of {i}: {mode(i)} at {world(i)}")
                 return 1
             procs.append(subprocess.Popen(
                 ["ros2", "run", "xtdrone_fixed_wing_formation", "switch_fw_mode", "--ros-args", "-p", f"plane_id:={i}",
                  "-p", "mode:=1", "-p", f"formation_type:={a.formation}", "-p", "use_sim_time:=true"],
                 stdout=nodes_log, stderr=subprocess.STDOUT, start_new_session=True))
-            if not wait(30, lambda: mode(i) == "OFFBOARD"):
-                log(f"FAIL: OFFBOARD of {i}: {mode(i)}")
-                return 1
-            log(f"ok   {i}: fixed-wing and OFFBOARD at {world(i)[2]:.1f} m")
-        log(f"ok   OFFBOARD, formation {a.formation}")
+            log(f"ok   {i}: fixed-wing and GUIDED at {world(i)[2]:.1f} m")
+        log(f"ok   GUIDED, formation {a.formation}")
 
         start = time.time()
         samples = []  # (t, leader-UGV distance, slot errors, altitudes)
