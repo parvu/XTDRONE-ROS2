@@ -44,6 +44,7 @@ nav:
       - 1. Video introduction: getting-started/01-introduction.md
       - 2. Basic configuration: getting-started/02-basic-configuration.md
       - 3. PX4 v1.16.2: getting-started/03-px4-versions.md
+      - 3b. ArduPilot branch: getting-started/03a-ardupilot.md
       - 4. Docker: getting-started/04-docker.md
       - 5. Single-direction position hold: getting-started/05-position-hold.md
       - 6. PX4 EKF configuration: getting-started/06-ekf.md

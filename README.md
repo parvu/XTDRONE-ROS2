@@ -8,7 +8,8 @@ and other unmanned systems such as ground vehicles, surface vessels and robotic 
 XTDrone can be conveniently deployed on real UAVs.
 
 This repository is XTDrone on **Ubuntu 24.04, ROS 2 Jazzy, Gazebo Harmonic and PX4 v1.16.2** (the only supported
-stack). It keeps the vehicles, worlds, topics and chapters of the original XTDrone, ported to ROS 2.
+stack on the `master` branch; the **`Ardupilot` branch** flies the vehicles with ArduPilot 4.7.2 instead, see
+[ArduPilot branch](docs/manual/docs/getting-started/03a-ardupilot.md)). It keeps the vehicles, worlds, topics and chapters of the original XTDrone, ported to ROS 2.
 
 <img src="./images/vehicles.png" width="640"  />
 
