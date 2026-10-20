@@ -228,7 +228,7 @@ def main():
     rover_base(out)
     if (REPO / "SITL_Models").is_dir():
         sitl_model_base(out, "skywalker_x8_quad", "vtol_ardupilot")
-        sitl_model_base(out, "skycat_tvbs", "tailsitter_ardupilot")
+        sitl_model_base(out, "swan_k1_hwing", "tailsitter_ardupilot")
 
 
 if __name__ == "__main__":

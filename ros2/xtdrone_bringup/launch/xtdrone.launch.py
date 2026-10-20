@@ -13,6 +13,7 @@ Per vehicle <type>_<id> (e.g. iris_0) it starts:
   * MAVROS 2 in /<type>_<id>/mavros (fcu udp://:14550+N@),
   * ros_gz_bridge for the vehicle sensors and ground truth.
 """
+import tempfile
 from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
@@ -24,7 +25,7 @@ from launch_ros.actions import Node
 
 from xtdrone_bringup import ardupilot, fleet
 from xtdrone_bringup.sim import (EKF_PRESETS, SWARM_THRESHOLD, SimPaths, actor_bridges, actor_walkers, autopilot_params,
-                                 fleet_bridge, set_real_time_factor, vehicle_actions, world_name)
+                                 fleet_bridge, set_real_time_factor, vehicle_actions, world_name, world_with_step)
 
 
 def _arg(context, name):
@@ -53,6 +54,10 @@ def launch_setup(context):
         objects = []
     world_file = paths.resolve_world(world)
     world = world_name(world_file)
+    # vehicles that need a finer physics step (tailsitter: 2 ms); the argument step:= overrides
+    step = float(_arg(context, "step") or (0.002 if any(v.vtype == "tailsitter" for v in vehicles) else 0))
+    if step > 0:
+        world_file = world_with_step(world_file, step, tempfile.mkdtemp(prefix="xtdrone_world_"))
     communication = _arg(context, "communication")
     if communication not in ("none", "basic", "enhanced"):
         raise RuntimeError("communication must be none, basic or enhanced")
@@ -126,6 +131,9 @@ def generate_launch_description():
         DeclareLaunchArgument("sitl", default_value="true",
                               description="Start ArduPilot SITL (and MAVROS) per vehicle; false spawns models only "
                                           "(chapter 43)."),
+        DeclareLaunchArgument("step", default_value="",
+                              description="Physics step of the world in s (default: the world's, 0.004; 0.002 with "
+                                          "a tailsitter)."),
         DeclareLaunchArgument("speed_factor", default_value="1.0",
                               description="Target real-time factor (> 1 runs faster than real time if the CPU allows)."),
         DeclareLaunchArgument("ekf", default_value="gps",

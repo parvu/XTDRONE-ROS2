@@ -8,5 +8,5 @@ Q_PILOT_SPD_DN 2.5
 Q_YAW_RATE_MAX 75
 # the simulated vehicles have no airspeed sensor
 ARSPD_TYPE 0
-# quadplane tailsitter: the 4 ms world step delivers 250 Hz
-SCHED_LOOP_RATE 100
+# the 2 ms world step of the tailsitter delivers 500 Hz
+SCHED_LOOP_RATE 250

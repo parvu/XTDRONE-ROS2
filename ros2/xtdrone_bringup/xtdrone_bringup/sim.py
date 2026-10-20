@@ -117,6 +117,18 @@ def set_real_time_factor(world, factor):
         output="log", name="set_real_time_factor")
 
 
+def world_with_step(world_file, step, tmp):
+    """A copy of the world with another physics step (and the matching update rate): the tailsitter's attitude loop
+    needs 250 Hz, which the 4 ms step of the worlds cannot feed (the gyro must run at 1.8 x the loop rate)."""
+    text = Path(world_file).read_text()
+    text = re.sub(r"<max_step_size>[^<]*</max_step_size>", f"<max_step_size>{step:g}</max_step_size>", text)
+    text = re.sub(r"<real_time_update_rate>[^<]*</real_time_update_rate>",
+                  f"<real_time_update_rate>{1.0 / step:g}</real_time_update_rate>", text)
+    out = Path(tmp) / Path(world_file).name
+    out.write_text(text)
+    return out
+
+
 def world_name(world_file):
     return ET.parse(world_file).getroot().find("world").get("name")
 
@@ -260,6 +272,9 @@ def vehicle_actions(v, world, paths, rootfs, mavros=True, bridge=True, communica
     if v.model == "plane":
         # the zephyr's nose points to -y (the ArduPilotPlugin transform assumes it): turn it to the requested heading
         yaw += math.pi / 2
+    if v.model == "tailsitter":
+        # ArduPlane's tailsitter code hovers nose up: the model sits on its tail (four legs)
+        pitch, z = pitch - math.pi / 2, max(z, 0.3)
     if z <= 0.0:
         # Start slightly above the ground and let the vehicle drop, so wheels and legs do not start inside
         # terrain meshes (e.g. the outdoor3 raceway).

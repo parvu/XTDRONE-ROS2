@@ -17,6 +17,7 @@ ros2 launch xtdrone_bringup xtdrone.launch.py scenario:=indoor1
 | `sitl:=false` | no autopilot (the models are spawned without the ArduPilot plugin) |
 | `params:=NAME=value,...` | ArduPilot parameters, on top of the defaults of the vehicle family and the `ekf:=` preset |
 | `ardupilot_dir:=` | the ArduPilot sources (default: the submodule) |
+| `step:=` | physics step of the world in s (default: the world's 0.004; 0.002 with a tailsitter) |
 | `ekf:=gps|vision|laser2d` | EKF3 source preset (chapter 6) |
 
 One SITL process (`arducopter`, `arduplane` or `ardurover`, `--model JSON`) runs per vehicle, talking to the
@@ -51,11 +52,17 @@ parameter files are in `ros2/xtdrone_gz/ardupilot/` (`xtdrone.parm`, `xtdrone-pl
 * **Rover** is SITL_Models' R1 (skid steering, ArduRover); the **plane** is ardupilot_gazebo's Zephyr flying wing
   (collision shapes simplified: a belly box with low friction).
 
+## Tailsitter and tiltrotor
+
+* `tailsitter` is SITL_Models' Swan K1 (copter tailsitter, four motors, ArduPlane `Q_TAILSIT_ENABLE 2`). It spawns standing on its tail
+  (pitch −90°). Its attitude loop needs more than the 250 Hz that the 4 ms world step feeds, so a launch with a tailsitter runs
+  the world with a 2 ms step and `SCHED_LOOP_RATE 250` (`step:=` overrides the step). The Skycat TVBS of the same repository
+  (tilt-vector bicopter) was tried first and tumbles as soon as the motors run.
+
 ## Not ported
 
 | Vehicle | State |
 |---|---|
-| `tailsitter` | SITL_Models' `skycat_tvbs` (tilt-vector tailsitter) spawns and connects, but its physics blows up at the 4 ms world step when the vehicle arms (SITL aborts with SIGFPE in `Location::offset`: the model's position becomes NaN). |
 | `tiltrotor` | SITL_Models has no tilt-rotor model. |
 
 ## Known limitations
