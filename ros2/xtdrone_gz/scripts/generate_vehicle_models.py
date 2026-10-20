@@ -125,7 +125,7 @@ def kit_realsense_camera():
 
 def kit_downward_camera():
     link = "camera_link"
-    sensors = camera_sensor("camera", "0 0 0 0 0 0", 1280, 720, 2.0944, 30, "camera_link")
+    sensors = camera_sensor("camera", "0 0 0 0 0 0", 1280, 720, 2.0944, 10, "camera_link")
     sdf = sensor_link(link, "0 0 -0.08 0 1.5707963 0", sensors)
     return sdf, image_bridge(link, "camera", "camera")
 

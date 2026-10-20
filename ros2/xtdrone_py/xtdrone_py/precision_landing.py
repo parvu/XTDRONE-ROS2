@@ -111,6 +111,7 @@ class PrecisionLanding(Node):
             self.tf_buffer = Buffer()
             self.tf_listener = TransformListener(self.tf_buffer, self)
             self.tag_frame = tag_frame or f"tag36h11:{self.tag_id}"
+        self.create_timer(5.0, self.report)
         self.create_timer(1.0 / rate, self.detect)
         self.create_timer(1.0 / 50.0, self.control)
         print(f"{n}: precision landing on tag {self.tag_id} ({detector})", flush=True)
@@ -133,6 +134,13 @@ class PrecisionLanding(Node):
             return None
         tr = t.transform.translation
         return np.array([tr.x, tr.y, tr.z])
+
+    def report(self):
+        if self.pose is None:
+            return
+        p = self.pose.pose.position
+        tag = "not seen" if self.tag_enu is None else f"({self.tag_enu[0]:.2f}, {self.tag_enu[1]:.2f}, {self.tag_enu[2]:.2f})"
+        print(f"{self.get_name()}: at ({p.x:.2f}, {p.y:.2f}, {p.z:.2f}), tag {tag}", flush=True)
 
     def detect(self):
         if self.pose is None:

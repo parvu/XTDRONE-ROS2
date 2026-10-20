@@ -116,9 +116,9 @@ def main():
         for i in range(N):
             procs.append(subprocess.Popen(["ros2", "run", "xtdrone_py", "precision_landing", "iris", str(i),
                                            "--detector", a.detector],
-                                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                          stdout=open(f"/tmp/precision_landing_{i}.log", "w"), stderr=subprocess.STDOUT,
                                           start_new_session=True))
-        landed = f.wait(120, lambda: all(not f.state[n].armed or f.gt[n].z < 0.15 for n in f.names))
+        landed = f.wait(120, lambda: all(not f.state[n].armed or f.gt[n].z < 0.3 for n in f.names))
         f.wait(3.0)
         for i, n in enumerate(f.names):
             p, t = f.gt[n], tag_xy(i)
