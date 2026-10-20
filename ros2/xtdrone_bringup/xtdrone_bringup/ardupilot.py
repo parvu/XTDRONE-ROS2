@@ -16,7 +16,7 @@ SITL = {
     "vtol": {"binary": "arduplane", "defaults": ["default_params/quadplane.parm"],
              "overlay": ["skywalker_x8_quad.param", "xtdrone-vtol.parm"]},
     "tailsitter": {"binary": "arduplane", "defaults": ["models/plane.parm"],
-                   "overlay": ["skycat_tvbs.param", "xtdrone-vtol.parm"]},
+                   "overlay": ["skycat_tvbs.param", "xtdrone-tailsitter.parm"]},
     # r1_rover.param: the tuned parameters of SITL_Models' R1 rover (skid steering), see ardupilot/SITL_Models.NOTICE
     "rover": {"binary": "ardurover", "defaults": ["default_params/rover.parm"],
               "overlay": ["r1_rover.param", "xtdrone-rover.parm"]},

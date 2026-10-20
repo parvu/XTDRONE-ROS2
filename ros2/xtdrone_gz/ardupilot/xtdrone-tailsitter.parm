@@ -1,0 +1,12 @@
+# XTDrone defaults for the QuadPlane / tailsitter models, on top of the model's own parameter file.
+LOG_DISARMED 0
+THR_FAILSAFE 0
+# the companion computer flies the VTOL in QLOITER with RC overrides (vtol_communication): stick full scales
+Q_LOIT_SPEED_MS 5
+Q_PILOT_SPD_UP 2.5
+Q_PILOT_SPD_DN 2.5
+Q_YAW_RATE_MAX 75
+# the simulated vehicles have no airspeed sensor
+ARSPD_TYPE 0
+# quadplane tailsitter: the 4 ms world step delivers 250 Hz
+SCHED_LOOP_RATE 100
