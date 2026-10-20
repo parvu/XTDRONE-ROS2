@@ -20,7 +20,7 @@ VEHICLE_TYPES = {
     "plane": {"sitl": True, "family": "plane"},
     "standard_vtol": {"sitl": True, "family": "vtol"},
     "rover": {"sitl": True, "family": "rover"},
-    "tailsitter": {"sitl": True, "family": "vtol"},
+    "tailsitter": {"sitl": True, "family": "tailsitter"},
     "tiltrotor": {"sitl": True, "family": "vtol"},
     # CAT Vehicle UGV (chapter 11): no autopilot / MAVROS, gz AckermannSteering
     "ugv": {"sitl": False, "family": "ugv"},

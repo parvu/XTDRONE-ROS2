@@ -17,6 +17,18 @@ JOBS="$(nproc)"
 echo "== ArduPilot sources"
 git -C "${ROOT_DIR}" submodule update --init --depth 1 --recursive ArduPilot ardupilot_gazebo
 
+echo "== SITL_Models (Gazebo models of the ArduPilot VTOLs and boats)"
+# Only used for its models: fetched at a fixed revision into SITL_Models/ (not tracked), not a submodule because
+# its RealFlight and Gazebo files are large.
+SITL_MODELS_REV=25bc38ed8c6c0345840159a8cbc0b02781d52f3c
+if [[ "$(git -C "${ROOT_DIR}/SITL_Models" rev-parse HEAD 2>/dev/null || true)" != "${SITL_MODELS_REV}" ]]; then
+  mkdir -p "${ROOT_DIR}/SITL_Models"
+  git -C "${ROOT_DIR}/SITL_Models" init -q
+  git -C "${ROOT_DIR}/SITL_Models" remote add origin https://github.com/ArduPilot/SITL_Models.git 2>/dev/null || true
+  git -C "${ROOT_DIR}/SITL_Models" fetch -q --depth 1 origin "${SITL_MODELS_REV}"
+  git -C "${ROOT_DIR}/SITL_Models" checkout -q FETCH_HEAD
+fi
+
 echo "== XTDrone patches to ArduPilot"
 # SIM_JSON adds the whole physics time of the first frame to its clock: a vehicle added to a running world started
 # ArduPilot with a time jump of that many seconds, and spun and bounced on the ground. (Not in the submodule.)

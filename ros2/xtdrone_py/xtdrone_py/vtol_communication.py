@@ -1,158 +1,151 @@
-"""XTDrone VTOL communication (port of communication/vtol_communication.py).
+"""XTDrone VTOL communication (port of communication/vtol_communication.py) for ArduPlane QuadPlanes.
 
   ros2 run xtdrone_py vtol_communication standard_vtol 0
 
-Commands on /xtdrone/<type>_<id>/cmd: 'multirotor' / 'plane' switch the VTOL
-transition state, 'loiter' / 'idle' the fixed-wing mission, others set the mode.
+ArduPlane ignores position and velocity setpoints from a companion computer (SET_POSITION_TARGET_LOCAL_NED only
+changes the altitude) and its GUIDED mode flies to a point as a fixed-wing plane. The VTOL therefore hovers in QLOITER
+and is flown with RC overrides: the sticks are the velocity (pitch, roll: Q_LOIT_SPEED_MS, throttle: climb rate, yaw:
+yaw rate); a position command (cmd_pose_*) is a proportional controller on that velocity.
+'multirotor' / 'plane' on /xtdrone/<type>_<id>/cmd switch the flight state: in 'plane' state the vehicle is in
+GUIDED fixed-wing flight and the position commands are the points it loiters around (MAV_CMD_DO_REPOSITION).
 """
-from geometry_msgs.msg import Pose, PoseStamped, Twist
-from mavros_msgs.msg import PositionTarget
-from mavros_msgs.srv import CommandVtolTransition
-from std_msgs.msg import String
+import math
 
-from xtdrone_py.common import (FRAME_BODY_NED, FRAME_BODY_OFFSET_NED, FRAME_LOCAL_NED, MAVROS_QOS,
-                               MOTION_MASKS, VehicleNode, q2yaw, run)
-from xtdrone_py.plane_communication import PLANE_IDLE_MASK, PLANE_MISSION_MASKS
+from mavros_msgs.msg import OverrideRCIn
+from mavros_msgs.srv import CommandInt
 
-MC_STATE, FW_STATE = 3, 4  # MAV_VTOL_STATE_MC / _FW
+from xtdrone_py.common import run
+from xtdrone_py.multirotor_communication import MultirotorCommunication
+
+MAV_CMD_DO_REPOSITION = 192
+MAV_FRAME_GLOBAL_RELATIVE_ALT = 3
+METERS_PER_DEGREE = 111320.0
+# stick full scale (xtdrone-vtol.parm sets Q_LOIT_SPEED_MS, Q_PILOT_SPD_UP/DN, Q_YAW_RATE_MAX)
+MAX_HORIZONTAL, MAX_CLIMB, MAX_YAW_RATE = 5.0, 2.5, math.radians(75.0)
+POSITION_KP = 0.8
+NO_CHANGE = 0  # OverrideRCIn: leave the channel alone
 
 
-class VtolCommunication(VehicleNode):
+def stick(value, full_scale):
+    """PWM of a stick that stands for value (full_scale at the ends)."""
+    return int(max(1000, min(2000, 1500 + 500.0 * value / full_scale)))
+
+
+class VtolCommunication(MultirotorCommunication):
 
     def __init__(self, vehicle_type, vehicle_id):
-        super().__init__("communication", vehicle_type, vehicle_id, telemetry=True)
-        self.local_pose = None
-        self.current_yaw = 0.0
-        self.target_motion = PositionTarget()
-        self.target_motion.coordinate_frame = FRAME_LOCAL_NED  # default 0 (GLOBAL) is rejected by PX4
-        self.hover_flag = 0
-        self.coordinate_frame = FRAME_LOCAL_NED
-        self.motion_type = 0
-        self.flight_mode = None
-        self.plane_mission = None
+        super().__init__(vehicle_type, vehicle_id)
         self.transition_state = "multirotor"
+        self.velocity = (0.0, 0.0, 0.0, 0.0)  # ENU velocity and yaw rate
+        self.target_position = None           # position command: (x, y, z) in the local ENU frame
+        self.rc_pub = self.create_publisher(OverrideRCIn, f"/{self.name}/mavros/rc/override", 1)
+        self.reposition_client = self.create_client(CommandInt, f"/{self.name}/mavros/cmd/command_int")
+        self.origin_lat = self.get_parameter("origin_lat").value
+        self.origin_lon = self.get_parameter("origin_lon").value
+        self.create_timer(0.05, self.control)
 
-        n, x = self.name, f"/xtdrone/{self.name}"
-        self.create_subscription(PoseStamped, f"/{n}/mavros/local_position/pose", self.local_pose_callback, MAVROS_QOS)
-        self.create_subscription(Pose, f"{x}/cmd_pose_flu", self.cmd_pose_flu_callback, 1)
-        self.create_subscription(Pose, f"{x}/cmd_pose_enu", self.cmd_pose_enu_callback, 1)
-        self.create_subscription(Twist, f"{x}/cmd_vel_flu", self.cmd_vel_flu_callback, 1)
-        self.create_subscription(Twist, f"{x}/cmd_vel_enu", self.cmd_vel_enu_callback, 1)
-        self.create_subscription(Twist, f"{x}/cmd_accel_flu", self.cmd_accel_flu_callback, 1)
-        self.create_subscription(Twist, f"{x}/cmd_accel_enu", self.cmd_accel_enu_callback, 1)
-        self.create_subscription(String, f"{x}/cmd", self.cmd_callback, 3)
-        self.target_motion_pub = self.create_publisher(PositionTarget, f"/{n}/mavros/setpoint_raw/local", 1)
-        self.transition_client = self.create_client(CommandVtolTransition, f"/{n}/mavros/cmd/vtol_transition")
-        self.create_timer(1.0 / 30.0, self.publish_target)
-        self.log(self.transition_state)
-        self.transition(MC_STATE)
-        self.log("communication initialized")
-
-    def transition(self, state):
-        req = CommandVtolTransition.Request()
-        req.state = state
-        label = "multirotor" if state == MC_STATE else "plane"
-        self.call(self.transition_client, req, f"transition to {label}", f"transition to {label} failed",
-                  check=lambda r: r.success)
-
-    def publish_target(self):
-        self.target_motion.header.stamp = self.get_clock().now().to_msg()
-        self.target_motion_pub.publish(self.target_motion)
-
-    def local_pose_callback(self, msg):
-        self.local_pose = msg.pose
-        self.current_yaw = q2yaw(msg.pose.orientation)
-
-    def construct_target(self, x=0.0, y=0.0, z=0.0, vx=0.0, vy=0.0, vz=0.0,
-                         afx=0.0, afy=0.0, afz=0.0, yaw=0.0, yaw_rate=0.0):
-        t = PositionTarget()
-        t.coordinate_frame = self.coordinate_frame
-        enu = self.coordinate_frame == FRAME_LOCAL_NED
-        t.position.x, t.position.y = (float(x), float(y)) if enu else (float(-y), float(x))
-        t.position.z = float(z)
-        if self.transition_state == "plane":
-            t.type_mask = PLANE_MISSION_MASKS.get(self.plane_mission, PLANE_IDLE_MASK)
-            return t
-        t.velocity.x, t.velocity.y = (float(vx), float(vy)) if enu else (float(-vy), float(vx))
-        t.velocity.z = float(vz)
-        ax, ay = (afx, afy) if enu else (-afy, afx)
-        t.acceleration_or_force.x, t.acceleration_or_force.y = float(ax), float(ay)
-        t.acceleration_or_force.z = float(afz)
-        t.yaw, t.yaw_rate = float(yaw), float(yaw_rate)
-        t.type_mask = MOTION_MASKS[self.motion_type]
-        return t
-
-    def cmd_pose_flu_callback(self, msg):
-        self.coordinate_frame = FRAME_BODY_OFFSET_NED
-        self.target_motion = self.construct_target(x=msg.position.x, y=msg.position.y, z=msg.position.z,
-                                                   yaw=q2yaw(msg.orientation))
-
-    def cmd_pose_enu_callback(self, msg):
-        self.coordinate_frame = FRAME_LOCAL_NED
-        self.target_motion = self.construct_target(x=msg.position.x, y=msg.position.y, z=msg.position.z,
-                                                   yaw=q2yaw(msg.orientation))
-
-    def _motion(self, msg, frame, motion_type):
-        self.hover_state_transition(msg.linear.x, msg.linear.y, msg.linear.z, msg.angular.z)
-        if self.hover_flag == 0:
-            self.coordinate_frame = frame
-            self.motion_type = motion_type
-            if motion_type == 1:
-                self.target_motion = self.construct_target(vx=msg.linear.x, vy=msg.linear.y, vz=msg.linear.z,
-                                                           yaw_rate=msg.angular.z)
-            else:
-                self.target_motion = self.construct_target(afx=msg.linear.x, afy=msg.linear.y, afz=msg.linear.z,
-                                                           yaw_rate=msg.angular.z)
+    # ---- commands --------------------------------------------------------------------------------------------
+    def set_velocity(self, vx, vy, vz, w, body):
+        self.target_position = None
+        if body:
+            c, s = math.cos(self.current_yaw), math.sin(self.current_yaw)
+            vx, vy = c * vx - s * vy, s * vx + c * vy
+        self.velocity = (vx, vy, vz, w)
+        self.hover_flag = 0
 
     def cmd_vel_flu_callback(self, msg):
-        self._motion(msg, FRAME_BODY_NED, 1)
+        self.set_velocity(msg.linear.x, msg.linear.y, msg.linear.z, msg.angular.z, True)
 
     def cmd_vel_enu_callback(self, msg):
-        self._motion(msg, FRAME_LOCAL_NED, 1)
+        self.set_velocity(msg.linear.x, msg.linear.y, msg.linear.z, msg.angular.z, False)
 
     def cmd_accel_flu_callback(self, msg):
-        self._motion(msg, FRAME_BODY_NED, 2)
+        pass  # not supported by ArduPlane
 
-    def cmd_accel_enu_callback(self, msg):
-        self._motion(msg, FRAME_LOCAL_NED, 2)
+    cmd_accel_enu_callback = cmd_accel_flu_callback
 
-    def hover_state_transition(self, x, y, z, w):
-        if abs(x) > 0.005 or abs(y) > 0.005 or abs(z) > 0.005 or abs(w) > 0.005:
-            self.hover_flag = 0
-            self.flight_mode = "OFFBOARD"
+    def set_position(self, x, y, z, flu):
+        if flu and self.current_position is not None:
+            c, s = math.cos(self.current_yaw), math.sin(self.current_yaw)
+            p = self.current_position
+            x, y, z = p.x + c * x - s * y, p.y + s * x + c * y, p.z + z
+        self.target_position = (x, y, z)
+        self.hover_flag = 0
+
+    def cmd_pose_flu_callback(self, msg):
+        self.set_position(msg.position.x, msg.position.y, msg.position.z, True)
+
+    def cmd_pose_enu_callback(self, msg):
+        self.set_position(msg.position.x, msg.position.y, msg.position.z, False)
+
+    def hover(self):
+        self.target_position = None
+        self.velocity = (0.0, 0.0, 0.0, 0.0)
 
     def cmd_callback(self, msg):
         data = msg.data
-        if data == "":
-            return
-        if data == "ARM":
-            self.arm(True)
-        elif data == "DISARM":
-            self.arm(False)
-        elif data in ("multirotor", "plane"):
+        if data in ("multirotor", "plane"):
             self.transition_state = data
             self.log(data)
-            self.transition(MC_STATE if data == "multirotor" else FW_STATE)
+            self.set_mode("OFFBOARD" if data == "multirotor" else "GUIDED")
+            self.last_cmd = data
         elif data in ("loiter", "idle"):
-            self.plane_mission = data
             self.log(data)
-        elif data == "HOVER":
-            self.flight_mode = data
-            self.hover_flag = 1
-            self.hover()
-            self.log("Hover")
         else:
-            self.flight_mode = data
-            self.hover_flag = 0
-            self.set_mode(data)
+            super().cmd_callback(msg)
 
-    def hover(self):
-        if self.local_pose is None:
+    # ---- output ----------------------------------------------------------------------------------------------
+    def check_takeoff(self):
+        """No GUIDED takeoff: the vehicle lifts off on the throttle stick."""
+        if self.arm_pending and self.settled():
+            self.arm_pending = False
+            self.arm(True)
+
+    def publish_target(self):
+        """Replaced by control()."""
+
+    def control(self):
+        if not self.armed or self.current_position is None:
             return
-        self.coordinate_frame = FRAME_LOCAL_NED
-        self.motion_type = 0
-        p = self.local_pose.position
-        self.target_motion = self.construct_target(x=p.x, y=p.y, z=p.z, yaw=self.current_yaw)
+        if self.transition_state == "plane":
+            self.reposition_tick()
+            return
+        vx, vy, vz, w = self.velocity
+        if self.target_position is not None:
+            p = self.current_position
+            vx = self.limit(POSITION_KP * (self.target_position[0] - p.x), MAX_HORIZONTAL)
+            vy = self.limit(POSITION_KP * (self.target_position[1] - p.y), MAX_HORIZONTAL)
+            vz = self.limit(POSITION_KP * (self.target_position[2] - p.z), MAX_CLIMB)
+        c, s = math.cos(self.current_yaw), math.sin(self.current_yaw)
+        forward, left = c * vx + s * vy, -s * vx + c * vy
+        msg = OverrideRCIn()
+        msg.channels = [NO_CHANGE] * 18
+        msg.channels[0] = stick(-left, MAX_HORIZONTAL)     # roll: right stick = right
+        msg.channels[1] = stick(-forward, MAX_HORIZONTAL)  # pitch: forward stick = low PWM
+        msg.channels[2] = stick(vz, MAX_CLIMB)             # throttle: climb rate
+        msg.channels[3] = stick(-w, MAX_YAW_RATE)          # yaw: right stick = clockwise
+        self.rc_pub.publish(msg)
+
+    @staticmethod
+    def limit(value, bound):
+        return max(-bound, min(bound, value))
+
+    def reposition_tick(self):
+        if self.target_position is None or not self.reposition_client.service_is_ready():
+            return
+        self._tick = getattr(self, "_tick", 0) + 1
+        if self._tick % 5:  # 4 Hz
+            return
+        x, y, z = self.target_position
+        req = CommandInt.Request()
+        req.frame = MAV_FRAME_GLOBAL_RELATIVE_ALT
+        req.command = MAV_CMD_DO_REPOSITION
+        req.param1 = -1.0
+        req.param2 = 1.0  # change mode to GUIDED
+        req.x = int((self.origin_lat + y / METERS_PER_DEGREE) * 1e7)
+        req.y = int((self.origin_lon + x / (METERS_PER_DEGREE * math.cos(math.radians(self.origin_lat)))) * 1e7)
+        req.z = float(max(z - (self.ground_z or 0.0), 1.0))
+        self.reposition_client.call_async(req)
 
 
 def main():

@@ -11,6 +11,12 @@ SITL = {
                    "overlay": ["xtdrone.parm"]},
     "plane": {"binary": "arduplane", "defaults": ["models/plane.parm", "default_params/gazebo-zephyr.parm"],
               "overlay": ["xtdrone-plane.parm"]},
+    # SITL_Models' QuadPlane skywalker_x8_quad and tilt-vector tailsitter skycat_tvbs (their parameter files are in
+    # xtdrone_gz/ardupilot, see SITL_Models.NOTICE)
+    "vtol": {"binary": "arduplane", "defaults": ["default_params/quadplane.parm"],
+             "overlay": ["skywalker_x8_quad.param", "xtdrone-vtol.parm"]},
+    "tailsitter": {"binary": "arduplane", "defaults": ["models/plane.parm"],
+                   "overlay": ["skycat_tvbs.param", "xtdrone-vtol.parm"]},
     # r1_rover.param: the tuned parameters of SITL_Models' R1 rover (skid steering), see ardupilot/SITL_Models.NOTICE
     "rover": {"binary": "ardurover", "defaults": ["default_params/rover.parm"],
               "overlay": ["r1_rover.param", "xtdrone-rover.parm"]},
@@ -45,6 +51,10 @@ def binary(ardupilot_dir, family):
     if not path.is_file():
         raise RuntimeError(f"ArduPilot SITL is not built: {path} is missing. Run scripts/build_ardupilot.sh.")
     return path
+
+
+def sitl_models_dir(ardupilot_dir):
+    return Path(ardupilot_dir).parent / "SITL_Models" / "Gazebo" / "models"
 
 
 def gazebo_plugin_dir(ardupilot_dir):

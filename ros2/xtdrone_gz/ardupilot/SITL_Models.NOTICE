@@ -1,2 +1,5 @@
 models/r1_rover and ardupilot/r1_rover.param are copied from the Gazebo models of ArduPilot/SITL_Models
 (https://github.com/ArduPilot/SITL_Models, Gazebo/models/r1_rover and Gazebo/config/r1_rover.param).
+ardupilot/skywalker_x8_quad.param and ardupilot/skycat_tvbs.param are copied from SITL_Models' Gazebo/config. The
+skywalker_x8_quad and skycat_tvbs models themselves (meshes of 12 MB each) are not copied: scripts/build_ardupilot.sh
+fetches SITL_Models into SITL_Models/ (untracked) and the launch puts its Gazebo/models on the resource path.

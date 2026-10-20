@@ -34,7 +34,7 @@ class SimPaths:
 
     @property
     def model_dirs(self):
-        return [self.gz_share / "models", self.gz_share / "classic_models", self.plugin_dir / "models"]
+        return [self.gz_share / "models", self.gz_share / "classic_models", self.plugin_dir / "models", ardupilot.sitl_models_dir(self.ardupilot_dir)]
 
     @property
     def world_dirs(self):
@@ -129,7 +129,7 @@ XTDRONE_MAVROS_PLUGINS = [
     "sys_status", "sys_time", "command", "local_position", "global_position", "imu",
     "altitude", "home_position", "setpoint_raw", "setpoint_position", "setpoint_velocity",
     "setpoint_accel", "setpoint_attitude", "vision_pose", "odometry",
-    "vfr_hud", "wind_estimation", "waypoint",
+    "vfr_hud", "wind_estimation", "waypoint", "rc_io",
 ]
 # mavros_plugins:=swarm (the default above 6 vehicles): only what the XTDrone nodes use
 # (state/set_mode, arming, local position, home, setpoint_raw, vision). Fewer plugins = fewer DDS
@@ -172,7 +172,8 @@ def mavros_params(vehicle, plugins="xtdrone"):
     # drifts whenever Gazebo is slower than real time. The stamps of the messages sent to the autopilot
     # (vision pose: get_local_pose, laser_transfer) are simulation time as well.
     params.append({"fcu_url": vehicle.fcu_url, "gcs_url": "", "tgt_system": vehicle.mav_sys_id,
-                   "tgt_component": 1, "fcu_protocol": "v2.0", "use_sim_time": True})
+                   "tgt_component": 1, "fcu_protocol": "v2.0", "use_sim_time": True,
+                   "system_id": 255})  # the default SYSID_MYGCS: ArduPilot only takes RC overrides from the GCS id
     if plugins in ("xtdrone", "swarm"):
         # allowlist entries override the denylist in MAVROS
         allow = XTDRONE_MAVROS_PLUGINS if plugins == "xtdrone" else XTDRONE_SWARM_MAVROS_PLUGINS
@@ -187,7 +188,7 @@ def communication_node(vehicle, enhanced, origin):
     if vehicle.family == "multirotor":
         exe = "multirotor_communication_enhanced" if enhanced else "multirotor_communication"
         args = [vehicle.vtype, str(vehicle.id_in_type)]
-    elif vehicle.family == "vtol":
+    elif vehicle.family in ("vtol", "tailsitter"):
         exe, args = "vtol_communication", [vehicle.vtype, str(vehicle.id_in_type)]
     else:
         exe, args = f"{vehicle.family}_communication", [str(vehicle.id_in_type)]

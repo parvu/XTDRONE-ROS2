@@ -53,9 +53,16 @@ AP_MODES_ROVER = {**AP_MODES, "AUTO.TAKEOFF": "GUIDED", "AUTO.LAND": "HOLD", "AU
                   "POSCTL": "HOLD", "ALTCTL": "HOLD", "STABILIZED": "MANUAL", "MANUAL": "MANUAL"}
 
 
+# ArduPlane QuadPlane (standard_vtol, tailsitter): GUIDED with Q_GUIDED_MODE flies like a multicopter; QLAND is mode 20,
+# QRTL 21, QHOVER 18, QLOITER 19, QSTABILIZE 17 (MAVROS 2 knows them by number only)
+AP_MODES_VTOL = {**AP_MODES, "OFFBOARD": "19", "AUTO.TAKEOFF": "19", "AUTO.LAND": "20", "AUTO.RTL": "21", "POSCTL": "19", "ALTCTL": "18",
+                 "STABILIZED": "17", "MANUAL": "17"}
+
+
 def ap_mode(name, vehicle_type="iris"):
     """ArduPilot mode for an XTDrone (PX4-style) mode name; ArduPilot names pass through."""
-    modes = AP_MODES_PLANE if vehicle_type == "plane" else AP_MODES_ROVER if vehicle_type == "rover" else AP_MODES
+    modes = (AP_MODES_PLANE if vehicle_type == "plane" else AP_MODES_ROVER if vehicle_type == "rover"
+             else AP_MODES_VTOL if vehicle_type in ("standard_vtol", "tailsitter") else AP_MODES)
     return modes.get(name, name)
 
 
