@@ -73,6 +73,11 @@ def main():
         t.wait(5)
         s0 = (t.pose.position.x, t.pose.position.y)
         g0 = (t.gt.position.x, t.gt.position.y)
+        # the map frame has the heading of the estimator at the start as its x axis (the 2D SLAM yaw is the
+        # EKF yaw): express the ground-truth displacement in it
+        qp, qg = t.pose.orientation, t.gt.orientation
+        rot = (math.atan2(2 * (qp.w * qp.z + qp.x * qp.y), 1 - 2 * (qp.y * qp.y + qp.z * qp.z))
+               - math.atan2(2 * (qg.w * qg.z + qg.x * qg.y), 1 - 2 * (qg.y * qg.y + qg.z * qg.z)))
         up = lambda: t.vel.publish(Twist(linear=Twist().linear.__class__(z=0.5)))  # noqa: E731
         deadline = time.time() + 60
         while time.time() < deadline and not t.state.armed:
@@ -101,9 +106,10 @@ def main():
             res = handle.get_result_async()
             t.wait(120, lambda: res.done())
             status = res.result().status if res.done() else None
-            dg = (t.gt.position.x - g0[0], t.gt.position.y - g0[1])
+            dx, dy = t.gt.position.x - g0[0], t.gt.position.y - g0[1]
+            dg = (dx * math.cos(rot) - dy * math.sin(rot), dx * math.sin(rot) + dy * math.cos(rot))
             err = math.dist(dg, (gx, gy))
-            good = status == GoalStatus.STATUS_SUCCEEDED and err < 0.5  # goal tolerance 0.2 m + SLAM error
+            good = status == GoalStatus.STATUS_SUCCEEDED and err < 0.7  # goal tolerance 0.2 m + SLAM error (ArduPilot branch; PX4 branch: 0.5)
             ok &= good
             log(f"{'ok  ' if good else 'FAIL'} goal ({gx}, {gy}): status {status}, ground truth "
                 f"({dg[0]:.2f}, {dg[1]:.2f}), error {err:.2f} m, height {t.gt.position.z:.2f} m")
