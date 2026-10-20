@@ -193,7 +193,7 @@ for c in "${CASES[@]}"; do
       run_script ch30_self_driving "scenario:=outdoor3_ugv" "${ROOT_DIR}/scripts/tests/self_driving_test.py" \
         "sleep 25; ros2 run xtdrone_py lane_detection ugv 0 & ros2 run xtdrone_py self_driving ugv 0 --speed 3" ;;
     ch29)  # a different mission per iris (own mission storage per PX4 instance), flown in AUTO.MISSION
-      run_script ch29_missions "world:=outdoor2 vehicles:=iris*3 mavros_plugins:=all" \
+      run_script ch29_missions "world:=outdoor2 vehicles:=iris*3 mavros_plugins:=all params:=AUTO_OPTIONS=3" \
         "${ROOT_DIR}/scripts/tests/mission_test.py" ;;
     ch31)  # hybrid A* + pure pursuit for the CAT Vehicle on slam_toolbox's map of outdoor1
       run_script ch31_ugv_planning "scenario:=outdoor1_ugv" "${ROOT_DIR}/scripts/tests/ugv_planning_test.py --goal 20,-1.5" ;;

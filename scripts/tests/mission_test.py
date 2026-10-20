@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Chapter 29 check: every PX4 instance keeps its own mission.
+"""Chapter 29 check: every ArduPilot instance keeps its own mission.
 
 Requires: xtdrone.launch.py world:=outdoor2 vehicles:="iris*3" mavros_plugins:=all (the MAVROS mission plugin).
 
 1. upload a different mission to each iris through MAVROS (as QGroundControl does over MAVLink): take off to 5 m,
    then a waypoint 10, 20 and 30 m north of its home;
-2. read the missions back: each vehicle still has its own (each PX4 instance keeps its own mission storage);
-3. AUTO.MISSION and arm all three; check that each one ends within 2 m of its own waypoint.
+2. read the missions back: each vehicle still has its own (each SITL instance keeps its own mission storage);
+3. AUTO and arm all three; check that each one ends within 2 m of its own waypoint.
 """
 import argparse
 import math
@@ -79,12 +79,17 @@ def main():
 
     # 1. a different mission per vehicle
     target = {}
+    origin = {}
     for k, v in enumerate(names):
         fix = d[v]["fix"]
         north = 10.0 * (k + 1)
         lat = fix.latitude + north / 111320.0
         target[v] = north
-        wps = [Waypoint(frame=FRAME_GLOBAL_REL_ALT, command=MAV_CMD_NAV_TAKEOFF, is_current=True, autocontinue=True,
+        origin[v] = (d[v]["pos"].x, d[v]["pos"].y)  # the vehicles spawn side by side: the waypoint is north of the start
+        # ArduPilot: item 0 of a mission is the home position
+        wps = [Waypoint(frame=0, command=MAV_CMD_NAV_WAYPOINT, autocontinue=True,
+                        x_lat=fix.latitude, y_long=fix.longitude, z_alt=0.0),
+               Waypoint(frame=FRAME_GLOBAL_REL_ALT, command=MAV_CMD_NAV_TAKEOFF, is_current=True, autocontinue=True,
                         x_lat=fix.latitude, y_long=fix.longitude, z_alt=5.0),
                Waypoint(frame=FRAME_GLOBAL_REL_ALT, command=MAV_CMD_NAV_WAYPOINT, autocontinue=True,
                         param2=1.0, x_lat=lat, y_long=fix.longitude, z_alt=5.0)]
@@ -101,7 +106,7 @@ def main():
     ok = True
     for k, v in enumerate(names):
         r = call(cli[v]["pull"], WaypointPull.Request())
-        good = r is not None and r.success and r.wp_received == 2
+        good = r is not None and r.success and r.wp_received == 3
         log(f"{'ok  ' if good else 'FAIL'} {v}: {r.wp_received if r else 'no'} waypoints read back")
         ok &= good
     if not ok:
@@ -110,19 +115,19 @@ def main():
     # 3. fly them
     def start():
         for v in names:
-            if d[v]["st"].mode != "AUTO.MISSION":
-                call(cli[v]["mode"], SetMode.Request(custom_mode="AUTO.MISSION"))
+            if d[v]["st"].mode != "AUTO":
+                call(cli[v]["mode"], SetMode.Request(custom_mode="AUTO"))
             elif not d[v]["st"].armed:
                 call(cli[v]["arm"], CommandBool.Request(value=True))
-    if not wait(90, lambda: all(d[v]["st"].armed and d[v]["st"].mode == "AUTO.MISSION" for v in names), every=start):
+    if not wait(90, lambda: all(d[v]["st"].armed and d[v]["st"].mode == "AUTO" for v in names), every=start):
         log("FAIL: AUTO.MISSION / arming: " + ", ".join(f"{v} {d[v]['st'].mode} armed {d[v]['st'].armed}"
                                                        for v in names))
         return 1
-    log("ok   all in AUTO.MISSION and armed")
+    log("ok   all in AUTO and armed")
 
     def err(v):
-        p = d[v]["pos"]  # ENU from the vehicle's home: the waypoint is target[v] m north (+y)
-        return math.hypot(p.x, p.y - target[v])
+        p = d[v]["pos"]  # ENU: the waypoint is target[v] m north (+y) of the start
+        return math.hypot(p.x - origin[v][0], p.y - origin[v][1] - target[v])
     wait(a.timeout, lambda: all(err(v) < 2.0 and abs(d[v]["pos"].z - 5.0) < 1.5 for v in names))
     for v in names:
         p = d[v]["pos"]
