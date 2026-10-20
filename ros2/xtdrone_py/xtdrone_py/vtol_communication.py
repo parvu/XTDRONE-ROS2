@@ -12,14 +12,10 @@ GUIDED fixed-wing flight and the position commands are the points it loiters aro
 import math
 
 from mavros_msgs.msg import OverrideRCIn
-from mavros_msgs.srv import CommandInt
 
 from xtdrone_py.common import run
 from xtdrone_py.multirotor_communication import MultirotorCommunication
 
-MAV_CMD_DO_REPOSITION = 192
-MAV_FRAME_GLOBAL_RELATIVE_ALT = 3
-METERS_PER_DEGREE = 111320.0
 # stick full scale (xtdrone-vtol.parm sets Q_LOIT_SPEED_MS, Q_PILOT_SPD_UP/DN, Q_YAW_RATE_MAX)
 MAX_HORIZONTAL, MAX_CLIMB, MAX_YAW_RATE = 5.0, 2.5, math.radians(75.0)
 POSITION_KP = 0.8
@@ -39,9 +35,6 @@ class VtolCommunication(MultirotorCommunication):
         self.velocity = (0.0, 0.0, 0.0, 0.0)  # ENU velocity and yaw rate
         self.target_position = None           # position command: (x, y, z) in the local ENU frame
         self.rc_pub = self.create_publisher(OverrideRCIn, f"/{self.name}/mavros/rc/override", 1)
-        self.reposition_client = self.create_client(CommandInt, f"/{self.name}/mavros/cmd/command_int")
-        self.origin_lat = self.get_parameter("origin_lat").value
-        self.origin_lon = self.get_parameter("origin_lon").value
         self.create_timer(0.05, self.control)
 
     # ---- commands --------------------------------------------------------------------------------------------
@@ -131,21 +124,13 @@ class VtolCommunication(MultirotorCommunication):
         return max(-bound, min(bound, value))
 
     def reposition_tick(self):
-        if self.target_position is None or not self.reposition_client.service_is_ready():
+        if self.target_position is None:
             return
         self._tick = getattr(self, "_tick", 0) + 1
         if self._tick % 5:  # 4 Hz
             return
         x, y, z = self.target_position
-        req = CommandInt.Request()
-        req.frame = MAV_FRAME_GLOBAL_RELATIVE_ALT
-        req.command = MAV_CMD_DO_REPOSITION
-        req.param1 = -1.0
-        req.param2 = 1.0  # change mode to GUIDED
-        req.x = int((self.origin_lat + y / METERS_PER_DEGREE) * 1e7)
-        req.y = int((self.origin_lon + x / (METERS_PER_DEGREE * math.cos(math.radians(self.origin_lat)))) * 1e7)
-        req.z = float(max(z - (self.ground_z or 0.0), 1.0))
-        self.reposition_client.call_async(req)
+        self.reposition(x, y, max(z - (self.ground_z or 0.0), 1.0))
 
 
 def main():

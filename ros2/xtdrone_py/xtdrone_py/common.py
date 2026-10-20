@@ -6,7 +6,7 @@ import rclpy
 from geographic_msgs.msg import GeoPointStamped
 from geometry_msgs.msg import PoseStamped, Quaternion
 from mavros_msgs.msg import PositionTarget, State
-from mavros_msgs.srv import CommandBool, CommandTOL, MessageInterval, SetMode
+from mavros_msgs.srv import CommandBool, CommandInt, CommandTOL, MessageInterval, SetMode
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
@@ -127,6 +127,10 @@ class VehicleNode(Node):
         p.latitude = self.declare_parameter("origin_lat", 47.397742).value
         p.longitude = self.declare_parameter("origin_lon", 8.545594).value
         p.altitude = self.declare_parameter("origin_alt", 488.0).value
+        # where the local ENU frame starts in the world: at the spawn point with GPS (ArduPilot's EKF origin is the
+        # first fix), at the world origin with a vision EKF
+        self._spawn = (self.declare_parameter("spawn_x", 0.0).value, self.declare_parameter("spawn_y", 0.0).value)
+        self._reposition_client = self.create_client(CommandInt, f"/{self.name}/mavros/cmd/command_int")
         n = self.name
         self._tm_client = self.create_client(MessageInterval, f"/{n}/mavros/set_message_interval")
         self._tm_origin_pub = self.create_publisher(GeoPointStamped, f"/{n}/mavros/global_position/set_gp_origin", 1)
@@ -198,6 +202,22 @@ class VehicleNode(Node):
         req = SetMode.Request()
         req.custom_mode = ap_mode(mode, self.vehicle_type)
         self.call(self.mode_client, req, mode, mode + " failed", check=lambda r: r.mode_sent)
+
+    def reposition(self, x, y, height, speed=-1.0):
+        """MAV_CMD_DO_REPOSITION (GUIDED): ArduPlane ignores position setpoints. x, y: local ENU frame, height above the
+        takeoff point. The GPS positions are world coordinates around the SITL home (origin_lat, origin_lon)."""
+        if not self._reposition_client.service_is_ready():
+            return
+        lat0, lon0 = self._tm_origin.position.latitude, self._tm_origin.position.longitude
+        req = CommandInt.Request()
+        req.frame = 3  # MAV_FRAME_GLOBAL_RELATIVE_ALT
+        req.command = 192  # MAV_CMD_DO_REPOSITION
+        req.param1 = float(speed)
+        req.param2 = 1.0  # change mode to GUIDED
+        req.x = int((lat0 + (y + self._spawn[1]) / 111320.0) * 1e7)
+        req.y = int((lon0 + (x + self._spawn[0]) / (111320.0 * math.cos(math.radians(lat0)))) * 1e7)
+        req.z = float(height)
+        self._reposition_client.call_async(req)
 
     def takeoff(self, altitude):
         """ArduPilot GUIDED does not leave the ground on setpoints: it needs the takeoff command first."""

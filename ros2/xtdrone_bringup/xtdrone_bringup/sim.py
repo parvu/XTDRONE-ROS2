@@ -183,7 +183,7 @@ def mavros_params(vehicle, plugins="xtdrone"):
     return params
 
 
-def communication_node(vehicle, enhanced, origin):
+def communication_node(vehicle, enhanced, origin, vision=False):
     """XTDrone communication node (xtdrone_py) matching the vehicle family."""
     if vehicle.family == "multirotor":
         exe = "multirotor_communication_enhanced" if enhanced else "multirotor_communication"
@@ -193,7 +193,11 @@ def communication_node(vehicle, enhanced, origin):
     else:
         exe, args = f"{vehicle.family}_communication", [str(vehicle.id_in_type)]
     return Node(package="xtdrone_py", executable=exe, arguments=args, output="screen",
-                parameters=[{"origin_lat": origin[0], "origin_lon": origin[1], "origin_alt": origin[2]}])
+                # with GPS the local ENU frame of ArduPilot starts at the spawn point (its EKF origin), with a vision EKF
+                # at the world origin: the position of the GPS fix of a world point (reposition commands)
+                parameters=[{"origin_lat": origin[0], "origin_lon": origin[1], "origin_alt": origin[2],
+                             "spawn_x": 0.0 if vision else float(vehicle.pose[0]),
+                             "spawn_y": 0.0 if vision else float(vehicle.pose[1])}])
 
 
 def actor_bridges(world_file):
@@ -309,7 +313,8 @@ def vehicle_actions(v, world, paths, rootfs, mavros=True, bridge=True, communica
     if bridge:
         actions.append(fleet_bridge([v], world, paths, tmp, name=f"{v.name}_gz_bridge"))
     if communication != "none" and sitl:
-        actions.append(communication_node(v, communication == "enhanced", home or DEFAULT_HOME))
+        actions.append(communication_node(v, communication == "enhanced", home or DEFAULT_HOME,
+                                          vision="VISO_TYPE=1" in params))
     if v.family == "ugv":
         # XTDrone UGV command (speed, steering angle) -> AckermannSteering (speed, yaw rate);
         # replaces the catvehicle cmd_vel controller, so it always runs

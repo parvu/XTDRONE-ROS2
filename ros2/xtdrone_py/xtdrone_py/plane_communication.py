@@ -2,11 +2,13 @@
 
   ros2 run xtdrone_py plane_communication 0
 """
+import math
+
 from geometry_msgs.msg import Pose, PoseStamped
 from mavros_msgs.msg import PositionTarget
 from std_msgs.msg import String
 
-from xtdrone_py.common import FRAME_LOCAL_NED, MASK_POSITION, MAVROS_QOS, VehicleNode, run
+from xtdrone_py.common import FRAME_LOCAL_NED, MASK_POSITION, MAVROS_QOS, VehicleNode, q2yaw, run
 
 # ROS 1 mission words -> the XTDrone mode names they stand for (ArduPlane: TAKEOFF, GUIDED loiter, RTL)
 MISSION_MODES = {"takeoff": "AUTO.TAKEOFF", "land": "AUTO.LAND", "loiter": "OFFBOARD"}
@@ -32,10 +34,18 @@ class PlaneCommunication(VehicleNode):
         self.log("communication initialized")
 
     def publish_target(self):
-        if not self.target_set:
+        """ArduPlane ignores position setpoints (SET_POSITION_TARGET_LOCAL_NED only changes the altitude): the target
+        goes to it as MAV_CMD_DO_REPOSITION, 4 times a second (the plane loiters around it)."""
+        self._tick = getattr(self, "_tick", 0) + 1
+        if not self.target_set or self.local_pose is None or self._tick % 8:
             return
-        self.target_motion.header.stamp = self.get_clock().now().to_msg()
-        self.target_motion_pub.publish(self.target_motion)
+        t, p = self.target_motion, self.local_pose.pose.position
+        x, y, z = t.position.x, t.position.y, t.position.z
+        if t.coordinate_frame != FRAME_LOCAL_NED:  # offset from the plane, body FLU
+            yaw = q2yaw(self.local_pose.pose.orientation)
+            c, s = math.cos(yaw), math.sin(yaw)
+            x, y, z = p.x + c * x - s * y, p.y + s * x + c * y, p.z + z
+        self.reposition(x, y, max(z, 5.0))
 
     def local_pose_callback(self, msg):
         self.local_pose = msg
