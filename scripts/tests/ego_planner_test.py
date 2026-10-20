@@ -35,7 +35,7 @@ def log(m):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--target", default="0,-11.5,1.2",
+    ap.add_argument("--target", default="0,-10.5,1.2",
                     help="goal: x, y displacement from the start and height above it (m, ENU)")
     ap.add_argument("--timeout", type=float, default=240.0)
     ap.add_argument("--detour", type=float, default=0.0,
