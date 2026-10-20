@@ -238,6 +238,8 @@ for c in "${CASES[@]}"; do
       run_case ch08_plane "world:=outdoor2 vehicles:=plane communication:=basic" "--vehicles plane_0 --mode plane" ;;
     ch08vtol)
       run_case ch08_vtol "world:=outdoor2 vehicles:=standard_vtol communication:=basic" "--vehicles standard_vtol_0" ;;
+    ch08tailsitter)
+      run_case ch08_tailsitter "world:=outdoor2 vehicles:=tailsitter communication:=basic" "--vehicles tailsitter_0" ;;
     ch08rover)
       run_case ch08_rover "world:=outdoor3 vehicles:=rover communication:=basic" "--vehicles rover_0 --mode rover" ;;
     ch09)  # multi-vehicle: 6 iris
