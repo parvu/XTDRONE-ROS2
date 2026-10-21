@@ -3,6 +3,7 @@ import functools
 import math
 import os
 import re
+import shutil
 import tempfile
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
@@ -300,6 +301,9 @@ def vehicle_actions(v, world, paths, rootfs, mavros=True, bridge=True, communica
         workdir.mkdir(parents=True, exist_ok=True)
         # Fresh parameters every launch: ArduPilot saves its parameters in eeprom.bin of the working directory
         (workdir / "eeprom.bin").unlink(missing_ok=True)
+        # and no terrain cache: a tile left by an earlier run (real SRTM heights) makes ArduCopter clamp its terrain
+        # offset ("Terrain: clamping offset") and reject the takeoff, so the vehicle arms and then disarms
+        shutil.rmtree(workdir / "terrain", ignore_errors=True)
         autotest = paths.ardupilot_dir / "Tools" / "autotest"
         files = [str(autotest / f) for f in spec["defaults"]]
         files += [str(paths.gz_share / "ardupilot" / f) for f in spec["overlay"]]
