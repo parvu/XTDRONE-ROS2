@@ -148,6 +148,7 @@ def write_iris(out, name, standoffs_path, wrapper, collisions, bumper, imu_flu):
                 link.insert(list(link).index(link.find("visual")) + k, ET.fromstring(col))
             link.append(bumper)
             link.append(imu_flu)
+            link.append(ET.fromstring("<enable_wind>true</enable_wind>"))  # the world wind (chapter 41) acts on it
     parts = []
     for el in standoffs:
         if el.tag in ("link", "joint"):

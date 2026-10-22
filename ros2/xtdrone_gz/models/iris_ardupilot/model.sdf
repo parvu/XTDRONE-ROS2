@@ -129,7 +129,7 @@
         <always_on>1</always_on>
         <update_rate>250</update_rate>
         <gz_frame_id>base_link</gz_frame_id>
-      </sensor></link>
+      </sensor><enable_wind>true</enable_wind></link>
     <link name="imu_link">
       <inertial>
         <pose>0 0 0 0 0 0</pose>
